@@ -2,10 +2,14 @@
 
 import { useSyncExternalStore } from "react";
 
-function getSnapshot(): boolean {
+interface NavigatorStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+function getSnapshot(): boolean { 
   if (typeof window === "undefined") return false;
   const isDisplayModeStandalone = window.matchMedia("(display-mode: standalone)").matches;
-  const iosStandalone = (window.navigator as any).standalone === true;
+  const iosStandalone = (window.navigator as NavigatorStandalone).standalone === true;
   return isDisplayModeStandalone || iosStandalone;
 }
 
