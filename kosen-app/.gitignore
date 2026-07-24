@@ -48,3 +48,12 @@ public/worker-*.js
 public/fallback-*.js
 .next/
 node_modules/
+
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
