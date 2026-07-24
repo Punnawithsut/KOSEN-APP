@@ -96,8 +96,8 @@ npx web-push generate-vapid-keys
 ## Database (Drizzle)
 
 ```bash
-npx drizzle-kit generate   # generate SQL migration from schema.ts
-npx drizzle-kit migrate    # apply migrations to the database
+npm run generate       # generate SQL migration from schema.ts
+npm run migrate        # apply migrations to the database
 ```
 
 Schema lives in `src/db/schema.ts`; query/mutation logic should live in `src/lib/` (not inline in route handlers), so both Route Handlers and Server Actions can share it.
