@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@serwist/next": "^9.5.11",
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
