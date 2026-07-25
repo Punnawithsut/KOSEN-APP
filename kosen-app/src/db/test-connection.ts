@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { db } from "./client";
 import { rooms } from "./schema";
 
