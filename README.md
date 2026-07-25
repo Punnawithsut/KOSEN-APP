@@ -118,6 +118,18 @@ Then in Chrome DevTools → **Application** tab:
 
 Install-gating (routes under `(app)/`) should redirect to `/` in a regular browser tab, and only render once opened from an installed/home-screen app instance.
 
+## Adding Shadcn Components
+
+```bash
+npx shadcn@latest add <your-component>
+```
+
+## Testing Database Integration 
+
+```bash
+npx tsx src/db/test-conntection.ts
+```
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every PR to `main`/`dev`:
