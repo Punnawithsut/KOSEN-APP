@@ -1,5 +1,5 @@
 {
-  "id": "db026947-fd7d-4231-965b-c82b6191838a",
+  "id": "3ca25f8f-4cff-4171-9f3b-60a5dc3bef9b",
   "prevId": "a104564e-e3e2-43f7-968b-b58723f6f1cf",
   "version": "7",
   "dialect": "postgresql",
@@ -80,7 +80,110 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "appointments_user_id_idx": {
+          "name": "appointments_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_counselor_id_idx": {
+          "name": "appointments_counselor_id_idx",
+          "columns": [
+            {
+              "expression": "counselor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_appointment_date_idx": {
+          "name": "appointments_appointment_date_idx",
+          "columns": [
+            {
+              "expression": "appointment_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_status_idx": {
+          "name": "appointments_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_counselor_id_date_idx": {
+          "name": "appointments_counselor_id_date_idx",
+          "columns": [
+            {
+              "expression": "counselor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "appointment_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "appointments_user_id_date_idx": {
+          "name": "appointments_user_id_date_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "appointment_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "appointments_user_id_users_user_id_fk": {
           "name": "appointments_user_id_users_user_id_fk",
@@ -227,7 +330,23 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "family_history_form_id_idx": {
+          "name": "family_history_form_id_idx",
+          "columns": [
+            {
+              "expression": "form_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "family_history_form_id_medical_history_forms_form_id_fk": {
           "name": "family_history_form_id_medical_history_forms_form_id_fk",
@@ -376,7 +495,38 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "medical_history_forms_user_id_idx": {
+          "name": "medical_history_forms_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "medical_history_forms_appointment_id_idx": {
+          "name": "medical_history_forms_appointment_id_idx",
+          "columns": [
+            {
+              "expression": "appointment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "medical_history_forms_user_id_users_user_id_fk": {
           "name": "medical_history_forms_user_id_users_user_id_fk",
@@ -448,7 +598,23 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "notifications_appointment_id_idx": {
+          "name": "notifications_appointment_id_idx",
+          "columns": [
+            {
+              "expression": "appointment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "notifications_appointment_id_appointments_appointment_id_fk": {
           "name": "notifications_appointment_id_appointments_appointment_id_fk",

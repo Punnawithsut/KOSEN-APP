@@ -9,6 +9,7 @@ import {
   time,
   timestamp,
   pgEnum,
+  index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -39,13 +40,10 @@ export const users = pgTable("users", {
   userId: uuid("user_id").defaultRandom().primaryKey(),
   studentId: varchar("student_id", { length: 20 }).notNull().unique(),
   fullName: varchar("full_name", { length: 255 }).notNull(),
-  email: varchar("email", { length: 255 }).unique(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
   phone: varchar("phone", { length: 20 }),
   emergencyPhone: varchar("emergency_phone", { length: 20 }),
   department: varchar("department", { length: 100 }),
-  // Whether the student has signed off on the consent-to-treatment agreement.
-  // Replaces the old dedicated consent_forms table (fewer places holding
-  // sensitive intake data at rest).
   isConsented: boolean("is_consented").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -62,76 +60,118 @@ export const counselors = pgTable("counselors", {
   detail: text("detail"),
 });
 
-export const appointments = pgTable("appointments", {
-  appointmentId: uuid("appointment_id").defaultRandom().primaryKey(),
-  appointmentCode: varchar("appointment_code", { length: 20 })
-    .notNull()
-    .unique(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.userId, { onDelete: "cascade" }),
-  counselorId: uuid("counselor_id").references(() => counselors.counselorId),
-  appointmentDate: date("appointment_date").notNull(),
-  startTime: time("start_time").notNull(),
-  endTime: time("end_time").notNull(),
-  note: text("note"),
-  status: appointmentStatusEnum("status").notNull().default("pending"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Sensitive medical intake data lives in its own table, only ever joined
-// through appointment_id/user_id — never returned by default list endpoints.
-export const medicalHistoryForms = pgTable("medical_history_forms", {
-  formId: uuid("form_id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.userId, { onDelete: "cascade" }),
-  appointmentId: uuid("appointment_id").references(
-    () => appointments.appointmentId,
-    { onDelete: "cascade" },
-  ),
-  hasConsultedPsychiatrist: boolean("has_consulted_psychiatrist"),
-  psychiatricVisitCount: integer("psychiatric_visit_count"),
-  consultationDate: date("consultation_date"),
-  hospitalOrClinic: varchar("hospital_or_clinic", { length: 255 }),
-  doctorOrPsychologistName: varchar("doctor_or_psychologist_name", {
-    length: 255,
+export const appointments = pgTable(
+  "appointments",
+  {
+    appointmentId: uuid("appointment_id").defaultRandom().primaryKey(),
+    appointmentCode: varchar("appointment_code", { length: 20 })
+      .notNull()
+      .unique(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.userId, { onDelete: "cascade" }),
+    counselorId: uuid("counselor_id").references(() => counselors.counselorId),
+    appointmentDate: date("appointment_date").notNull(),
+    startTime: time("start_time").notNull(),
+    endTime: time("end_time").notNull(),
+    note: text("note"),
+    status: appointmentStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("appointments_user_id_idx").on(table.userId),
+    counselorIdIdx: index("appointments_counselor_id_idx").on(
+      table.counselorId,
+    ),
+    appointmentDateIdx: index("appointments_appointment_date_idx").on(
+      table.appointmentDate,
+    ),
+    statusIdx: index("appointments_status_idx").on(table.status),
+    counselorDateIdx: index("appointments_counselor_id_date_idx").on(
+      table.counselorId,
+      table.appointmentDate,
+    ),
+    userDateIdx: index("appointments_user_id_date_idx").on(
+      table.userId,
+      table.appointmentDate,
+    ),
   }),
-  pastProblem: text("past_problem"),
-  currentMedication: text("current_medication"),
-  medicationResult: text("medication_result"),
-  hasChronicDisease: boolean("has_chronic_disease"),
-  chronicDiseaseName: varchar("chronic_disease_name", { length: 255 }),
-  chronicDiseaseSymptom: text("chronic_disease_symptom"),
-  treatmentDetail: text("treatment_detail"),
-  drugAllergyDetail: text("drug_allergy_detail"),
-  foodOrOtherAllergyDetail: text("food_or_other_allergy_detail"),
-  hasAccident: boolean("has_accident"),
-  accidentDetail: text("accident_detail"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+);
 
-export const familyHistory = pgTable("family_history", {
-  familyHistoryId: uuid("family_history_id").defaultRandom().primaryKey(),
-  formId: uuid("form_id")
-    .notNull()
-    .references(() => medicalHistoryForms.formId, { onDelete: "cascade" }),
-  relationship: varchar("relationship", { length: 100 }),
-  age: integer("age"),
-  phone: varchar("phone", { length: 20 }),
-  healthHistory: text("health_history"),
-});
+export const medicalHistoryForms = pgTable(
+  "medical_history_forms",
+  {
+    formId: uuid("form_id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.userId, { onDelete: "cascade" }),
+    appointmentId: uuid("appointment_id").references(
+      () => appointments.appointmentId,
+      { onDelete: "cascade" },
+    ),
+    hasConsultedPsychiatrist: boolean("has_consulted_psychiatrist"),
+    psychiatricVisitCount: integer("psychiatric_visit_count"),
+    consultationDate: date("consultation_date"),
+    hospitalOrClinic: varchar("hospital_or_clinic", { length: 255 }),
+    doctorOrPsychologistName: varchar("doctor_or_psychologist_name", {
+      length: 255,
+    }),
+    pastProblem: text("past_problem"),
+    currentMedication: text("current_medication"),
+    medicationResult: text("medication_result"),
+    hasChronicDisease: boolean("has_chronic_disease"),
+    chronicDiseaseName: varchar("chronic_disease_name", { length: 255 }),
+    chronicDiseaseSymptom: text("chronic_disease_symptom"),
+    treatmentDetail: text("treatment_detail"),
+    drugAllergyDetail: text("drug_allergy_detail"),
+    foodOrOtherAllergyDetail: text("food_or_other_allergy_detail"),
+    hasAccident: boolean("has_accident"),
+    accidentDetail: text("accident_detail"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("medical_history_forms_user_id_idx").on(table.userId),
+    appointmentIdIdx: index("medical_history_forms_appointment_id_idx").on(
+      table.appointmentId,
+    ),
+  }),
+);
 
-export const notifications = pgTable("notifications", {
-  notificationId: uuid("notification_id").defaultRandom().primaryKey(),
-  appointmentId: uuid("appointment_id")
-    .notNull()
-    .references(() => appointments.appointmentId, { onDelete: "cascade" }),
-  type: notificationTypeEnum("type").notNull(),
-  detail: text("detail"),
-  sentAt: timestamp("sent_at"),
-});
+export const familyHistory = pgTable(
+  "family_history",
+  {
+    familyHistoryId: uuid("family_history_id").defaultRandom().primaryKey(),
+    formId: uuid("form_id")
+      .notNull()
+      .references(() => medicalHistoryForms.formId, { onDelete: "cascade" }),
+    relationship: varchar("relationship", { length: 100 }),
+    age: integer("age"),
+    phone: varchar("phone", { length: 20 }),
+    healthHistory: text("health_history"),
+  },
+  (table) => ({
+    formIdIdx: index("family_history_form_id_idx").on(table.formId),
+  }),
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    notificationId: uuid("notification_id").defaultRandom().primaryKey(),
+    appointmentId: uuid("appointment_id")
+      .notNull()
+      .references(() => appointments.appointmentId, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    detail: text("detail"),
+    sentAt: timestamp("sent_at"),
+  },
+  (table) => ({
+    appointmentIdIdx: index("notifications_appointment_id_idx").on(
+      table.appointmentId,
+    ),
+  }),
+);
 
 // ---------- Relations ----------
 

@@ -86,4 +86,14 @@ ALTER TABLE "appointments" ADD CONSTRAINT "appointments_counselor_id_counselors_
 ALTER TABLE "family_history" ADD CONSTRAINT "family_history_form_id_medical_history_forms_form_id_fk" FOREIGN KEY ("form_id") REFERENCES "public"."medical_history_forms"("form_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "medical_history_forms" ADD CONSTRAINT "medical_history_forms_user_id_users_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("user_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "medical_history_forms" ADD CONSTRAINT "medical_history_forms_appointment_id_appointments_appointment_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("appointment_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "notifications" ADD CONSTRAINT "notifications_appointment_id_appointments_appointment_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("appointment_id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_appointment_id_appointments_appointment_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("appointment_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "appointments_user_id_idx" ON "appointments" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "appointments_counselor_id_idx" ON "appointments" USING btree ("counselor_id");--> statement-breakpoint
+CREATE INDEX "appointments_appointment_date_idx" ON "appointments" USING btree ("appointment_date");--> statement-breakpoint
+CREATE INDEX "appointments_status_idx" ON "appointments" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "appointments_counselor_id_date_idx" ON "appointments" USING btree ("counselor_id","appointment_date");--> statement-breakpoint
+CREATE INDEX "appointments_user_id_date_idx" ON "appointments" USING btree ("user_id","appointment_date");--> statement-breakpoint
+CREATE INDEX "family_history_form_id_idx" ON "family_history" USING btree ("form_id");--> statement-breakpoint
+CREATE INDEX "medical_history_forms_user_id_idx" ON "medical_history_forms" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "medical_history_forms_appointment_id_idx" ON "medical_history_forms" USING btree ("appointment_id");--> statement-breakpoint
+CREATE INDEX "notifications_appointment_id_idx" ON "notifications" USING btree ("appointment_id");
