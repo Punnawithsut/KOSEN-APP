@@ -28,19 +28,26 @@ kosen-app/
     app/
       page.tsx           # public homepage (install prompt lives here)
       offline/           # offline fallback page (ungated — reachable anytime)
+      login/              # login page (ungated — must work outside standalone mode)
+      auth/callback/       # OAuth callback + KMITL domain check (ungated)
       sw.ts              # Serwist service worker source
       (app)/              # route group — gated behind PWA install check
         layout.tsx         # applies RequireStandalone wrapper
         ...                # protected feature pages (reservations, etc.)
     components/
     lib/
+      supabase/
+        client.ts          # browser Supabase client
+        server.ts           # server Supabase client
     db/
       client.ts           # Drizzle client
       schema.ts            # Drizzle schema definitions
   public/
     manifest.json
     icons/                # app icons incl. maskable variant
-  drizzle/                # generated SQL migrations
+  drizzle/                # generated SQL migrations (source of truth — not Supabase CLI migrations)
+  supabase/
+    config.toml            # local Docker stack config (commit this)
   .github/
     workflows/
       ci.yml               # lint, build, secret scanning
@@ -51,6 +58,7 @@ kosen-app/
 ### Prerequisites
 - Node.js 20+
 - A Supabase project ([supabase.com](https://supabase.com), free tier)
+- Docker Desktop (optional — only needed for local database, see below)
 
 ### Setup
 
@@ -62,8 +70,10 @@ npm install
 Copy the env template and fill in real values (see **Environment Variables** below):
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
+
+**Note:** this project uses `.env` (not `.env.local`) for local secrets. Since Next.js's default `.gitignore` only excludes `.env*.local` automatically, `.env` is **not** ignored by default — double check your `.gitignore` includes a plain `.env` line, or real keys can get committed by accident. Run `git check-ignore -v .env` to confirm it's actually being ignored before your first commit with real values in it.
 
 Run the dev server:
 
@@ -91,7 +101,13 @@ Generate VAPID keys once per project (not per developer):
 npx web-push generate-vapid-keys
 ```
 
-**Never commit `.env.local`.** Secrets marked "No" above go through a private channel (password manager) only — see the git workflow checklist for verification steps.
+**Never commit `.env`.** Secrets marked "No" above go through a private channel (password manager) only — see the git workflow checklist for verification steps.
+
+## Auth (Google OAuth, KMITL domain only)
+
+Sign-in is restricted to `@kmitl.ac.th` Google accounts. The `hd` query param hints Google's account picker, but the real enforcement happens server-side in `src/app/auth/callback/route.ts` after the OAuth exchange — any non-KMITL email is signed out and redirected back to `/login`.
+
+Test pages: `/login` → `/auth/callback` → `/whoami` (shows the signed-in email, confirms the flow end to end).
 
 ## Database (Drizzle)
 
@@ -101,6 +117,8 @@ npm run migrate        # apply migrations to the database
 ```
 
 Schema lives in `src/db/schema.ts`; query/mutation logic should live in `src/lib/` (not inline in route handlers), so both Route Handlers and Server Actions can share it.
+
+Drizzle's migrations in `drizzle/` are the source of truth for schema — this project does not use Supabase CLI migrations (`supabase/migrations/`), even though the Supabase CLI is used for the local dev stack below.
 
 ## Testing PWA Behavior
 
@@ -118,16 +136,40 @@ Then in Chrome DevTools → **Application** tab:
 
 Install-gating (routes under `(app)/`) should redirect to `/` in a regular browser tab, and only render once opened from an installed/home-screen app instance.
 
+**After any PWA test cycle**, unregister the service worker and clear site data in DevTools before switching back to `npm run dev` — a leftover service worker from a previous `build`/`start` session can cause reload loops in dev mode.
+
 ## Adding Shadcn Components
 
 ```bash
 npx shadcn@latest add <your-component>
 ```
 
-## Testing Database Integration 
+## Testing Database Integration
 
 ```bash
-npx tsx src/db/test-conntection.ts
+npx tsx --env-file=.env src/db/test-connection.ts
+```
+
+(the `--env-file` flag is required for standalone scripts run via `tsx` — Next.js auto-loads `.env` for `dev`/`build`/`start`, but plain scripts need it passed explicitly)
+
+## Using Local Database (via Docker)
+
+Requires Docker Desktop running. Each teammate runs this on their own machine — local means local to your own container, not shared with the team.
+
+```bash
+npx supabase start           # spins up local Postgres + Auth + Studio (empty schema)
+npm run migrate               # applies Drizzle's committed migrations to the local DB
+```
+
+Point `.env` at the local instance for this session (see `.env.example` for the local connection string and keys — these are fixed/non-secret for local dev, safe to share/commit unlike your real project's keys).
+
+Studio UI: http://127.0.0.1:54323
+
+**Note:** Google OAuth is registered against the remote project's callback URL — sign-in won't work against the local stack unless you separately register `http://127.0.0.1:54321/auth/v1/callback` in Google Cloud Console. Everything else (Drizzle queries, non-auth features) works fine locally.
+
+```bash
+npx supabase stop             # stops containers, keeps data
+npx supabase db reset         # wipes local DB, reapplies migrations from scratch
 ```
 
 ## CI
