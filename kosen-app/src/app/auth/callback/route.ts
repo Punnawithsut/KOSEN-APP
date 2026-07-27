@@ -17,6 +17,9 @@ export async function GET(request: Request) {
       }
       // Success page for this dummy test — swap for your real homepage later
       return NextResponse.redirect(`${origin}/whoami`);
+    } else {
+      console.log("Auth failed:", error);
+      return NextResponse.redirect(`${origin}/login?error=auth_failed`);
     }
   }
 
