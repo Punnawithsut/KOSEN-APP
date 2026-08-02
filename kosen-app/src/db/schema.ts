@@ -28,7 +28,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "cancellation",
 ]);
 
-export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
+export const userRoleEnum = pgEnum("user_role", ["user", "counselor", "admin"]);
 
 // ---------- Tables ----------
 
@@ -53,7 +53,7 @@ export const users = pgTable("users", {
 });
 
 export const counselors = pgTable("counselors", {
-  counselorId: uuid("counselor_id").defaultRandom().primaryKey(),
+  counselorId: uuid("counselor_id").primaryKey().references(() => users.userId),
   fullName: varchar("full_name", { length: 255 }).notNull(),
   nickname: varchar("nickname", { length: 100 }),
   phone: varchar("phone", { length: 20 }),
