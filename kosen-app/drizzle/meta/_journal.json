@@ -15,6 +15,27 @@
       "when": 1785061479911,
       "tag": "0001_cheerful_prodigy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785655439064,
+      "tag": "0002_blue_champions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785657506873,
+      "tag": "0003_tearful_mister_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785658060012,
+      "tag": "0004_material_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

@@ -14,7 +14,10 @@ function LoginContent() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { hd: "kmitl.ac.th" },
+        queryParams: { 
+          hd: "kmitl.ac.th",
+          prompt: "select_account"
+        },
       },
     });
   }
