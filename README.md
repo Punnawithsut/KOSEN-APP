@@ -1,6 +1,6 @@
 # KOSEN-APP
 
-A campus companion PWA — housing/reservations, real-time alerts, and a community feed — installable on Android, iOS, and Windows, with full offline support.
+A campus companion PWA — reserve therapy sessions, real-time notification, announcement, dormitory, and a community feed — installable on Android, iOS, and Windows, with full offline support.
 
 ## Tech Stack
 
