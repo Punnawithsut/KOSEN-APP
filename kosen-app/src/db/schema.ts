@@ -28,6 +28,12 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "cancellation",
 ]);
 
+export const announcementCategoryEnum = pgEnum("announcement_category", [
+  "for_you",
+  "news",
+  "events",
+]);
+
 // ---------- Tables ----------
 
 export const rooms = pgTable("rooms", {
@@ -173,6 +179,45 @@ export const notifications = pgTable(
   }),
 );
 
+export const announcements = pgTable(
+  "announcements",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    category: announcementCategoryEnum("category").notNull().default("news"),
+    authorId: uuid("author_id").references(() => users.userId, {
+      onDelete: "set null",
+    }),
+    isPublished: boolean("is_published").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    categoryIdx: index("announcements_category_idx").on(table.category),
+    authorIdIdx: index("announcements_author_id_idx").on(table.authorId),
+  }),
+);
+
+export const announcementAttachments = pgTable(
+  "announcement_attachments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    announcementId: uuid("announcement_id")
+      .notNull()
+      .references(() => announcements.id, { onDelete: "cascade" }),
+    fileUrl: text("file_url").notNull(),
+    fileType: varchar("file_type", { length: 50 }).default("image"),
+    displayOrder: integer("display_order").default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    announcementIdIdx: index("announcement_attachments_announcement_id_idx").on(
+      table.announcementId,
+    ),
+  }),
+);
+
 // ---------- Relations ----------
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -228,3 +273,24 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
     references: [appointments.appointmentId],
   }),
 }));
+
+export const announcementsRelations = relations(
+  announcements,
+  ({ one, many }) => ({
+    author: one(users, {
+      fields: [announcements.authorId],
+      references: [users.userId],
+    }),
+    attachments: many(announcementAttachments),
+  }),
+);
+
+export const announcementAttachmentsRelations = relations(
+  announcementAttachments,
+  ({ one }) => ({
+    announcement: one(announcements, {
+      fields: [announcementAttachments.announcementId],
+      references: [announcements.id],
+    }),
+  }),
+);
