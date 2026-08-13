@@ -15,6 +15,13 @@
       "when": 1785061479911,
       "tag": "0001_cheerful_prodigy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786625741813,
+      "tag": "0002_dapper_cobalt_man",
+      "breakpoints": true
     }
   ]
 }
