@@ -30,13 +30,6 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "cancellation",
 ]);
 
-export const repairmentRequestStatusEnum = pgEnum("repairment_request_status", [
-  "pending",
-  "in_progress",
-  "completed",
-  "cancelled",
-]);
-
 // ---------- Tables ----------
 
 export const users = pgTable("users", {
@@ -93,17 +86,6 @@ export const dormRoomAssignments = pgTable("dorm_room_assignments", {
     ).where(sql`${table.endedAt} IS NULL`),
   })
 );
-
-export const repairmentRequests = pgTable("repairment_requests", {
-  repairmentRequestId: uuid("repairment_request_id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.userId, { onDelete: "cascade" }),
-  description: text("description").notNull(),
-  status: repairmentRequestStatusEnum("status").notNull().default("pending"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
 
 export const dormPointChanges = pgTable("dorm_points_changes", {
   dormPointChangesid: uuid("dorm_point_changes_id").defaultRandom().primaryKey(),
@@ -253,7 +235,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 
   dormRoomAssignments: many(dormRoomAssignments),
   dormPointChanges: many(dormPointChanges),
-  repairmentRequests: many(repairmentRequests),
 }));
 
 export const dormBuildingsRelations = relations(dormBuildings, ({ many }) => ({
@@ -276,13 +257,6 @@ export const dormRoomAssignmentsRelations = relations(dormRoomAssignments, ({ on
   room: one(dormRooms, {
     fields: [dormRoomAssignments.roomId],
     references: [dormRooms.roomId],
-  }),
-}));
-
-export const repairmentRequestsRelations = relations(repairmentRequests, ({ one }) => ({
-  user: one(users, {
-    fields: [repairmentRequests.userId],
-    references: [users.userId],
   }),
 }));
 
