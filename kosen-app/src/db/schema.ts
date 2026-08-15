@@ -173,6 +173,30 @@ export const notifications = pgTable(
   }),
 );
 
+export const posts = pgTable("posts", {
+  postId: uuid("post_id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
+  content: text("content"),
+  imageUrl: text("image_url"),
+  deleteAt: timestamp("delete_at"),
+  createAt: timestamp("create_at"),
+});
+
+export const tags = pgTable("tags", {
+  tagId: uuid("tag_id").defaultRandom().primaryKey(),
+  tagName: text("tag_name"),
+});
+
+export const postTags = pgTable("postTags", {
+  postId: uuid("post_id")
+    .notNull()
+    .references(() => posts.postId, { onDelete: "cascade" }),
+  tagId: uuid("tag_id")
+    .notNull()
+    .references(() => tags.tagId, { onDelete: "cascade" }),
+});
 // ---------- Relations ----------
 
 export const usersRelations = relations(users, ({ many }) => ({
