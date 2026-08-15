@@ -182,6 +182,7 @@ export const posts = pgTable("posts", {
   imageUrl: text("image_url"),
   deleteAt: timestamp("delete_at"),
   createAt: timestamp("create_at"),
+  updateAt: timestamp("update_at"),
 });
 
 export const tags = pgTable("tags", {
