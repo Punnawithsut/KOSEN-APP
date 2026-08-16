@@ -15,20 +15,6 @@
       "when": 1785061479911,
       "tag": "0001_cheerful_prodigy",
       "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1786806974717,
-      "tag": "0002_create_community_schema",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1786807419185,
-      "tag": "0003_fix_post_table",
-      "breakpoints": true
     }
   ]
 }
