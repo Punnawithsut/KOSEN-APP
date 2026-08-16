@@ -10,8 +10,10 @@ import {
   timestamp,
   pgEnum,
   index,
+  uniqueIndex,
+  unique,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations,sql } from "drizzle-orm";
 
 // ---------- Enums ----------
 export const appointmentStatusEnum = pgEnum("appointment_status", [
@@ -30,12 +32,6 @@ export const notificationTypeEnum = pgEnum("notification_type", [
 
 // ---------- Tables ----------
 
-export const rooms = pgTable("rooms", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
 export const users = pgTable("users", {
   userId: uuid("user_id").defaultRandom().primaryKey(),
   studentId: varchar("student_id", { length: 20 }).notNull().unique(),
@@ -45,8 +41,66 @@ export const users = pgTable("users", {
   emergencyPhone: varchar("emergency_phone", { length: 20 }),
   department: varchar("department", { length: 100 }),
   isConsented: boolean("is_consented").notNull().default(false),
+  dormPoints: integer("dorm_points").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const dormBuildings = pgTable("dorm_buildings", {
+  buildingId: uuid("building_id").defaultRandom().primaryKey(),
+  buildingNumber: integer("building_number").notNull().unique(),
+});
+
+export const dormRooms = pgTable("dorm_rooms", {
+  roomId: uuid("room_id").defaultRandom().primaryKey(),
+  buildingId: uuid("building_id")
+    .notNull()
+    .references(() => dormBuildings.buildingId, { onDelete: "cascade" }),
+  roomNumber: varchar("room_number", { length: 4 }).notNull(),
+  roomPhotoUrl: text("room_photo_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+},
+(table) => ({
+    buildingRoomUnique: unique().on(
+      table.buildingId,
+      table.roomNumber,
+    ),
+  })
+);
+
+export const dormRoomAssignments = pgTable("dorm_room_assignments", {
+  assignmentId: uuid("assignment_id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
+  roomId: uuid("room_id")
+    .notNull()
+    .references(() => dormRooms.roomId, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  endedAt: timestamp("ended_at"),
+},
+(table) => ({
+    userRoomUnique: uniqueIndex("user_room_unique").on(
+      table.userId
+    ).where(sql`${table.endedAt} IS NULL`),
+  })
+);
+
+export const dormPointChanges = pgTable("dorm_points_changes", {
+  dormPointChangesid: uuid("dorm_point_changes_id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.userId, { onDelete: "cascade" }),
+  points: integer("points").notNull(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const rooms = pgTable("rooms", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const counselors = pgTable("counselors", {
@@ -178,6 +232,39 @@ export const notifications = pgTable(
 export const usersRelations = relations(users, ({ many }) => ({
   appointments: many(appointments),
   medicalHistoryForms: many(medicalHistoryForms),
+
+  dormRoomAssignments: many(dormRoomAssignments),
+  dormPointChanges: many(dormPointChanges),
+}));
+
+export const dormBuildingsRelations = relations(dormBuildings, ({ many }) => ({
+  dormRooms: many(dormRooms),
+}));
+
+export const dormRoomsRelations = relations(dormRooms, ({ one, many }) => ({
+  building: one(dormBuildings, {
+    fields: [dormRooms.buildingId],
+    references: [dormBuildings.buildingId],
+  }),
+  assignments: many(dormRoomAssignments),
+}));
+
+export const dormRoomAssignmentsRelations = relations(dormRoomAssignments, ({ one }) => ({
+  user: one(users, {
+    fields: [dormRoomAssignments.userId],
+    references: [users.userId],
+  }),
+  room: one(dormRooms, {
+    fields: [dormRoomAssignments.roomId],
+    references: [dormRooms.roomId],
+  }),
+}));
+
+export const dormPointChangesRelations = relations(dormPointChanges, ({ one }) => ({
+  user: one(users, {
+    fields: [dormPointChanges.userId],
+    references: [users.userId],
+  }),
 }));
 
 export const counselorsRelations = relations(counselors, ({ many }) => ({
