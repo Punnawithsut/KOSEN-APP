@@ -223,6 +223,8 @@ export const announcementAttachments = pgTable(
 export const usersRelations = relations(users, ({ many }) => ({
   appointments: many(appointments),
   medicalHistoryForms: many(medicalHistoryForms),
+  posts: many(posts),
+  comments: many(comments),
 }));
 
 export const counselorsRelations = relations(counselors, ({ many }) => ({
@@ -271,6 +273,32 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   appointment: one(appointments, {
     fields: [notifications.appointmentId],
     references: [appointments.appointmentId],
+  }),
+}));
+
+export const postsRelations = relations(posts, ({ one, many }) => ({
+  author: one(users, { fields: [posts.userId], references: [users.userId] }),
+  comments: many(comments),
+  tags: many(postTags),
+  likes: many(postLikes),
+  shares: many(postShares),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  posts: many(postTags),
+}));
+
+export const postTagsRelations = relations(postTags, ({ one }) => ({
+  post: one(posts, { fields: [postTags.postId], references: [posts.postId] }),
+  tag: one(tags, { fields: [postTags.tagId], references: [tags.tagId] }),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  post: one(posts, { fields: [comments.postId], references: [posts.postId] }),
+  author: one(users, { fields: [comments.userId], references: [users.userId] }),
+  parent: one(comments, {
+    fields: [comments.parentId],
+    references: [comments.commentId],
   }),
 }));
 
