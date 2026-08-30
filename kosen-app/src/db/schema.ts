@@ -8,6 +8,7 @@ import {
   date,
   time,
   timestamp,
+  decimal,
   pgEnum,
   index,
   uniqueIndex,
@@ -40,6 +41,8 @@ export const users = pgTable("users", {
   phone: varchar("phone", { length: 20 }),
   emergencyPhone: varchar("emergency_phone", { length: 20 }),
   department: varchar("department", { length: 100 }),
+  className: varchar("class_name", { length: 50 }),
+  profilePicUrl: varchar("profile_pic_url", { length: 255 }),
   isConsented: boolean("is_consented").notNull().default(false),
   dormPoints: integer("dorm_points").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -229,12 +232,38 @@ export const notifications = pgTable(
 
 // ---------- Relations ----------
 
+export const categories = pgTable("categories", {
+  categoryId: uuid("category_id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  type: varchar("type", { length: 50 }),
+});
+
+export const activities = pgTable("activities", {
+  activityId: uuid("activity_id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.userId, { onDelete: "cascade" }),
+  categoryId: uuid("category_id").notNull().references(() => categories.categoryId, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  activityDate: date("activity_date").notNull(),
+  hours: decimal("hours", { precision: 5, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const activityImages = pgTable("activity_images", {
+  imageId: uuid("image_id").defaultRandom().primaryKey(),
+  activityId: uuid("activity_id").notNull().references(() => activities.activityId, { onDelete: "cascade" }),
+  imageUrl: varchar("image_url", { length: 255 }).notNull(),
+  displayOrder: integer("display_order"),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   appointments: many(appointments),
   medicalHistoryForms: many(medicalHistoryForms),
 
   dormRoomAssignments: many(dormRoomAssignments),
   dormPointChanges: many(dormPointChanges),
+  activities: many(activities),
 }));
 
 export const dormBuildingsRelations = relations(dormBuildings, ({ many }) => ({
@@ -313,5 +342,28 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   appointment: one(appointments, {
     fields: [notifications.appointmentId],
     references: [appointments.appointmentId],
+  }),
+}));
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  activities: many(activities),
+}));
+
+export const activitiesRelations = relations(activities, ({ one, many }) => ({
+  user: one(users, {
+    fields: [activities.userId],
+    references: [users.userId],
+  }),
+  category: one(categories, {
+    fields: [activities.categoryId],
+    references: [categories.categoryId],
+  }),
+  images: many(activityImages),
+}));
+
+export const activityImagesRelations = relations(activityImages, ({ one }) => ({
+  activity: one(activities, {
+    fields: [activityImages.activityId],
+    references: [activities.activityId],
   }),
 }));
