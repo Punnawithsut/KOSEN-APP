@@ -1,5 +1,6 @@
 {
   "id": "00ea0449-a64f-4e02-a421-3efd6c9158ec",
+  "id": "8fdd91ca-7884-4e38-9f31-6a8532843b62",
   "prevId": "3ca25f8f-4cff-4171-9f3b-60a5dc3bef9b",
   "version": "7",
   "dialect": "postgresql",
@@ -284,6 +285,263 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dorm_buildings": {
+      "name": "dorm_buildings",
+      "schema": "",
+      "columns": {
+        "building_id": {
+          "name": "building_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "building_number": {
+          "name": "building_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dorm_buildings_building_number_unique": {
+          "name": "dorm_buildings_building_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "building_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dorm_points_changes": {
+      "name": "dorm_points_changes",
+      "schema": "",
+      "columns": {
+        "dorm_point_changes_id": {
+          "name": "dorm_point_changes_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "points": {
+          "name": "points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dorm_points_changes_user_id_users_user_id_fk": {
+          "name": "dorm_points_changes_user_id_users_user_id_fk",
+          "tableFrom": "dorm_points_changes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "user_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dorm_room_assignments": {
+      "name": "dorm_room_assignments",
+      "schema": "",
+      "columns": {
+        "assignment_id": {
+          "name": "assignment_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "user_room_unique": {
+          "name": "user_room_unique",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"dorm_room_assignments\".\"ended_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dorm_room_assignments_user_id_users_user_id_fk": {
+          "name": "dorm_room_assignments_user_id_users_user_id_fk",
+          "tableFrom": "dorm_room_assignments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "user_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "dorm_room_assignments_room_id_dorm_rooms_room_id_fk": {
+          "name": "dorm_room_assignments_room_id_dorm_rooms_room_id_fk",
+          "tableFrom": "dorm_room_assignments",
+          "tableTo": "dorm_rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "room_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dorm_rooms": {
+      "name": "dorm_rooms",
+      "schema": "",
+      "columns": {
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "building_id": {
+          "name": "building_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "room_number": {
+          "name": "room_number",
+          "type": "varchar(4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "room_photo_url": {
+          "name": "room_photo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dorm_rooms_building_id_dorm_buildings_building_id_fk": {
+          "name": "dorm_rooms_building_id_dorm_buildings_building_id_fk",
+          "tableFrom": "dorm_rooms",
+          "tableTo": "dorm_buildings",
+          "columnsFrom": [
+            "building_id"
+          ],
+          "columnsTo": [
+            "building_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dorm_rooms_building_id_room_number_unique": {
+          "name": "dorm_rooms_building_id_room_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "building_id",
+            "room_number"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -636,6 +894,74 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.repairment_requests": {
+      "name": "repairment_requests",
+      "schema": "",
+      "columns": {
+        "repairment_request_id": {
+          "name": "repairment_request_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "repairment_request_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "repairment_requests_user_id_users_user_id_fk": {
+          "name": "repairment_requests_user_id_users_user_id_fk",
+          "tableFrom": "repairment_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "user_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.rooms": {
       "name": "rooms",
       "schema": "",
@@ -678,18 +1004,22 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "student_id": {
           "name": "student_id",
           "type": "varchar(20)",
           "primaryKey": false,
           "notNull": false
+          "notNull": true
         },
         "full_name": {
           "name": "full_name",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
+          "notNull": true
         },
         "email": {
           "name": "email",
@@ -729,6 +1059,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'user'"
+        "dorm_points": {
+          "name": "dorm_points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -796,6 +1132,14 @@
       "values": [
         "user",
         "admin"
+    "public.repairment_request_status": {
+      "name": "repairment_request_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "in_progress",
+        "completed",
+        "cancelled"
       ]
     }
   },
