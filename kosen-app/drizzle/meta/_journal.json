@@ -5,40 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1784899330851,
-      "tag": "0000_peaceful_toro",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1785061479911,
-      "tag": "0001_cheerful_prodigy",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1785655439064,
-      "tag": "0002_blue_champions",
-      "when": 1786625741813,
-      "tag": "0002_dapper_cobalt_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1785657506873,
-      "tag": "0003_tearful_mister_sinister",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1785658060012,
-      "tag": "0004_material_spencer_smythe",
-      "when": 1786693497355,
-      "tag": "0003_tranquil_mister_sinister",
+      "when": 1790433382362,
+      "tag": "0000_marvelous_night_thrasher",
       "breakpoints": true
     }
   ]
