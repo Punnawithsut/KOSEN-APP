@@ -30,17 +30,20 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "cancellation",
 ]);
 
+export const userRoleEnum = pgEnum("user_role", ["user", "counselor", "admin"]);
+
 // ---------- Tables ----------
 
 export const users = pgTable("users", {
-  userId: uuid("user_id").defaultRandom().primaryKey(),
-  studentId: varchar("student_id", { length: 20 }).notNull().unique(),
-  fullName: varchar("full_name", { length: 255 }).notNull(),
+  userId: uuid("user_id").primaryKey(),
+  studentId: varchar("student_id", { length: 20 }).unique(),
+  fullName: varchar("full_name", { length: 255 }),
   email: varchar("email", { length: 255 }).notNull().unique(),
   phone: varchar("phone", { length: 20 }),
   emergencyPhone: varchar("emergency_phone", { length: 20 }),
   department: varchar("department", { length: 100 }),
   isConsented: boolean("is_consented").notNull().default(false),
+  role: userRoleEnum("role").notNull().default("user"),
   dormPoints: integer("dorm_points").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -104,7 +107,7 @@ export const rooms = pgTable("rooms", {
 });
 
 export const counselors = pgTable("counselors", {
-  counselorId: uuid("counselor_id").defaultRandom().primaryKey(),
+  counselorId: uuid("counselor_id").primaryKey().references(() => users.userId),
   fullName: varchar("full_name", { length: 255 }).notNull(),
   nickname: varchar("nickname", { length: 100 }),
   phone: varchar("phone", { length: 20 }),

@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { db } from "@/db/client";
+import { users } from "@/db/schema";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -15,11 +17,13 @@ export async function GET(request: Request) {
         await supabase.auth.signOut();
         return NextResponse.redirect(`${origin}/login?error=not_kmitl_domain`);
       }
-      // Success page for this dummy test — swap for your real homepage later
+
+      await db
+        .insert(users)
+        .values({ userId: data.user.id, email })
+        .onConflictDoNothing();
+
       return NextResponse.redirect(`${origin}/whoami`);
-    } else {
-      console.log("Auth failed:", error);
-      return NextResponse.redirect(`${origin}/login?error=auth_failed`);
     }
   }
 

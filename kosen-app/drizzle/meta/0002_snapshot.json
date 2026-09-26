@@ -1,4 +1,5 @@
 {
+  "id": "00ea0449-a64f-4e02-a421-3efd6c9158ec",
   "id": "8fdd91ca-7884-4e38-9f31-6a8532843b62",
   "prevId": "3ca25f8f-4cff-4171-9f3b-60a5dc3bef9b",
   "version": "7",
@@ -1002,6 +1003,7 @@
           "name": "user_id",
           "type": "uuid",
           "primaryKey": true,
+          "notNull": true
           "notNull": true,
           "default": "gen_random_uuid()"
         },
@@ -1009,12 +1011,14 @@
           "name": "student_id",
           "type": "varchar(20)",
           "primaryKey": false,
+          "notNull": false
           "notNull": true
         },
         "full_name": {
           "name": "full_name",
           "type": "varchar(255)",
           "primaryKey": false,
+          "notNull": false
           "notNull": true
         },
         "email": {
@@ -1048,6 +1052,13 @@
           "notNull": true,
           "default": false
         },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'user'"
         "dorm_points": {
           "name": "dorm_points",
           "type": "integer",
@@ -1115,6 +1126,12 @@
         "cancellation"
       ]
     },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "user",
+        "admin"
     "public.repairment_request_status": {
       "name": "repairment_request_status",
       "schema": "public",
