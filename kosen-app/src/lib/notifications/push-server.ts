@@ -39,26 +39,40 @@ export async function sendNotificationToUser(
     return { ok: false, reason: "Missing VAPID keys" };
   }
 
-  await webPush.sendNotification(
-    {
-      endpoint: subscription.endpoint,
-      keys: {
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-      },
-    } as WebPushSubscription,
-    JSON.stringify({
-      title: payload.title,
-      body: payload.body,
-      icon: payload.icon ?? "/icons/icon-192.png",
-      badge: payload.badge ?? "/icons/icon-192.png",
-      tag: payload.tag ?? "kosen-notification",
-      data: payload.data ?? { url: "/" },
-      actions: payload.actions ?? [{ action: "open", title: "Open app" }],
-    }),
-  );
+  try {
+    await webPush.sendNotification(
+      {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+        },
+      } as WebPushSubscription,
+      JSON.stringify({
+        title: payload.title,
+        body: payload.body,
+        icon: payload.icon ?? "/icons/icon-192.png",
+        badge: payload.badge ?? "/icons/icon-192.png",
+        tag: payload.tag ?? "kosen-notification",
+        data: payload.data ?? { url: "/" },
+        actions: payload.actions ?? [{ action: "open", title: "Open app" }],
+      }),
+    );
 
-  return { ok: true };
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Failed to send push notification to user:", {
+      userId,
+      endpoint: subscription.endpoint,
+      message,
+    });
+    return {
+      ok: false,
+      reason: "Notification delivery failed",
+      error: message,
+    };
+  }
 }
 
 export async function sendNotificationToAll(payload: SendPushInput) {

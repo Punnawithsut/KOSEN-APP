@@ -15,6 +15,10 @@ export async function POST(request: Request) {
         data,
       });
 
+      if (!result.ok) {
+        return Response.json(result, { status: 400 });
+      }
+
       return Response.json(result);
     }
 
@@ -27,11 +31,16 @@ export async function POST(request: Request) {
       data,
     });
 
+    if (!result.ok) {
+      return Response.json(result, { status: 400 });
+    }
+
     return Response.json(result);
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Failed to send push notification:", error);
     return Response.json(
-      { ok: false, error: "Unable to send push notification." },
+      { ok: false, error: "Unable to send push notification.", details: message },
       { status: 500 },
     );
   }

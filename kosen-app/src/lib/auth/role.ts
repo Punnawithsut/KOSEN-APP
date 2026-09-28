@@ -19,6 +19,12 @@ export async function getCurrentUser() {
   return row ?? null;
 }
 
+export async function isLoggedIn() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  return Boolean(data.user);
+}
+
 //this one is for page that can be access by both user and admin and we use isAdmin() to check whether we should render specific components
 export async function isAdmin() {
   const user = await getCurrentUser();
