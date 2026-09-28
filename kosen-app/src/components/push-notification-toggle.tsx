@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   requestNotificationPermission,
   savePushSubscription,
@@ -10,20 +10,12 @@ import {
 } from "@/lib/notifications/push";
 
 export function PushNotificationToggle() {
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported] = useState<boolean>(() => supportsPushNotifications());
   const [isLoading, setIsLoading] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission>("default");
+  const [permission, setPermission] = useState<NotificationPermission>(() =>
+    typeof Notification !== "undefined" ? Notification.permission : "denied",
+  );
   const [isSubscribed, setIsSubscribed] = useState(false);
-
-  useEffect(() => {
-    const supported = supportsPushNotifications();
-    setIsSupported(supported);
-    setPermission(
-      supported && typeof Notification !== "undefined"
-        ? Notification.permission
-        : "denied",
-    );
-  }, []);
 
   const handleSubscribe = async () => {
     setIsLoading(true);
@@ -77,7 +69,9 @@ export function PushNotificationToggle() {
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-slate-900">Web push notifications</p>
+          <p className="text-sm font-medium text-slate-900">
+            Web push notifications
+          </p>
           <p className="text-sm text-slate-600">
             {permission === "granted"
               ? "Notifications are enabled."

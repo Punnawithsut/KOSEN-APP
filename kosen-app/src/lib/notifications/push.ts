@@ -92,6 +92,10 @@ export async function subscribeToPushNotifications(
   });
 }
 
+export function isPushEnabled(): boolean {
+  return supportsPushNotifications() && Notification.permission === "granted";
+}
+
 export async function unsubscribeFromPushNotifications(): Promise<boolean> {
   if (!supportsPushNotifications()) {
     return false;

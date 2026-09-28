@@ -1,3 +1,5 @@
+import { saveSubscription } from "@/lib/notifications/subscriptions";
+
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
@@ -9,13 +11,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // TODO: persist this payload to a database or your auth/session store.
-    // Example: insert into a notification_subscriptions table keyed by user_id.
-    // This is the browser subscription that your server later uses to send push notifications.
+    const userId = String(payload.userId ?? "local-user");
+
+    saveSubscription(userId, {
+      endpoint: payload.endpoint,
+      keys: {
+        p256dh: payload.keys?.p256dh,
+        auth: payload.keys?.auth,
+      },
+    });
 
     return Response.json({
       ok: true,
       message: "Push subscription received.",
+      userId,
       subscription: payload,
     });
   } catch (error) {
