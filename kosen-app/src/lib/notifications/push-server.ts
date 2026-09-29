@@ -12,6 +12,14 @@ const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidSubject = process.env.VAPID_SUBJECT ?? "mailto:admin@kosen.local";
 
+function getStatusCode(error: unknown): number | undefined {
+  if (typeof error !== "object" || error === null || !("statusCode" in error)) {
+    return undefined;
+  }
+
+  return typeof error.statusCode === "number" ? error.statusCode : undefined;
+}
+
 if (vapidPublicKey && vapidPrivateKey) {
   webPush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 }
@@ -70,8 +78,8 @@ export async function sendNotificationToUser(
           notificationPayload,
         );
         return { ok: true, endpoint: subscription.endpoint };
-      } catch (error: any) {
-        const statusCode = error?.statusCode;
+      } catch (error: unknown) {
+        const statusCode = getStatusCode(error);
 
         if (statusCode === 410 || statusCode === 404) {
           await deleteSubscription(subscription.endpoint);
@@ -136,8 +144,8 @@ export async function sendNotificationToAll(payload: SendPushInput) {
           notificationPayload,
         );
         return { ok: true, endpoint: subscription.endpoint };
-      } catch (error: any) {
-        const statusCode = error?.statusCode;
+      } catch (error: unknown) {
+        const statusCode = getStatusCode(error);
 
         if (statusCode === 410 || statusCode === 404) {
           await deleteSubscription(subscription.endpoint);
