@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { subscribeUserToPush } from "@/lib/notifications/push";
+import {
+  refreshNotificationPermission,
+  useNotificationPermission,
+} from "@/lib/notifications/use-notification-state";
 
 // Valid UUID v4 string for PostgreSQL UUID column compatibility
 const TEST_USER_ID = "9a5f3973-0546-4f62-8f2a-f74c762dd4fc";
 
 export default function NotificationTestPage() {
-  const [permission, setPermission] = useState<
-    NotificationPermission | "unsupported" | "loading"
-  >("loading");
+  const permission = useNotificationPermission();
   const [isRegistered, setIsRegistered] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -19,12 +21,6 @@ export default function NotificationTestPage() {
   const [status, setStatus] = useState("Waiting to start.");
 
   useEffect(() => {
-    setPermission(
-      typeof Notification === "undefined"
-        ? "unsupported"
-        : Notification.permission,
-    );
-
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistration().then((reg) => {
         setIsRegistered(!!reg);
@@ -40,7 +36,6 @@ export default function NotificationTestPage() {
     try {
       await subscribeUserToPush(TEST_USER_ID);
 
-      setPermission(Notification.permission);
       setIsRegistered(true);
       setIsSubscribed(true);
       setStatus("Subscribed successfully. You can now send a test push.");
@@ -51,6 +46,8 @@ export default function NotificationTestPage() {
           ? `Push registration failed: ${error.message}`
           : "Push registration failed. Check browser console and env keys.",
       );
+    } finally {
+      refreshNotificationPermission();
     }
   }
 
@@ -68,11 +65,9 @@ export default function NotificationTestPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: TEST_USER_ID,
+          targetUserId: TEST_USER_ID,
           title: "KOSEN test notification",
           body: message,
-          icon: "/icons/icon-192.png",
-          badge: "/icons/icon-192.png",
           data: { url: "/" },
         }),
       });

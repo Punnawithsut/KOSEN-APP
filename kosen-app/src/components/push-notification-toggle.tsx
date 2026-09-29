@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  supportsPushNotifications,
   subscribeUserToPush,
   unsubscribeUserFromPush,
 } from "@/lib/notifications/push";
+import {
+  refreshNotificationPermission,
+  useNotificationPermission,
+  usePushNotificationSupport,
+} from "@/lib/notifications/use-notification-state";
 
 const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -14,29 +18,21 @@ interface PushNotificationToggleProps {
 }
 
 export function PushNotificationToggle({ userId }: PushNotificationToggleProps) {
-  const [isSupported, setIsSupported] = useState(false);
+  const isSupported = usePushNotificationSupport();
   const [isLoading, setIsLoading] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission>("default");
+  const permission = useNotificationPermission();
   const [isSubscribed, setIsSubscribed] = useState(false);
-
-  useEffect(() => {
-    setIsSupported(supportsPushNotifications());
-    if (typeof Notification !== "undefined") {
-      setPermission(Notification.permission);
-    }
-  }, []);
 
   const handleSubscribe = async () => {
     setIsLoading(true);
     try {
       const targetUserId = userId || DEFAULT_USER_ID;
       await subscribeUserToPush(targetUserId);
-      setPermission(Notification.permission);
       setIsSubscribed(true);
     } catch (error) {
       console.error("Subscription failed:", error);
-      setPermission(Notification.permission);
     } finally {
+      refreshNotificationPermission();
       setIsLoading(false);
     }
   };
