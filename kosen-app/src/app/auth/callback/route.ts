@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         .values({ userId: data.user.id, email })
         .onConflictDoNothing();
 
-      return NextResponse.redirect(`${origin}/whoami`);
+      return NextResponse.redirect(`${origin}/announcement`);
     }
   }
 
