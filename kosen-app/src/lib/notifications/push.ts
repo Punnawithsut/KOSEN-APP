@@ -1,21 +1,6 @@
-export type NotificationAction = {
-  action: string;
-  title: string;
-  icon?: string;
-};
-
-export type NotificationPayload = {
-  title: string;
-  body: string;
-  icon?: string;
-  badge?: string;
-  tag?: string;
-  data?: Record<string, unknown>;
-  actions?: NotificationAction[];
-};
-
 export function supportsPushNotifications(): boolean {
   return (
+    typeof window !== "undefined" &&
     "serviceWorker" in navigator &&
     "PushManager" in window &&
     "Notification" in window
@@ -24,150 +9,101 @@ export function supportsPushNotifications(): boolean {
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const normalizedBase64 = (base64String + padding)
+  const base64 = (base64String + padding)
     .replace(/-/g, "+")
     .replace(/_/g, "/");
 
-  const rawData = window.atob(normalizedBase64);
+  const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
 
-  for (let index = 0; index < rawData.length; index += 1) {
-    outputArray[index] = rawData.charCodeAt(index);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
   }
 
   return outputArray;
 }
 
-export async function registerPushServiceWorker(
-  serviceWorkerUrl = "/sw.js",
-  scope = "/",
-): Promise<ServiceWorkerRegistration | null> {
-  if (!supportsPushNotifications()) {
-    return null;
+export async function subscribeUserToPush(userId: string): Promise<PushSubscription | null> {
+  if (
+    typeof window === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window)
+  ) {
+    throw new Error("Push notifications are not supported in this browser.");
   }
 
-  return navigator.serviceWorker.register(serviceWorkerUrl, {
-    scope,
-    updateViaCache: "none",
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    throw new Error("Notification permission was denied by the user.");
+  }
+
+  const registration = await navigator.serviceWorker.register("/sw.js", {
+    scope: "/",
   });
-}
+  await navigator.serviceWorker.ready;
 
-export async function requestNotificationPermission(): Promise<NotificationPermission> {
-  if (!supportsPushNotifications()) {
-    return "denied";
-  }
-
-  return Notification.requestPermission();
-}
-
-export async function subscribeToPushNotifications(
-  vapidPublicKey: string | undefined,
-  serviceWorkerUrl = "/sw.js",
-): Promise<PushSubscription | null> {
-  if (!supportsPushNotifications()) {
-    return null;
-  }
-
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!vapidPublicKey) {
-    throw new Error("NEXT_PUBLIC_VAPID_PUBLIC_KEY is not configured.");
+    throw new Error("NEXT_PUBLIC_VAPID_PUBLIC_KEY is not defined in env.");
   }
 
-  const registration = await registerPushServiceWorker(serviceWorkerUrl);
+  const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
-  if (!registration) {
-    return null;
+  let subscription = await registration.pushManager.getSubscription();
+
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: convertedVapidKey.buffer as BufferSource,
+    });
   }
 
-  const existingSubscription = await registration.pushManager.getSubscription();
+  await saveSubscriptionToServer(subscription, userId);
 
-  if (existingSubscription) {
-    return existingSubscription;
-  }
-
-  const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-
-  return registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: toArrayBuffer(applicationServerKey),
-  });
+  return subscription;
 }
 
-export function isPushEnabled(): boolean {
-  return supportsPushNotifications() && Notification.permission === "granted";
-}
-
-export async function unsubscribeFromPushNotifications(): Promise<boolean> {
-  if (!supportsPushNotifications()) {
+export async function unsubscribeUserFromPush(): Promise<boolean> {
+  if (
+    typeof window === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window)
+  ) {
     return false;
   }
 
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.getSubscription();
 
-  if (!subscription) {
-    return false;
+  if (subscription) {
+    await deleteSubscriptionFromServer(subscription.endpoint);
+    return await subscription.unsubscribe();
   }
 
-  return subscription.unsubscribe();
+  return false;
 }
 
-export function serializePushSubscription(
-  subscription: PushSubscription,
-): {
-  endpoint: string;
-  keys: {
-    p256dh: string | null;
-    auth: string | null;
-  };
-} {
-  const p256dh = subscription.getKey("p256dh");
-  const auth = subscription.getKey("auth");
-
-  return {
-    endpoint: subscription.endpoint,
-    keys: {
-      p256dh: p256dh ? arrayBufferToBase64(p256dh) : null,
-      auth: auth ? arrayBufferToBase64(auth) : null,
-    },
-  };
-}
-
-export async function savePushSubscription(
-  subscription: PushSubscription,
-  extraData: Record<string, unknown> = {},
-): Promise<Response> {
+async function saveSubscriptionToServer(subscription: PushSubscription, userId: string) {
+  const subObj = subscription.toJSON();
   const response = await fetch("/api/notifications/subscribe", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      ...serializePushSubscription(subscription),
-      ...extraData,
+      userId,
+      endpoint: subObj.endpoint,
+      keys: subObj.keys,
     }),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to save push subscription.");
+    throw new Error("Failed to store push subscription on server.");
   }
-
-  return response;
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  let binary = "";
-
-  bytes.forEach((value) => {
-    binary += String.fromCharCode(value);
+async function deleteSubscriptionFromServer(endpoint: string) {
+  await fetch("/api/notifications/unsubscribe", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint }),
   });
-
-  return window.btoa(binary);
-}
-
-function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength,
-  ) as ArrayBuffer;
 }

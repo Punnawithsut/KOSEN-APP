@@ -12,6 +12,14 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
+interface ExtendedNotificationOptions extends NotificationOptions {
+  actions?: {
+    action: string;
+    title: string;
+    icon?: string;
+  }[];
+}
+
 const serwist = new Serwist({
   precacheEntries: [
     ...(self.__SW_MANIFEST || []),
@@ -47,25 +55,17 @@ self.addEventListener("push", (event) => {
   const handlePush = async () => {
     let payload = defaultPayload;
 
-    try {
-      if (event.data) {
-        const rawText = await event.data.text();
-        if (rawText && rawText.trim()) {
-          try {
-            payload = JSON.parse(rawText) as typeof defaultPayload;
-          } catch {
-            payload = { ...defaultPayload, body: rawText };
-          }
-        }
+    if (event.data) {
+      try {
+        // event.data.json() is synchronous
+        payload = { ...defaultPayload, ...event.data.json() };
+      } catch {
+        // Fallback if payload was plain string instead of JSON
+        payload = { ...defaultPayload, body: event.data.text() };
       }
-    } catch (error) {
-      console.warn(
-        "Push payload was not valid JSON; using default notification payload.",
-        error,
-      );
     }
 
-    const options = {
+    const options: ExtendedNotificationOptions = {
       body: payload.body ?? defaultPayload.body,
       icon: payload.icon ?? defaultPayload.icon,
       badge: payload.badge ?? defaultPayload.badge,
@@ -76,7 +76,7 @@ self.addEventListener("push", (event) => {
 
     await self.registration.showNotification(
       payload.title ?? defaultPayload.title,
-      options,
+      options as NotificationOptions,
     );
   };
 
@@ -86,25 +86,26 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const url =
+  const targetPath =
     (event.notification.data as { url?: string } | undefined)?.url ?? "/";
 
   const openApp = async () => {
+    // Resolve absolute URL reliably
+    const targetUrl = new URL(targetPath, self.location.origin).href;
+
     const allClients = await self.clients.matchAll({
       type: "window",
       includeUncontrolled: true,
     });
 
-    const matchingClient = allClients.find(
-      (client) => client.url === self.location.origin + url,
-    );
+    const matchingClient = allClients.find((client) => client.url === targetUrl);
 
     if (matchingClient) {
       await matchingClient.focus();
       return;
     }
 
-    await self.clients.openWindow(url);
+    await self.clients.openWindow(targetUrl);
   };
 
   event.waitUntil(openApp());

@@ -1,26 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { subscribeUserToPush } from "@/lib/notifications/push";
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const output = new Uint8Array(rawData.length);
-
-  for (let index = 0; index < rawData.length; index += 1) {
-    output[index] = rawData.charCodeAt(index);
-  }
-
-  return output;
-}
-
-function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength,
-  ) as ArrayBuffer;
-}
+// Valid UUID v4 string for PostgreSQL UUID column compatibility
+const TEST_USER_ID = "9a5f3973-0546-4f62-8f2a-f74c762dd4fc";
 
 export default function NotificationTestPage() {
   const [permission, setPermission] = useState<
@@ -40,92 +24,32 @@ export default function NotificationTestPage() {
         ? "unsupported"
         : Notification.permission,
     );
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        setIsRegistered(!!reg);
+        reg?.pushManager
+          .getSubscription()
+          .then((sub) => setIsSubscribed(!!sub));
+      });
+    }
   }, []);
 
   async function registerAndSubscribe() {
-    if (
-      !("serviceWorker" in navigator) ||
-      !("PushManager" in window) ||
-      !("Notification" in window)
-    ) {
-      setStatus("This browser does not support web push notifications.");
-      return;
-    }
-
+    setStatus("Processing subscription...");
     try {
-      setStatus("Clearing stale service workers...");
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(
-        registrations.map((registration) => registration.unregister()),
-      );
+      await subscribeUserToPush(TEST_USER_ID);
 
-      setStatus("Registering service worker...");
-      const registration = await navigator.serviceWorker.register("/sw.js", {
-        scope: "/",
-        updateViaCache: "none",
-      });
+      setPermission(Notification.permission);
       setIsRegistered(true);
-
-      const existingSubscription =
-        await registration.pushManager.getSubscription();
-      if (existingSubscription) {
-        setIsSubscribed(true);
-        setStatus("Already subscribed to push notifications.");
-        return;
-      }
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) {
-        setStatus("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY in .env");
-        return;
-      }
-
-      setStatus("Requesting notification permission...");
-      const result = await Notification.requestPermission();
-      setPermission(result);
-
-      if (result !== "granted") {
-        setStatus("Permission denied. Enable notifications to test push.");
-        return;
-      }
-
-      setStatus("Subscribing to push notifications...");
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: toArrayBuffer(urlBase64ToUint8Array(vapidKey)),
-      });
-
-      await fetch("/api/notifications/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          endpoint: subscription.endpoint,
-          keys: {
-            p256dh: subscription.getKey("p256dh")
-              ? btoa(
-                  String.fromCharCode(
-                    ...new Uint8Array(subscription.getKey("p256dh")!),
-                  ),
-                )
-              : null,
-            auth: subscription.getKey("auth")
-              ? btoa(
-                  String.fromCharCode(
-                    ...new Uint8Array(subscription.getKey("auth")!),
-                  ),
-                )
-              : null,
-          },
-          userId: "test-user",
-        }),
-      });
-
       setIsSubscribed(true);
       setStatus("Subscribed successfully. You can now send a test push.");
     } catch (error) {
       console.error(error);
       setStatus(
-        "Push registration failed. Check browser console and env keys.",
+        error instanceof Error
+          ? `Push registration failed: ${error.message}`
+          : "Push registration failed. Check browser console and env keys.",
       );
     }
   }
@@ -144,7 +68,7 @@ export default function NotificationTestPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: "test-user",
+          userId: TEST_USER_ID,
           title: "KOSEN test notification",
           body: message,
           icon: "/icons/icon-192.png",
@@ -156,8 +80,9 @@ export default function NotificationTestPage() {
       const result = await response.json();
 
       if (!response.ok || result?.ok === false) {
-        const reason = result?.reason ?? result?.error ?? "Notification send failed";
-        throw new Error(reason);
+        throw new Error(
+          result?.reason ?? result?.error ?? "Notification send failed",
+        );
       }
 
       setStatus("Test notification sent. Check the browser notification tray.");

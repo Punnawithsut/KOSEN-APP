@@ -3,6 +3,7 @@ import webPush, {
 } from "web-push";
 
 import {
+  deleteSubscription,
   getAllSubscriptions,
   getSubscriptionForUser,
 } from "@/lib/notifications/subscriptions";
@@ -15,70 +16,95 @@ if (vapidPublicKey && vapidPrivateKey) {
   webPush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 }
 
-type SendPushInput = {
+export type NotificationAction = {
+  action: string;
+  title: string;
+  icon?: string;
+};
+
+export type SendPushInput = {
   title: string;
   body: string;
   icon?: string;
   badge?: string;
   tag?: string;
   data?: Record<string, unknown>;
-  actions?: { action: string; title: string; icon?: string }[];
+  actions?: NotificationAction[];
 };
 
 export async function sendNotificationToUser(
   userId: string,
   payload: SendPushInput,
 ) {
-  const subscription = getSubscriptionForUser(userId);
+  const subscriptions = await getSubscriptionForUser(userId);
 
-  if (!subscription) {
-    return { ok: false, reason: "No subscription for user" };
+  if (!subscriptions || subscriptions.length === 0) {
+    return { ok: false, reason: "No subscription found for user." };
   }
 
   if (!vapidPublicKey || !vapidPrivateKey) {
-    return { ok: false, reason: "Missing VAPID keys" };
+    return { ok: false, reason: "Missing VAPID keys on server environment." };
   }
 
-  try {
-    await webPush.sendNotification(
-      {
-        endpoint: subscription.endpoint,
-        keys: {
-          p256dh: subscription.keys.p256dh,
-          auth: subscription.keys.auth,
-        },
-      } as WebPushSubscription,
-      JSON.stringify({
-        title: payload.title,
-        body: payload.body,
-        icon: payload.icon ?? "/icons/icon-192.png",
-        badge: payload.badge ?? "/icons/icon-192.png",
-        tag: payload.tag ?? "kosen-notification",
-        data: payload.data ?? { url: "/" },
-        actions: payload.actions ?? [{ action: "open", title: "Open app" }],
-      }),
-    );
+  const notificationPayload = JSON.stringify({
+    title: payload.title,
+    body: payload.body,
+    icon: payload.icon ?? "/icons/icon-192.png",
+    badge: payload.badge ?? "/icons/icon-192.png",
+    tag: payload.tag ?? "kosen-notification",
+    data: payload.data ?? { url: "/" },
+    actions: payload.actions ?? [{ action: "open", title: "Open app" }],
+  });
 
-    return { ok: true };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("Failed to send push notification to user:", {
-      userId,
-      endpoint: subscription.endpoint,
-      message,
-    });
-    return {
-      ok: false,
-      reason: "Notification delivery failed",
-      error: message,
-    };
-  }
+  const results = await Promise.allSettled(
+    subscriptions.map(async (subscription) => {
+      try {
+        await webPush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.keys.p256dh,
+              auth: subscription.keys.auth,
+            },
+          } as WebPushSubscription,
+          notificationPayload,
+        );
+        return { ok: true, endpoint: subscription.endpoint };
+      } catch (error: any) {
+        const statusCode = error?.statusCode;
+
+        if (statusCode === 410 || statusCode === 404) {
+          await deleteSubscription(subscription.endpoint);
+        }
+
+        console.error("Failed to send push notification to device:", {
+          userId,
+          endpoint: subscription.endpoint,
+          statusCode,
+          message: error instanceof Error ? error.message : String(error),
+        });
+
+        throw error;
+      }
+    }),
+  );
+
+  const successfulCount = results.filter(
+    (res) => res.status === "fulfilled",
+  ).length;
+
+  return {
+    ok: successfulCount > 0,
+    totalDevices: subscriptions.length,
+    sentDevices: successfulCount,
+    failedDevices: subscriptions.length - successfulCount,
+  };
 }
 
 export async function sendNotificationToAll(payload: SendPushInput) {
-  const subscriptions = getAllSubscriptions();
+  const subscriptions = await getAllSubscriptions();
 
-  if (!subscriptions.length) {
+  if (!subscriptions || subscriptions.length === 0) {
     return { ok: false, reason: "No subscriptions available" };
   }
 
@@ -86,28 +112,56 @@ export async function sendNotificationToAll(payload: SendPushInput) {
     return { ok: false, reason: "Missing VAPID keys" };
   }
 
-  const sends = subscriptions.map((subscription) =>
-    webPush.sendNotification(
-      {
-        endpoint: subscription.endpoint,
-        keys: {
-          p256dh: subscription.keys.p256dh,
-          auth: subscription.keys.auth,
-        },
-      } as WebPushSubscription,
-      JSON.stringify({
-        title: payload.title,
-        body: payload.body,
-        icon: payload.icon ?? "/icons/icon-192.png",
-        badge: payload.badge ?? "/icons/icon-192.png",
-        tag: payload.tag ?? "kosen-notification",
-        data: payload.data ?? { url: "/" },
-        actions: payload.actions ?? [{ action: "open", title: "Open app" }],
-      }),
-    ),
+  const notificationPayload = JSON.stringify({
+    title: payload.title,
+    body: payload.body,
+    icon: payload.icon ?? "/icons/icon-192.png",
+    badge: payload.badge ?? "/icons/icon-192.png",
+    tag: payload.tag ?? "kosen-notification",
+    data: payload.data ?? { url: "/" },
+    actions: payload.actions ?? [{ action: "open", title: "Open app" }],
+  });
+
+  const results = await Promise.allSettled(
+    subscriptions.map(async (subscription) => {
+      try {
+        await webPush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.keys.p256dh,
+              auth: subscription.keys.auth,
+            },
+          } as WebPushSubscription,
+          notificationPayload,
+        );
+        return { ok: true, endpoint: subscription.endpoint };
+      } catch (error: any) {
+        const statusCode = error?.statusCode;
+
+        if (statusCode === 410 || statusCode === 404) {
+          await deleteSubscription(subscription.endpoint);
+        }
+
+        console.error("Failed broadcast notification to device:", {
+          endpoint: subscription.endpoint,
+          statusCode,
+          message: error instanceof Error ? error.message : String(error),
+        });
+
+        throw error;
+      }
+    }),
   );
 
-  await Promise.allSettled(sends);
+  const successfulCount = results.filter(
+    (res) => res.status === "fulfilled",
+  ).length;
 
-  return { ok: true, count: subscriptions.length };
+  return {
+    ok: successfulCount > 0,
+    totalDevices: subscriptions.length,
+    sentDevices: successfulCount,
+    failedDevices: subscriptions.length - successfulCount,
+  };
 }

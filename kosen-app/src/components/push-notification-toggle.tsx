@@ -1,44 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  requestNotificationPermission,
-  savePushSubscription,
-  subscribeToPushNotifications,
   supportsPushNotifications,
-  unsubscribeFromPushNotifications,
+  subscribeUserToPush,
+  unsubscribeUserFromPush,
 } from "@/lib/notifications/push";
 
-export function PushNotificationToggle() {
-  const [isSupported] = useState<boolean>(() => supportsPushNotifications());
+// Valid UUID v4 fallback to avoid Postgres UUID parsing errors
+const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
+
+interface PushNotificationToggleProps {
+  userId?: string;
+}
+
+export function PushNotificationToggle({ userId }: PushNotificationToggleProps) {
+  const [isSupported, setIsSupported] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission>(() =>
-    typeof Notification !== "undefined" ? Notification.permission : "denied",
-  );
+  const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSubscribed, setIsSubscribed] = useState(false);
+
+  useEffect(() => {
+    setIsSupported(supportsPushNotifications());
+    if (typeof Notification !== "undefined") {
+      setPermission(Notification.permission);
+    }
+  }, []);
 
   const handleSubscribe = async () => {
     setIsLoading(true);
-
     try {
-      const permissionState = await requestNotificationPermission();
-      setPermission(permissionState);
-
-      if (permissionState !== "granted") {
-        return;
-      }
-
-      const subscription = await subscribeToPushNotifications(
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      );
-
-      if (subscription) {
-        await savePushSubscription(subscription, {
-          userId: "guest-user",
-        });
-      }
-
-      setIsSubscribed(Boolean(subscription));
+      const targetUserId = userId || DEFAULT_USER_ID;
+      await subscribeUserToPush(targetUserId);
+      setPermission(Notification.permission);
+      setIsSubscribed(true);
+    } catch (error) {
+      console.error("Subscription failed:", error);
+      setPermission(Notification.permission);
     } finally {
       setIsLoading(false);
     }
@@ -46,12 +44,13 @@ export function PushNotificationToggle() {
 
   const handleUnsubscribe = async () => {
     setIsLoading(true);
-
     try {
-      const didUnsubscribe = await unsubscribeFromPushNotifications();
+      const didUnsubscribe = await unsubscribeUserFromPush();
       if (didUnsubscribe) {
         setIsSubscribed(false);
       }
+    } catch (error) {
+      console.error("Unsubscribe failed:", error);
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +72,7 @@ export function PushNotificationToggle() {
             Web push notifications
           </p>
           <p className="text-sm text-slate-600">
-            {permission === "granted"
+            {permission === "granted" || isSubscribed
               ? "Notifications are enabled."
               : "Enable notifications to receive appointment reminders and updates."}
           </p>

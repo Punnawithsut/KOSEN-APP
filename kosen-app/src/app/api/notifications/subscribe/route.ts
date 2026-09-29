@@ -4,20 +4,29 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json();
 
-    if (!payload?.endpoint) {
+    if (!payload?.endpoint || !payload?.keys?.p256dh || !payload?.keys?.auth) {
       return Response.json(
-        { error: "Missing endpoint in push subscription payload." },
+        {
+          error: "Invalid push subscription payload. Missing endpoint or keys.",
+        },
         { status: 400 },
       );
     }
 
-    const userId = String(payload.userId ?? "local-user");
+    if (!payload?.userId) {
+      return Response.json(
+        { error: "Missing userId. A valid user ID is required." },
+        { status: 400 },
+      );
+    }
 
-    saveSubscription(userId, {
+    const userId = String(payload.userId);
+
+    await saveSubscription(userId, {
       endpoint: payload.endpoint,
       keys: {
-        p256dh: payload.keys?.p256dh,
-        auth: payload.keys?.auth,
+        p256dh: payload.keys.p256dh,
+        auth: payload.keys.auth,
       },
     });
 
@@ -25,7 +34,6 @@ export async function POST(request: Request) {
       ok: true,
       message: "Push subscription received.",
       userId,
-      subscription: payload,
     });
   } catch (error) {
     console.error("Push subscription failed:", error);

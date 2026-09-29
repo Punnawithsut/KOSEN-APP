@@ -13,7 +13,7 @@ import {
   uniqueIndex,
   unique,
 } from "drizzle-orm/pg-core";
-import { relations,sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // ---------- Enums ----------
 export const appointmentStatusEnum = pgEnum("appointment_status", [
@@ -36,7 +36,6 @@ export const announcementCategoryEnum = pgEnum("announcement_category", [
   "events",
 ]);
 
-// ---------- Tables ----------
 export const userRoleEnum = pgEnum("user_role", ["user", "counselor", "admin"]);
 
 // ---------- Tables ----------
@@ -61,17 +60,19 @@ export const dormBuildings = pgTable("dorm_buildings", {
   buildingNumber: integer("building_number").notNull().unique(),
 });
 
-export const dormRooms = pgTable("dorm_rooms", {
-  roomId: uuid("room_id").defaultRandom().primaryKey(),
-  buildingId: uuid("building_id")
-    .notNull()
-    .references(() => dormBuildings.buildingId, { onDelete: "cascade" }),
-  roomNumber: varchar("room_number", { length: 4 }).notNull(),
-  roomPhotoUrl: text("room_photo_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-},
-(table) => ({
+export const dormRooms = pgTable(
+  "dorm_rooms",
+  {
+    roomId: uuid("room_id").defaultRandom().primaryKey(),
+    buildingId: uuid("building_id")
+      .notNull()
+      .references(() => dormBuildings.buildingId, { onDelete: "cascade" }),
+    roomNumber: varchar("room_number", { length: 4 }).notNull(),
+    roomPhotoUrl: text("room_photo_url"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
     buildingRoomUnique: unique().on(
       table.buildingId,
       table.roomNumber,
@@ -79,21 +80,23 @@ export const dormRooms = pgTable("dorm_rooms", {
   })
 );
 
-export const dormRoomAssignments = pgTable("dorm_room_assignments", {
-  assignmentId: uuid("assignment_id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.userId, { onDelete: "cascade" }),
-  roomId: uuid("room_id")
-    .notNull()
-    .references(() => dormRooms.roomId, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  endedAt: timestamp("ended_at"),
-},
-(table) => ({
-    userRoomUnique: uniqueIndex("user_room_unique").on(
-      table.userId
-    ).where(sql`${table.endedAt} IS NULL`),
+export const dormRoomAssignments = pgTable(
+  "dorm_room_assignments",
+  {
+    assignmentId: uuid("assignment_id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.userId, { onDelete: "cascade" }),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => dormRooms.roomId, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    endedAt: timestamp("ended_at"),
+  },
+  (table) => ({
+    userRoomUnique: uniqueIndex("user_room_unique")
+      .on(table.userId)
+      .where(sql`${table.endedAt} IS NULL`),
   })
 );
 
@@ -106,6 +109,24 @@ export const dormPointChanges = pgTable("dorm_points_changes", {
   reason: text("reason").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    subscriptionId: uuid("subscription_id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.userId, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("push_subscriptions_user_id_idx").on(table.userId),
+  })
+);
 
 export const rooms = pgTable("rooms", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -281,10 +302,20 @@ export const announcementAttachments = pgTable(
 export const usersRelations = relations(users, ({ many }) => ({
   appointments: many(appointments),
   medicalHistoryForms: many(medicalHistoryForms),
-
   dormRoomAssignments: many(dormRoomAssignments),
   dormPointChanges: many(dormPointChanges),
+  pushSubscriptions: many(pushSubscriptions),
 }));
+
+export const pushSubscriptionsRelations = relations(
+  pushSubscriptions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [pushSubscriptions.userId],
+      references: [users.userId],
+    }),
+  }),
+);
 
 export const dormBuildingsRelations = relations(dormBuildings, ({ many }) => ({
   dormRooms: many(dormRooms),
@@ -298,23 +329,29 @@ export const dormRoomsRelations = relations(dormRooms, ({ one, many }) => ({
   assignments: many(dormRoomAssignments),
 }));
 
-export const dormRoomAssignmentsRelations = relations(dormRoomAssignments, ({ one }) => ({
-  user: one(users, {
-    fields: [dormRoomAssignments.userId],
-    references: [users.userId],
-  }),
-  room: one(dormRooms, {
-    fields: [dormRoomAssignments.roomId],
-    references: [dormRooms.roomId],
-  }),
-}));
+export const dormRoomAssignmentsRelations = relations(
+  dormRoomAssignments,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [dormRoomAssignments.userId],
+      references: [users.userId],
+    }),
+    room: one(dormRooms, {
+      fields: [dormRoomAssignments.roomId],
+      references: [dormRooms.roomId],
+    }),
+  })
+);
 
-export const dormPointChangesRelations = relations(dormPointChanges, ({ one }) => ({
-  user: one(users, {
-    fields: [dormPointChanges.userId],
-    references: [users.userId],
-  }),
-}));
+export const dormPointChangesRelations = relations(
+  dormPointChanges,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [dormPointChanges.userId],
+      references: [users.userId],
+    }),
+  })
+);
 
 export const counselorsRelations = relations(counselors, ({ many }) => ({
   appointments: many(appointments),
