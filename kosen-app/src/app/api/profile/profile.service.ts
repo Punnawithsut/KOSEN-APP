@@ -1,4 +1,8 @@
-import { getUserById, updateUserById, type UpdateProfileData } from "./profile.repo";
+import {
+  getUserById,
+  updateUserById,
+  type UpdateProfileData,
+} from "./profile.repo";
 import { NotFoundError, BadRequestError } from "../_shared/errors";
 
 const ALLOWED_DEPARTMENTS = [
@@ -19,7 +23,10 @@ export async function fetchUserProfile(userId: string) {
   return user;
 }
 
-export async function modifyUserProfile(userId: string, data: UpdateProfileData) {
+export async function modifyUserProfile(
+  userId: string,
+  data: UpdateProfileData,
+) {
   if (Object.keys(data).length === 0) {
     throw new BadRequestError("No valid update fields provided.");
   }
@@ -27,10 +34,12 @@ export async function modifyUserProfile(userId: string, data: UpdateProfileData)
   // Validation: Department
   if (
     data.department !== undefined &&
-    !ALLOWED_DEPARTMENTS.includes(data.department as (typeof ALLOWED_DEPARTMENTS)[number])
+    !ALLOWED_DEPARTMENTS.includes(
+      data.department as (typeof ALLOWED_DEPARTMENTS)[number],
+    )
   ) {
     throw new BadRequestError(
-      `Department must be one of: ${ALLOWED_DEPARTMENTS.join(", ")}`
+      `Department must be one of: ${ALLOWED_DEPARTMENTS.join(", ")}`,
     );
   }
 
@@ -44,22 +53,30 @@ export async function modifyUserProfile(userId: string, data: UpdateProfileData)
   // Validation: Dorm Building (7 or 8)
   if (
     data.dormBuilding !== undefined &&
-    !ALLOWED_DORM_BUILDINGS.includes(data.dormBuilding as (typeof ALLOWED_DORM_BUILDINGS)[number])
+    !ALLOWED_DORM_BUILDINGS.includes(
+      data.dormBuilding as (typeof ALLOWED_DORM_BUILDINGS)[number],
+    )
   ) {
     throw new BadRequestError("Dorm building can only be '7' or '8'.");
   }
 
   // Validation: String lengths matching DB constraints
   if (data.studentId && data.studentId.length > 20) {
-    throw new BadRequestError("Student ID exceeds maximum length of 20 characters.");
+    throw new BadRequestError(
+      "Student ID exceeds maximum length of 20 characters.",
+    );
   }
 
   if (data.phone && data.phone.length > 20) {
-    throw new BadRequestError("Phone number exceeds maximum length of 20 characters.");
+    throw new BadRequestError(
+      "Phone number exceeds maximum length of 20 characters.",
+    );
   }
 
   if (data.dormRoom && data.dormRoom.length > 50) {
-    throw new BadRequestError("Dorm room exceeds maximum length of 50 characters.");
+    throw new BadRequestError(
+      "Dorm room exceeds maximum length of 50 characters.",
+    );
   }
 
   const updatedUser = await updateUserById(userId, data);

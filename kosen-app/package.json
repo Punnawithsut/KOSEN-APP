@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node -e \"console.log('\\x1b[36m%s\\x1b[0m', '📚 Swagger API Docs: http://localhost:3000/api/docs\\n')\" && next dev",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",

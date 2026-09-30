@@ -1,16 +1,17 @@
+import { profileDocs } from "../profile/profile.swagger";
+
 export const openApiSpec = {
   openapi: "3.0.0",
-  info: { title: "KOSEN API", version: "1.0.0" },
+  info: {
+    title: "KOSEN API Documentation",
+    version: "1.0.0",
+  },
+  tags: [
+    { name: "Profile", description: "Profile management endpoints" },
+    // Add new module tags here later (e.g. Announcements)
+  ],
   paths: {
-    "/api/profile": {
-      get: {
-        summary: "Retrieve user profile by ID",
-        responses: { 200: { description: "Success" } },
-      },
-      patch: {
-        summary: "Update user profile by ID",
-        responses: { 200: { description: "Updated" } },
-      },
-    },
+    ...profileDocs,
+    // ...announcementDocs,
   },
 };
