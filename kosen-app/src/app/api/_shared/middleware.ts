@@ -28,7 +28,7 @@ export type Handler<C> = (
 /**
  * Checks if the user is authenticated (logged in).
  */
-export function useSessionMiddleware<T = Record<string, string>>(
+export function withSessionMiddleware<T = Record<string, string>>(
   handler: Handler<SessionContext<T>>
 ) {
   return async (req: NextRequest, props?: { params: Promise<T> }) => {
