@@ -61,15 +61,15 @@ export async function modifyUserProfile(
   }
 
   // Validation: String lengths matching DB constraints
-  if (data.studentId && data.studentId.length > 20) {
+  if (data.studentId && data.studentId.length > 8) {
     throw new BadRequestError(
-      "Student ID exceeds maximum length of 20 characters.",
+      "Student ID exceeds maximum length of 8 characters.",
     );
   }
 
-  if (data.phone && data.phone.length > 20) {
+  if (data.phone && data.phone.length > 10) {
     throw new BadRequestError(
-      "Phone number exceeds maximum length of 20 characters.",
+      "Phone number exceeds maximum length of 10 characters.",
     );
   }
 
