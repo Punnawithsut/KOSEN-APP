@@ -31,6 +31,7 @@ export async function uploadAnnouncementFiles(
       });
 
       if (error) {
+        console.error("Supabase announcement file upload failed:", error);
         throw new AppError(
           "Failed to upload announcement file to Supabase Storage.",
           502,
