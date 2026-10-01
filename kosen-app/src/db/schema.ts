@@ -33,7 +33,7 @@ export const users = pgTable("users", {
   emergencyPhone: varchar("emergency_phone", { length: 20 }),
   department: varchar("department", { length: 100 }),
   year: integer("year"),
-  dormBuilding: varchar("dorm_building", { length : 50 }),
+  dormBuilding: varchar("dorm_building", { length: 50 }),
   dormRoom: varchar("dorm_room", { length: 50 }),
   avatarUrl: text("avatar_url"),
   isConsented: boolean("is_consented").notNull().default(false),
@@ -66,7 +66,9 @@ export const announcements = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     title: text("title").notNull(),
     content: text("content").notNull(),
-    category: announcementCategoryEnum("category").notNull().default("news"),
+    targetYear: integer("target_year"),
+    targetDepartment: varchar("target_department", { length: 100 }),
+    category: announcementCategoryEnum("category"),
     authorId: uuid("author_id").references(() => users.userId, {
       onDelete: "set null",
     }),
@@ -87,7 +89,8 @@ export const announcementAttachments = pgTable(
     announcementId: uuid("announcement_id")
       .notNull()
       .references(() => announcements.id, { onDelete: "cascade" }),
-    fileUrl: text("file_url").notNull(),
+    fileUrl: text("file_url"),
+    storagePath: text("storage_path"),
     fileType: varchar("file_type", { length: 50 }).default("image"),
     displayOrder: integer("display_order").default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),

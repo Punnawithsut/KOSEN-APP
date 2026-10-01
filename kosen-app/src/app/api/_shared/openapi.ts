@@ -1,4 +1,5 @@
 import { profileDocs } from "../profile/profile.swagger";
+import { announcementDocs } from "../announcement/announcement.swagger";
 
 export const openApiSpec = {
   openapi: "3.0.0",
@@ -8,10 +9,10 @@ export const openApiSpec = {
   },
   tags: [
     { name: "Profile", description: "Profile management endpoints" },
-    // Add new module tags here later (e.g. Announcements)
+    { name: "Announcements", description: "Announcement management endpoints" },
   ],
   paths: {
     ...profileDocs,
-    // ...announcementDocs,
+    ...announcementDocs,
   },
 };
