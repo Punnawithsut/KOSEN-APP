@@ -28,7 +28,7 @@ export type Handler<C> = (req: NextRequest, ctx: C) => Promise<NextResponse>;
 export function withSessionMiddleware<T = Record<string, string>>(
   handler: Handler<SessionContext<T>>,
 ) {
-  return async (req: NextRequest, props: { params?: Promise<T> }) => {
+  return async (req: NextRequest, props: { params: Promise<T> }) => {
     try {
       const supabase = await createClient();
       const {
@@ -42,7 +42,7 @@ export function withSessionMiddleware<T = Record<string, string>>(
         );
       }
 
-      const params = props.params ? await props.params : ({} as T);
+      const params = await props.params;
 
       return await handler(req, { user, params });
     } catch (error) {
@@ -57,7 +57,7 @@ export function withSessionMiddleware<T = Record<string, string>>(
 export function useAdminMiddleware<T = Record<string, string>>(
   handler: Handler<AdminContext<T>>,
 ) {
-  return async (req: NextRequest, props: { params?: Promise<T> }) => {
+  return async (req: NextRequest, props: { params: Promise<T> }) => {
     try {
       const supabase = await createClient();
       const {
@@ -81,7 +81,7 @@ export function useAdminMiddleware<T = Record<string, string>>(
         throw new ForbiddenError("Forbidden: Admin privileges required");
       }
 
-      const params = props.params ? await props.params : ({} as T);
+      const params = await props.params;
 
       return await handler(req, { user, userRole: "admin", params });
     } catch (error) {
