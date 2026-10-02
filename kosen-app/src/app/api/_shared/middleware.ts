@@ -20,18 +20,15 @@ export type AdminContext<T = Record<string, string>> = SessionContext<T> & {
   userRole: "admin";
 };
 
-export type Handler<C> = (
-  req: NextRequest,
-  ctx: C
-) => Promise<NextResponse>;
+export type Handler<C> = (req: NextRequest, ctx: C) => Promise<NextResponse>;
 
 /**
  * Checks if the user is authenticated (logged in).
  */
 export function withSessionMiddleware<T = Record<string, string>>(
-  handler: Handler<SessionContext<T>>
+  handler: Handler<SessionContext<T>>,
 ) {
-  return async (req: NextRequest, props?: { params: Promise<T> }) => {
+  return async (req: NextRequest, props: { params?: Promise<T> }) => {
     try {
       const supabase = await createClient();
       const {
@@ -40,10 +37,12 @@ export function withSessionMiddleware<T = Record<string, string>>(
       } = await supabase.auth.getUser();
 
       if (error || !user) {
-        throw new UnauthorizedError("You must be logged in to access this route");
+        throw new UnauthorizedError(
+          "You must be logged in to access this route",
+        );
       }
 
-      const params = props?.params ? await props.params : ({} as T);
+      const params = props.params ? await props.params : ({} as T);
 
       return await handler(req, { user, params });
     } catch (error) {
@@ -56,9 +55,9 @@ export function withSessionMiddleware<T = Record<string, string>>(
  * Checks if the user is authenticated AND has the 'admin' role in the database.
  */
 export function useAdminMiddleware<T = Record<string, string>>(
-  handler: Handler<AdminContext<T>>
+  handler: Handler<AdminContext<T>>,
 ) {
-  return async (req: NextRequest, props?: { params: Promise<T> }) => {
+  return async (req: NextRequest, props: { params?: Promise<T> }) => {
     try {
       const supabase = await createClient();
       const {
@@ -67,7 +66,9 @@ export function useAdminMiddleware<T = Record<string, string>>(
       } = await supabase.auth.getUser();
 
       if (error || !user) {
-        throw new UnauthorizedError("You must be logged in to access this route");
+        throw new UnauthorizedError(
+          "You must be logged in to access this route",
+        );
       }
 
       // Query database to check user role
@@ -80,7 +81,7 @@ export function useAdminMiddleware<T = Record<string, string>>(
         throw new ForbiddenError("Forbidden: Admin privileges required");
       }
 
-      const params = props?.params ? await props.params : ({} as T);
+      const params = props.params ? await props.params : ({} as T);
 
       return await handler(req, { user, userRole: "admin", params });
     } catch (error) {
