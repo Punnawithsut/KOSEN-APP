@@ -14,25 +14,25 @@ function LoginContent() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { 
-          hd: "kmitl.ac.th",
-          prompt: "select_account"
-        },
+        queryParams: { prompt: "select_account" },
       },
     });
   }
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-      <h1 className="text-xl font-semibold">Sign in — KMITL only (test page)</h1>
+      <h1 className="text-xl font-semibold">Sign in with Google</h1>
 
-      {error === "not_kmitl_domain" && (
+      {error === "unauthorized_email" && (
         <p className="text-red-600">
-          That account isn&apos;t a @kmitl.ac.th address. Try again with your school account.
+          This account isn&apos;t authorized. Use your KMITL account or the
+          configured admin account.
         </p>
       )}
       {error === "auth_failed" && (
-        <p className="text-red-600">Something went wrong signing in. Try again.</p>
+        <p className="text-red-600">
+          Something went wrong signing in. Try again.
+        </p>
       )}
 
       <button
