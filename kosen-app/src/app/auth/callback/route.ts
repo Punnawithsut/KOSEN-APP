@@ -13,9 +13,14 @@ export async function GET(request: Request) {
 
     if (!error && data.user) {
       const email = data.user.email ?? "";
-      if (!email.endsWith("@kmitl.ac.th")) {
+      const normalizedEmail = email.trim().toLowerCase();
+      const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+      if (
+        !normalizedEmail.endsWith("@kmitl.ac.th") &&
+        normalizedEmail !== adminEmail
+      ) {
         await supabase.auth.signOut();
-        return NextResponse.redirect(`${origin}/login?error=not_kmitl_domain`);
+        return NextResponse.redirect(`${origin}/login?error=unauthorized_email`);
       }
 
       await db

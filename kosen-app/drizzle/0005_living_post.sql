@@ -1,0 +1,1 @@
+ALTER TABLE "announcement_attachments" ADD COLUMN "storage_path" text;
