@@ -1,5 +1,3 @@
-"use client";
-
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useIsStandalone } from "@/lib/use-standalone";
@@ -10,7 +8,7 @@ export function RequireStandalone({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isStandalone) {
-      router.replace("/");
+      router.replace("/no-standalone");
     }
   }, [isStandalone, router]);
 
