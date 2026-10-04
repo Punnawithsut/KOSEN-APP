@@ -10,6 +10,6 @@ export default async function AppLayout({
   if (!(await isLoggedIn())) {
     redirect("/login");
   }
-
+  //return children //comment this and uncomment below on production @everyone
   return <RequireStandalone>{children}</RequireStandalone>;
 }
