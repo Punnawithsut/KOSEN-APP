@@ -5,11 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  useMyProfile,
+  useUpdateMyProfile,
+  type MyProfile,
+} from "@/hooks/use-profile";
 
 const DEPARTMENTS = [
   "Computer Engineering",
   "Mechanical Engineering",
-  "Electrical and Electronic Engineering",
+  "Electrical and Electronics Engineering",
 ];
 const YEARS = [1, 2, 3, 4, 5];
 const DORM_BUILDINGS = [7, 8];
@@ -44,32 +49,23 @@ export default function ProfilePage() {
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const snapshotRef = useRef<ProfileForm>(EMPTY_FORM);
-
-  // TODO: connect to api — fetch current profile (and notification
-  // preference) on mount.
-  // useEffect(() => {
-  //   fetch("/api/profile")
-  //     .then((res) => res.json())
-  //     .then((data) => {
-  //       setForm({ ...EMPTY_FORM, ...data });
-  //       setNotificationsEnabled(data.notificationsEnabled ?? true);
-  //       setIsLoading(false);
-  //     });
-  // }, []);
-  // Remove the next line once the real fetch above is wired in.
-  useState(() => setIsLoading(false));
+  const { data: profile, error: profileError, isLoading } = useMyProfile();
+  const { trigger: updateMyProfile, isMutating: isSaving } =
+    useUpdateMyProfile();
+  const displayedForm = !isEditing && profile ? toProfileForm(profile) : form;
 
   function update<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function startEditing() {
-    snapshotRef.current = form; // remember current values in case of cancel
+    const currentForm = profile ? toProfileForm(profile) : form;
+    setForm(currentForm);
+    snapshotRef.current = currentForm;
     setIsEditing(true);
   }
 
@@ -92,18 +88,26 @@ export default function ProfilePage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setIsSaving(true);
+    setSaveError(null);
     try {
-      // TODO: connect to api
-      // await fetch("/api/profile", {
-      //   method: "PATCH",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(form),
-      // });
-      await new Promise((r) => setTimeout(r, 600)); // placeholder delay
+      const response = await updateMyProfile({
+        studentId: form.studentId,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phone: form.phone,
+        department: form.department,
+        ...(form.year ? { year: Number(form.year) } : {}),
+        dormBuilding: form.dormBuilding,
+        dormRoom: form.dormRoom,
+      });
+      const updatedForm = toProfileForm(response.data);
+      setForm(updatedForm);
+      snapshotRef.current = updatedForm;
       setIsEditing(false);
-    } finally {
-      setIsSaving(false);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Unable to save your profile.",
+      );
     }
   }
 
@@ -160,10 +164,10 @@ export default function ProfilePage() {
               className="relative block size-32 overflow-hidden rounded-full border-4 border-white shadow-md"
               aria-label={isEditing ? "Change profile photo" : "Profile photo"}
             >
-              {avatarPreview || form.avatarUrl ? (
+              {avatarPreview || displayedForm.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={avatarPreview ?? form.avatarUrl}
+                  src={avatarPreview ?? displayedForm.avatarUrl}
                   alt=""
                   className="size-full object-cover"
                 />
@@ -174,7 +178,7 @@ export default function ProfilePage() {
                     background: "linear-gradient(135deg, #F2A66B, #C65D2E)",
                   }}
                 >
-                  {form.firstName?.[0]?.toUpperCase() ?? "?"}
+                  {displayedForm.firstName?.[0]?.toUpperCase() ?? "?"}
                 </div>
               )}
             </button>
@@ -211,7 +215,11 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {isLoading ? (
+          {profileError ? (
+            <p role="alert" className="py-10 text-center text-sm text-red-700">
+              Unable to load your profile: {profileError.message}
+            </p>
+          ) : isLoading ? (
             <p className="py-10 text-center text-sm text-[#6B5F54]">
               Loading your profile…
             </p>
@@ -220,7 +228,7 @@ export default function ProfilePage() {
               <Field label="Student ID" className="sm:col-span-2">
                 <ViewOrInput
                   editing={isEditing}
-                  value={form.studentId}
+                  value={displayedForm.studentId}
                   onChange={(v) => update("studentId", v)}
                   placeholder="65010123"
                 />
@@ -229,7 +237,7 @@ export default function ProfilePage() {
               <Field label="First name">
                 <ViewOrInput
                   editing={isEditing}
-                  value={form.firstName}
+                  value={displayedForm.firstName}
                   onChange={(v) => update("firstName", v)}
                   placeholder="First name"
                 />
@@ -238,7 +246,7 @@ export default function ProfilePage() {
               <Field label="Last name">
                 <ViewOrInput
                   editing={isEditing}
-                  value={form.lastName}
+                  value={displayedForm.lastName}
                   onChange={(v) => update("lastName", v)}
                   placeholder="Last name"
                 />
@@ -247,7 +255,7 @@ export default function ProfilePage() {
               <Field label="Phone" className="sm:col-span-2">
                 <ViewOrInput
                   editing={isEditing}
-                  value={form.phone}
+                  value={displayedForm.phone}
                   onChange={(v) => update("phone", v)}
                   placeholder="08x-xxx-xxxx"
                 />
@@ -257,7 +265,7 @@ export default function ProfilePage() {
                 <ViewOrInput
                   editing={isEditing}
                   type="email"
-                  value={form.email}
+                  value={displayedForm.email}
                   onChange={(v) => update("email", v)}
                   placeholder="you@kmitl.ac.th"
                 />
@@ -266,7 +274,7 @@ export default function ProfilePage() {
               <Field label="Department">
                 {isEditing ? (
                   <Select
-                    value={form.department}
+                    value={displayedForm.department}
                     onChange={(e) => update("department", e.target.value)}
                   >
                     <option value="" disabled>
@@ -279,14 +287,14 @@ export default function ProfilePage() {
                     ))}
                   </Select>
                 ) : (
-                  <ViewValue value={form.department} />
+                  <ViewValue                   value={displayedForm.department} />
                 )}
               </Field>
 
               <Field label="Year">
                 {isEditing ? (
                   <Select
-                    value={form.year}
+                    value={displayedForm.year}
                     onChange={(e) => update("year", e.target.value)}
                   >
                     <option value="" disabled>
@@ -299,14 +307,14 @@ export default function ProfilePage() {
                     ))}
                   </Select>
                 ) : (
-                  <ViewValue value={form.year && `Year ${form.year}`} />
+                  <ViewValue value={displayedForm.year && `Year ${displayedForm.year}`} />
                 )}
               </Field>
 
               <Field label="Dorm building">
                 {isEditing ? (
                   <Select
-                    value={form.dormBuilding}
+                    value={displayedForm.dormBuilding}
                     onChange={(e) => update("dormBuilding", e.target.value)}
                   >
                     <option value="" disabled>
@@ -320,7 +328,7 @@ export default function ProfilePage() {
                   </Select>
                 ) : (
                   <ViewValue
-                    value={form.dormBuilding && `Building ${form.dormBuilding}`}
+                    value={displayedForm.dormBuilding && `Building ${displayedForm.dormBuilding}`}
                   />
                 )}
               </Field>
@@ -328,7 +336,7 @@ export default function ProfilePage() {
               <Field label="Dorm room">
                 <ViewOrInput
                   editing={isEditing}
-                  value={form.dormRoom}
+                  value={displayedForm.dormRoom}
                   onChange={(v) => update("dormRoom", v)}
                   placeholder="e.g. 304"
                 />
@@ -356,6 +364,12 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {saveError && (
+            <p role="alert" className="mt-4 text-sm text-red-700">
+              {saveError}
+            </p>
+          )}
+
           {/* always available, independent of edit mode */}
           <div className="mt-6 flex items-center justify-between rounded-xl border border-[#EFE4D4] bg-[#FBF3E7]/60 px-4 py-3">
             <div>
@@ -375,6 +389,21 @@ export default function ProfilePage() {
       </div>
     </div>
   );
+}
+
+function toProfileForm(profile: MyProfile): ProfileForm {
+  return {
+    studentId: profile.studentId ?? "",
+    firstName: profile.firstName ?? "",
+    lastName: profile.lastName ?? "",
+    email: profile.email,
+    phone: profile.phone ?? "",
+    department: profile.department ?? "",
+    year: profile.year?.toString() ?? "",
+    dormBuilding: profile.dormBuilding ?? "",
+    dormRoom: profile.dormRoom ?? "",
+    avatarUrl: profile.avatarUrl ?? "",
+  };
 }
 
 function Field({
