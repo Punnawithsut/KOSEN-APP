@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { createClient } from "@/lib/supabase/client";
 import {
   useMyProfile,
   useUpdateMyProfile,
@@ -51,6 +53,9 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const snapshotRef = useRef<ProfileForm>(EMPTY_FORM);
   const { data: profile, error: profileError, isLoading } = useMyProfile();
@@ -122,6 +127,18 @@ export default function ProfilePage() {
     // });
   }
 
+  async function handleLogout() {
+    setLogoutError(null);
+    setIsLoggingOut(true);
+    const { error } = await createClient().auth.signOut();
+    if (error) {
+      setLogoutError(error.message);
+      setIsLoggingOut(false);
+      return;
+    }
+    router.replace("/login");
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-bg-primary">
       {/* decorative circles — anchored to corners, quiet relative to the form */}
@@ -159,7 +176,7 @@ export default function ProfilePage() {
 
         <form
           onSubmit={handleSave}
-          className="relative mt-10 w-full rounded-2xl bg-white/90 p-8 pt-20 shadow-[0_8px_30px_rgba(43,36,32,0.08)] backdrop-blur-sm"
+          className="relative mt-16 w-full rounded-2xl bg-white/90 p-8 pt-20 shadow-[0_8px_30px_rgba(43,36,32,0.08)] backdrop-blur-sm"
         >
           {/* avatar, bigger, overlapping the card's top edge */}
           <div className="absolute -top-16 left-1/2 -translate-x-1/2">
@@ -391,6 +408,20 @@ export default function ProfilePage() {
               onCheckedChange={handleNotificationToggle}
             />
           </div>
+          {logoutError && (
+            <p role="alert" className="mt-3 text-sm text-negative-primary">
+              Unable to log out: {logoutError}
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={isLoggingOut}
+            onClick={handleLogout}
+            className="mt-4 w-full"
+          >
+            {isLoggingOut ? "Logging out…" : "Log out"}
+          </Button>
         </form>
       </div>
     </div>
