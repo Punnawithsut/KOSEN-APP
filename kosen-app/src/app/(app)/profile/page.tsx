@@ -130,13 +130,20 @@ export default function ProfilePage() {
   async function handleLogout() {
     setLogoutError(null);
     setIsLoggingOut(true);
-    const { error } = await createClient().auth.signOut();
-    if (error) {
-      setLogoutError(error.message);
+    try {
+      const { error } = await createClient().auth.signOut();
+      if (error) {
+        setLogoutError(error.message);
+        setIsLoggingOut(false);
+        return;
+      }
+      router.replace("/login");
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error ? error.message : "An unexpected error occurred.",
+      );
       setIsLoggingOut(false);
-      return;
     }
-    router.replace("/login");
   }
 
   return (
