@@ -46,6 +46,34 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ---- Brand design tokens ----
+     Approximated from swatch colors — replace with exact hex/oklch
+     values if you have the original design spec (Figma, etc.). */
+  --color-orange-secondary: var(--orange-secondary);
+  --color-orange-primary: var(--orange-primary);
+  --color-orange-subtle-1: var(--orange-subtle-1);
+  --color-orange-subtle-2: var(--orange-subtle-2);
+  --color-blue-secondary: var(--blue-secondary);
+  --color-blue-primary: var(--blue-primary);
+  --color-blue-subtle-1: var(--blue-subtle-1);
+  --color-blue-subtle-2: var(--blue-subtle-2);
+  --color-warning-primary: var(--warning-primary);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-noti-warning-subtle: var(--noti-warning-subtle);
+  --color-negative-primary: var(--negative-primary);
+  --color-negative-subtle: var(--negative-subtle);
+  --color-noti-negative-subtle: var(--noti-negative-subtle);
+  --color-positive-primary: var(--positive-primary);
+  --color-positive-subtle: var(--positive-subtle);
+  --color-noti-positive-subtle: var(--noti-positive-subtle);
+  --color-black-1: var(--black-1);
+  --color-black-2: var(--black-2);
+  --color-black-3: var(--black-3);
+  --color-black-4: var(--black-4);
+  --color-black-5: var(--black-5);
+  --color-black-6: var(--black-6);
+  --color-bg-primary: var(--bg-primary);
 }
 
 :root {
@@ -81,6 +109,32 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ---- Brand design tokens (light mode) ---- */
+  --orange-secondary: #d35b1e;
+  --orange-primary: #e8822e;
+  --orange-subtle-1: #f3b27e;
+  --orange-subtle-2: #fbd9bc;
+  --blue-secondary: #3e6fa0;
+  --blue-primary: #6b9bc9;
+  --blue-subtle-1: #aed2ec;
+  --blue-subtle-2: #dcebf5;
+  --warning-primary: #f2c94c;
+  --warning-subtle: #fbe8a6;
+  --noti-warning-subtle: #fdf3d0;
+  --negative-primary: #e5484d;
+  --negative-subtle: #f7b8ba;
+  --noti-negative-subtle: #fbe2e2;
+  --positive-primary: #3fa66b;
+  --positive-subtle: #a8dcc0;
+  --noti-positive-subtle: #e3f5ec;
+  --black-1: #0d0d0d;
+  --black-2: #3a3a3a;
+  --black-3: #6b6b6b;
+  --black-4: #9a9a9a;
+  --black-5: #d4d4d4;
+  --black-6: #f5f5f5;
+  --bg-primary: #fbf3e7;
 }
 
 .dark {
@@ -115,6 +169,34 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* ---- Brand design tokens (dark mode) ----
+     Same hues, adjusted for a dark background — tune these once you
+     have real dark-mode specs; this is a reasonable placeholder. */
+  --orange-secondary: #e86a2a;
+  --orange-primary: #f09450;
+  --orange-subtle-1: #c97b42;
+  --orange-subtle-2: #4a3626;
+  --blue-secondary: #5f8fc0;
+  --blue-primary: #7fadd6;
+  --blue-subtle-1: #4f6f8a;
+  --blue-subtle-2: #2a3b48;
+  --warning-primary: #f2c94c;
+  --warning-subtle: #5c4f22;
+  --noti-warning-subtle: #3a3220;
+  --negative-primary: #e5484d;
+  --negative-subtle: #5c2a2c;
+  --noti-negative-subtle: #3a2224;
+  --positive-primary: #4fbb7d;
+  --positive-subtle: #2a4a37;
+  --noti-positive-subtle: #203328;
+  --black-1: #f5f5f5;
+  --black-2: #d4d4d4;
+  --black-3: #9a9a9a;
+  --black-4: #6b6b6b;
+  --black-5: #3a3a3a;
+  --black-6: #1a1a1a;
+  --bg-primary: #1c1712;
 }
 
 @layer base {

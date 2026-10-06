@@ -123,32 +123,37 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#FBF3E7]">
+    <div className="relative min-h-screen overflow-hidden bg-bg-primary">
       {/* decorative circles — anchored to corners, quiet relative to the form */}
       <div
         aria-hidden
         className="pointer-events-none absolute -left-24 -top-16 size-64 rounded-full"
-        style={{ background: "linear-gradient(135deg, #F2A66B, #C65D2E)" }}
+        style={{
+          background:
+            "linear-gradient(135deg, var(--orange-subtle-1), var(--orange-secondary))",
+        }}
       />
       <div
         aria-hidden
         className="pointer-events-none absolute -bottom-28 -right-20 size-72 rounded-full"
-        style={{ background: "linear-gradient(135deg, #AED2EC, #3E6FA0)" }}
+        style={{
+          background:
+            "linear-gradient(135deg, var(--blue-subtle-1), var(--blue-secondary))",
+        }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-10 right-32 size-40 rounded-full"
-        style={{ background: "#6B9BC9", opacity: 0.6 }}
+        className="pointer-events-none absolute -bottom-10 right-32 size-40 rounded-full bg-blue-primary opacity-60"
       />
 
       <div className="relative mx-auto flex min-h-screen max-w-2xl flex-col items-center px-6 py-16">
         <h1
-          className="text-3xl text-[#2B2420]"
+          className="text-3xl text-black-1"
           style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
         >
           Your Profile
         </h1>
-        <p className="mt-1 text-sm text-[#6B5F54]">
+        <p className="mt-1 text-sm text-black-3">
           Keep your details up to date so we can reach you.
         </p>
 
@@ -175,7 +180,8 @@ export default function ProfilePage() {
                 <div
                   className="flex size-full items-center justify-center text-3xl font-medium text-white"
                   style={{
-                    background: "linear-gradient(135deg, #F2A66B, #C65D2E)",
+                    background:
+                      "linear-gradient(135deg, var(--orange-subtle-1), var(--orange-secondary))",
                   }}
                 >
                   {displayedForm.firstName?.[0]?.toUpperCase() ?? "?"}
@@ -196,7 +202,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={startEditing}
                 aria-label="Edit profile"
-                className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full border-2 border-white bg-[#C65D2E] text-white shadow-sm transition-colors hover:bg-[#B14F24]"
+                className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full border-2 border-white bg-orange-secondary text-white shadow-sm transition-colors hover:brightness-90"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -216,11 +222,11 @@ export default function ProfilePage() {
           </div>
 
           {profileError ? (
-            <p role="alert" className="py-10 text-center text-sm text-red-700">
+            <p role="alert" className="py-10 text-center text-sm text-negative-primary">
               Unable to load your profile: {profileError.message}
             </p>
           ) : isLoading ? (
-            <p className="py-10 text-center text-sm text-[#6B5F54]">
+            <p className="py-10 text-center text-sm text-black-3">
               Loading your profile…
             </p>
           ) : (
@@ -287,7 +293,7 @@ export default function ProfilePage() {
                     ))}
                   </Select>
                 ) : (
-                  <ViewValue                   value={displayedForm.department} />
+                  <ViewValue value={displayedForm.department} />
                 )}
               </Field>
 
@@ -357,7 +363,7 @@ export default function ProfilePage() {
               <Button
                 type="submit"
                 disabled={isSaving}
-                className="flex-1 bg-[#C65D2E] text-white hover:bg-[#B14F24]"
+                className="flex-1 bg-orange-secondary text-white hover:brightness-90"
               >
                 {isSaving ? "Saving…" : "Save changes"}
               </Button>
@@ -365,18 +371,18 @@ export default function ProfilePage() {
           )}
 
           {saveError && (
-            <p role="alert" className="mt-4 text-sm text-red-700">
+            <p role="alert" className="mt-4 text-sm text-negative-primary">
               {saveError}
             </p>
           )}
 
           {/* always available, independent of edit mode */}
-          <div className="mt-6 flex items-center justify-between rounded-xl border border-[#EFE4D4] bg-[#FBF3E7]/60 px-4 py-3">
+          <div className="mt-6 flex items-center justify-between rounded-xl border border-orange-subtle-2 bg-orange-subtle-2/40 px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-[#2B2420]">
+              <p className="text-sm font-medium text-black-1">
                 Notifications
               </p>
-              <p className="text-xs text-[#6B5F54]">
+              <p className="text-xs text-black-3">
                 Announcements and reminders
               </p>
             </div>
@@ -417,7 +423,7 @@ function Field({
 }) {
   return (
     <label className={`flex flex-col gap-1.5 ${className ?? ""}`}>
-      <span className="text-sm font-medium text-[#2B2420]">{label}</span>
+      <span className="text-sm font-medium text-black-1">{label}</span>
       {children}
     </label>
   );
@@ -426,7 +432,7 @@ function Field({
 /** Plain-text display used in view mode for a value with no dropdown. */
 function ViewValue({ value }: { value?: string | false }) {
   return (
-    <p className="px-2.5 py-1 text-base text-[#2B2420] md:text-sm">
+    <p className="px-2.5 py-1 text-base text-black-1 md:text-sm">
       {value || "—"}
     </p>
   );
