@@ -49,7 +49,6 @@ const EMPTY_FORM: ProfileForm = {
 
 export default function ProfilePage() {
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -57,17 +56,15 @@ export default function ProfilePage() {
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const snapshotRef = useRef<ProfileForm>(EMPTY_FORM);
+  
   const { data: profile, error: profileError, isLoading } = useMyProfile();
-  const { trigger: updateMyProfile, isMutating: isSaving } =
-    useUpdateMyProfile();
+  const { trigger: updateMyProfile, isMutating: isSaving } = useUpdateMyProfile();
+  
   const displayedForm = !isEditing && profile ? toProfileForm(profile) : form;
-  const avatarSrc = avatarPreview
-    ? avatarPreview
-    : displayedForm.avatarUrl
-      ? "/api/profile/avatar"
-      : null;
+  
+  // Avatar is now read-only, reading directly from the displayed form state
+  const avatarSrc = displayedForm.avatarUrl ? "/api/profile/avatar" : null;
 
   function update<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -83,19 +80,6 @@ export default function ProfilePage() {
   function cancelEditing() {
     setForm(snapshotRef.current);
     setIsEditing(false);
-  }
-
-  function handleAvatarPick() {
-    if (isEditing) fileInputRef.current?.click();
-  }
-
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarLoadFailed(false);
-    setAvatarPreview(URL.createObjectURL(file));
-    // TODO: connect to api — upload file (e.g. to Supabase Storage), then
-    // update(avatarUrl, <returned public URL>) once the upload resolves.
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -155,7 +139,7 @@ export default function ProfilePage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-bg-primary">
-      {/* decorative circles — anchored to corners, quiet relative to the form */}
+      {/* decorative circles */}
       <div
         aria-hidden
         className="pointer-events-none absolute -left-24 -top-16 size-64 rounded-full"
@@ -192,13 +176,11 @@ export default function ProfilePage() {
           onSubmit={handleSave}
           className="relative mt-16 w-full rounded-2xl bg-white/90 p-8 pt-20 shadow-[0_8px_30px_rgba(43,36,32,0.08)] backdrop-blur-sm"
         >
-          {/* avatar, bigger, overlapping the card's top edge */}
+          {/* avatar - changed from button to div, purely decorative/read-only now */}
           <div className="absolute -top-16 left-1/2 -translate-x-1/2">
-            <button
-              type="button"
-              onClick={handleAvatarPick}
+            <div
               className="relative block size-32 overflow-hidden rounded-full border-4 border-white shadow-md"
-              aria-label={isEditing ? "Change profile photo" : "Profile photo"}
+              aria-label="Profile photo"
             >
               {avatarSrc && !avatarLoadFailed ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -219,16 +201,9 @@ export default function ProfilePage() {
                   {displayedForm.firstName?.[0]?.toUpperCase() ?? "?"}
                 </div>
               )}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
+            </div>
 
-            {/* small pencil badge — opens edit mode */}
+            {/* small pencil badge — opens edit mode for the REST of the form */}
             {!isEditing && (
               <button
                 type="button"
