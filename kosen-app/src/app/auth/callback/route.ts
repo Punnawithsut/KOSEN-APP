@@ -14,6 +14,37 @@ function getGoogleAvatarUrl(user: { user_metadata?: Record<string, unknown> }) {
   return avatarUrl?.trim() ? avatarUrl : null;
 }
 
+function getGoogleNameParts(user: { user_metadata?: Record<string, unknown> }) {
+  const firstName =
+    (user.user_metadata?.given_name as string | undefined) ??
+    (user.user_metadata?.first_name as string | undefined) ??
+    null;
+  const lastName =
+    (user.user_metadata?.family_name as string | undefined) ??
+    (user.user_metadata?.last_name as string | undefined) ??
+    null;
+
+  if (firstName || lastName) {
+    return {
+      firstName: firstName?.trim() || null,
+      lastName: lastName?.trim() || null,
+    };
+  }
+
+  const fullName =
+    (user.user_metadata?.full_name as string | undefined) ??
+    (user.user_metadata?.name as string | undefined) ??
+    null;
+
+  if (!fullName?.trim()) return { firstName: null, lastName: null };
+
+  const parts = fullName.trim().split(/\s+/);
+  return {
+    firstName: parts[0] || null,
+    lastName: parts.slice(1).join(" ") || null,
+  };
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -27,6 +58,7 @@ export async function GET(request: Request) {
       const normalizedEmail = email.trim().toLowerCase();
       const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
       const avatarUrl = getGoogleAvatarUrl(data.user);
+      const { firstName, lastName } = getGoogleNameParts(data.user);
 
       if (
         !normalizedEmail.endsWith("@kmitl.ac.th") &&
@@ -45,6 +77,8 @@ export async function GET(request: Request) {
           .update(users)
           .set({
             email,
+            firstName: firstName ?? existingUser.firstName,
+            lastName: lastName ?? existingUser.lastName,
             avatarUrl: avatarUrl ?? existingUser.avatarUrl,
             updatedAt: new Date(),
           })
@@ -53,6 +87,8 @@ export async function GET(request: Request) {
         await db.insert(users).values({
           userId: data.user.id,
           email,
+          firstName,
+          lastName,
           avatarUrl,
         });
       }
