@@ -50,6 +50,7 @@ const EMPTY_FORM: ProfileForm = {
 export default function ProfilePage() {
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -62,6 +63,11 @@ export default function ProfilePage() {
   const { trigger: updateMyProfile, isMutating: isSaving } =
     useUpdateMyProfile();
   const displayedForm = !isEditing && profile ? toProfileForm(profile) : form;
+  const avatarSrc = avatarPreview
+    ? avatarPreview
+    : displayedForm.avatarUrl
+      ? "/api/profile/avatar"
+      : null;
 
   function update<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -86,6 +92,7 @@ export default function ProfilePage() {
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setAvatarLoadFailed(false);
     setAvatarPreview(URL.createObjectURL(file));
     // TODO: connect to api — upload file (e.g. to Supabase Storage), then
     // update(avatarUrl, <returned public URL>) once the upload resolves.
@@ -193,12 +200,13 @@ export default function ProfilePage() {
               className="relative block size-32 overflow-hidden rounded-full border-4 border-white shadow-md"
               aria-label={isEditing ? "Change profile photo" : "Profile photo"}
             >
-              {avatarPreview || displayedForm.avatarUrl ? (
+              {avatarSrc && !avatarLoadFailed ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={avatarPreview ?? displayedForm.avatarUrl}
+                  src={avatarSrc}
                   alt=""
                   className="size-full object-cover"
+                  onError={() => setAvatarLoadFailed(true)}
                 />
               ) : (
                 <div
