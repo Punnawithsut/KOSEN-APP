@@ -12,6 +12,9 @@ import {
   useUpdateMyProfile,
   type MyProfile,
 } from "@/hooks/use-profile";
+import { refreshNotificationPermission } from "@/lib/notifications/use-notification-state";
+import { subscribeUserToPush } from "@/lib/notifications/push";
+import { deleteUserSubscriptions } from "@/lib/notifications/subscriptions";
 
 const DEPARTMENTS = [
   "Computer Engineering",
@@ -107,15 +110,25 @@ export default function ProfilePage() {
     }
   }
 
-  function handleNotificationToggle(next: boolean) {
+  async function handleNotificationToggle(next: boolean) {
     setNotificationsEnabled(next);
-    // TODO: connect to api — persist immediately, independent of edit mode
-    // and independent of the profile Save button.
-    // fetch("/api/profile/notifications", {
-    //   method: "PATCH",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ notificationsEnabled: next }),
-    // });
+    if(next) {
+      //enable noti
+      try {
+        await subscribeUserToPush(profile?.id ?? "");
+      } catch (error) {
+        console.log(error);
+      } finally {
+        refreshNotificationPermission();
+      }
+    } else {
+      //disable noti -> delete subscription
+      try {
+        await deleteUserSubscriptions(profile?.id ?? "");
+      } catch (error) {
+        console.log(error);
+      }
+    }
   }
 
   async function handleLogout() {
