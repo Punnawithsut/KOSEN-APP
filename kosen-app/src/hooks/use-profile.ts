@@ -6,7 +6,7 @@ type ApiResponse<T> = {
 };
 
 export type MyProfile = {
-  id: string;
+  userId: string;
   studentId: string | null;
   firstName: string | null;
   lastName: string | null;

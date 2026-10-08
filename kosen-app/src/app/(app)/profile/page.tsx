@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import {
 } from "@/hooks/use-profile";
 import { refreshNotificationPermission } from "@/lib/notifications/use-notification-state";
 import { subscribeUserToPush } from "@/lib/notifications/push";
-import { deleteUserSubscriptions } from "@/lib/notifications/subscriptions";
 
 const DEPARTMENTS = [
   "Computer Engineering",
@@ -60,14 +59,22 @@ export default function ProfilePage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const snapshotRef = useRef<ProfileForm>(EMPTY_FORM);
-  
+
   const { data: profile, error: profileError, isLoading } = useMyProfile();
-  const { trigger: updateMyProfile, isMutating: isSaving } = useUpdateMyProfile();
-  
+  const { trigger: updateMyProfile, isMutating: isSaving } =
+    useUpdateMyProfile();
+
   const displayedForm = !isEditing && profile ? toProfileForm(profile) : form;
-  
-  // Avatar is now read-only, reading directly from the displayed form state
   const avatarSrc = displayedForm.avatarUrl ? "/api/profile/avatar" : null;
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      const isGranted = Notification.permission === "granted";
+      queueMicrotask(() => {
+        setNotificationsEnabled(isGranted);
+      });
+    }
+  }, []);
 
   function update<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -111,23 +118,44 @@ export default function ProfilePage() {
   }
 
   async function handleNotificationToggle(next: boolean) {
+    console.log("Button Press");
+    const targetUserId = profile?.userId;
+    console.log(targetUserId);
+    if (!targetUserId) return;
+
+    if (next && typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "denied") {
+        alert(
+          "Notifications are blocked in your browser settings. Please enable them in site settings.",
+        );
+        setNotificationsEnabled(false);
+        return;
+      }
+    }
+
     setNotificationsEnabled(next);
-    if(next) {
-      //enable noti
-      try {
-        await subscribeUserToPush(profile?.id ?? "");
-      } catch (error) {
-        console.log(error);
-      } finally {
+    try {
+      if (next) {
+        await subscribeUserToPush(targetUserId);
         refreshNotificationPermission();
+      } else {
+        const registeration = await navigator.serviceWorker.ready;
+        const subscription = await registeration.pushManager.getSubscription();
+        if (subscription) {
+          const res = await fetch("/api/unsubscribe", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint: subscription.endpoint }),
+          });
+          if (!res.ok) {
+            throw new Error("Failed to delete subscription on server");
+          }
+          await subscription.unsubscribe();
+        }
       }
-    } else {
-      //disable noti -> delete subscription
-      try {
-        await deleteUserSubscriptions(profile?.id ?? "");
-      } catch (error) {
-        console.log(error);
-      }
+    } catch (error) {
+      console.log(error);
+      setNotificationsEnabled(!next);
     }
   }
 
@@ -144,7 +172,9 @@ export default function ProfilePage() {
       router.replace("/login");
     } catch (error) {
       setLogoutError(
-        error instanceof Error ? error.message : "An unexpected error occurred.",
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred.",
       );
       setIsLoggingOut(false);
     }
@@ -242,7 +272,10 @@ export default function ProfilePage() {
           </div>
 
           {profileError ? (
-            <p role="alert" className="py-10 text-center text-sm text-negative-primary">
+            <p
+              role="alert"
+              className="py-10 text-center text-sm text-negative-primary"
+            >
               Unable to load your profile: {profileError.message}
             </p>
           ) : isLoading ? (
@@ -333,7 +366,9 @@ export default function ProfilePage() {
                     ))}
                   </Select>
                 ) : (
-                  <ViewValue value={displayedForm.year && `Year ${displayedForm.year}`} />
+                  <ViewValue
+                    value={displayedForm.year && `Year ${displayedForm.year}`}
+                  />
                 )}
               </Field>
 
@@ -354,7 +389,10 @@ export default function ProfilePage() {
                   </Select>
                 ) : (
                   <ViewValue
-                    value={displayedForm.dormBuilding && `Building ${displayedForm.dormBuilding}`}
+                    value={
+                      displayedForm.dormBuilding &&
+                      `Building ${displayedForm.dormBuilding}`
+                    }
                   />
                 )}
               </Field>
@@ -399,9 +437,7 @@ export default function ProfilePage() {
           {/* always available, independent of edit mode */}
           <div className="mt-6 flex items-center justify-between rounded-xl border border-orange-subtle-2 bg-orange-subtle-2/40 px-4 py-3">
             <div>
-              <p className="text-sm font-medium text-black-1">
-                Notifications
-              </p>
+              <p className="text-sm font-medium text-black-1">Notifications</p>
               <p className="text-xs text-black-3">
                 Announcements and reminders
               </p>
