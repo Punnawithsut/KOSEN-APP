@@ -14,9 +14,13 @@ import { relations } from "drizzle-orm";
 // ---------- Enums ----------
 
 export const announcementCategoryEnum = pgEnum("announcement_category", [
-  "for_you",
-  "news",
-  "events",
+  "student affair",
+  "dormitory",
+  "industrial linkage",
+  "international affair",
+  "academic affair",
+  "club",
+  "others"
 ]);
 
 export const userRoleEnum = pgEnum("user_role", ["user", "counselor", "admin"]);
@@ -91,7 +95,7 @@ export const announcementAttachments = pgTable(
       .references(() => announcements.id, { onDelete: "cascade" }),
     fileUrl: text("file_url"),
     storagePath: text("storage_path"),
-    fileType: varchar("file_type", { length: 50 }).default("image"),
+    fileType: varchar("file_type", { length: 255 }).default("image"),
     displayOrder: integer("display_order").default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
