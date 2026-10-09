@@ -50,6 +50,13 @@
       "when": 1790762518512,
       "tag": "0006_dashing_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791538118605,
+      "tag": "0007_blue_micromax",
+      "breakpoints": true
     }
   ]
 }
