@@ -249,8 +249,9 @@ export async function createAnnouncement(
     files: uploadedFiles,
   };
 
+  let announcement;
   try {
-    const announcement = await insertAnnouncement(
+    announcement = await insertAnnouncement(
       announcementId,
       authorId,
       data,
@@ -258,7 +259,7 @@ export async function createAnnouncement(
     if (!announcement) {
       throw new NotFoundError("Failed to create announcement.");
     }
-    return await serializeAnnouncement(announcement);
+    
   } catch (error) {
     await removeAnnouncementFiles(
       uploadedFiles.map((file) => file.storagePath),
@@ -267,6 +268,7 @@ export async function createAnnouncement(
     );
     throw error;
   }
+  return await serializeAnnouncement(announcement);
 }
 
 export async function modifyAnnouncement(
