@@ -1,15 +1,526 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { createClient } from "@/lib/supabase/client";
+import {
+  useMyProfile,
+  useUpdateMyProfile,
+  type MyProfile,
+} from "@/hooks/use-profile";
+import { refreshNotificationPermission } from "@/lib/notifications/use-notification-state";
+import { subscribeUserToPush } from "@/lib/notifications/push";
+
+const DEPARTMENTS = [
+  "Computer Engineering",
+  "Mechanical Engineering",
+  "Electrical and Electronics Engineering",
+];
+const YEARS = [1, 2, 3, 4, 5];
+const DORM_BUILDINGS = [7, 8];
+
+type ProfileForm = {
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  department: string;
+  year: string;
+  dormBuilding: string;
+  dormRoom: string;
+  avatarUrl: string;
+};
+
+const EMPTY_FORM: ProfileForm = {
+  studentId: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  department: "",
+  year: "",
+  dormBuilding: "",
+  dormRoom: "",
+  avatarUrl: "",
+};
+
 export default function ProfilePage() {
+  const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
+  const snapshotRef = useRef<ProfileForm>(EMPTY_FORM);
+
+  const { data: profile, error: profileError, isLoading } = useMyProfile();
+  const { trigger: updateMyProfile, isMutating: isSaving } =
+    useUpdateMyProfile();
+
+  const displayedForm = !isEditing && profile ? toProfileForm(profile) : form;
+  const avatarSrc = displayedForm.avatarUrl ? "/api/profile/avatar" : null;
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      const isGranted = Notification.permission === "granted";
+      queueMicrotask(() => {
+        setNotificationsEnabled(isGranted);
+      });
+    }
+  }, []);
+
+  function update<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function startEditing() {
+    const currentForm = profile ? toProfileForm(profile) : form;
+    setForm(currentForm);
+    snapshotRef.current = currentForm;
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setForm(snapshotRef.current);
+    setIsEditing(false);
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaveError(null);
+    try {
+      const response = await updateMyProfile({
+        studentId: form.studentId,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phone: form.phone,
+        department: form.department,
+        ...(form.year ? { year: Number(form.year) } : {}),
+        dormBuilding: form.dormBuilding,
+        dormRoom: form.dormRoom,
+      });
+      const updatedForm = toProfileForm(response.data);
+      setForm(updatedForm);
+      snapshotRef.current = updatedForm;
+      setIsEditing(false);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Unable to save your profile.",
+      );
+    }
+  }
+
+  async function handleNotificationToggle(next: boolean) {
+    console.log("Button Press");
+    const targetUserId = profile?.userId;
+    console.log(targetUserId);
+    if (!targetUserId) return;
+
+    if (next && typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "denied") {
+        alert(
+          "Notifications are blocked in your browser settings. Please enable them in site settings.",
+        );
+        setNotificationsEnabled(false);
+        return;
+      }
+    }
+
+    setNotificationsEnabled(next);
+    try {
+      if (next) {
+        await subscribeUserToPush(targetUserId);
+        refreshNotificationPermission();
+      } else {
+        const registeration = await navigator.serviceWorker.ready;
+        const subscription = await registeration.pushManager.getSubscription();
+        if (subscription) {
+          const res = await fetch("/api/unsubscribe", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ endpoint: subscription.endpoint }),
+          });
+          if (!res.ok) {
+            throw new Error("Failed to delete subscription on server");
+          }
+          await subscription.unsubscribe();
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      setNotificationsEnabled(!next);
+    }
+  }
+
+  async function handleLogout() {
+    setLogoutError(null);
+    setIsLoggingOut(true);
+    try {
+      const { error } = await createClient().auth.signOut();
+      if (error) {
+        setLogoutError(error.message);
+        setIsLoggingOut(false);
+        return;
+      }
+      router.replace("/login");
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred.",
+      );
+      setIsLoggingOut(false);
+    }
+  }
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-4 p-6 text-slate-900">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-600">
-          Profile
+    <div className="relative min-h-screen overflow-hidden bg-bg-primary">
+      {/* decorative circles */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-24 -top-16 size-64 rounded-full"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--orange-subtle-1), var(--orange-secondary))",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-28 -right-20 size-72 rounded-full"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--blue-subtle-1), var(--blue-secondary))",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-10 right-32 size-40 rounded-full bg-blue-primary opacity-60"
+      />
+
+      <div className="relative mx-auto flex min-h-screen max-w-2xl flex-col items-center px-6 py-16">
+        <h1
+          className="text-3xl text-black-1"
+          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+        >
+          Your Profile
+        </h1>
+        <p className="mt-1 text-sm text-black-3">
+          Keep your details up to date so we can reach you.
         </p>
-        <h1 className="mt-2 text-3xl font-semibold">Profile module</h1>
-        <p className="mt-3 text-sm text-slate-600">
-          This is the dedicated Profile section.
-        </p>
+
+        <form
+          onSubmit={handleSave}
+          className="relative mt-16 w-full rounded-2xl bg-white/90 p-8 pt-20 shadow-[0_8px_30px_rgba(43,36,32,0.08)] backdrop-blur-sm"
+        >
+          {/* avatar - changed from button to div, purely decorative/read-only now */}
+          <div className="absolute -top-16 left-1/2 -translate-x-1/2">
+            <div
+              className="relative block size-32 overflow-hidden rounded-full border-4 border-white shadow-md"
+              aria-label="Profile photo"
+            >
+              {avatarSrc && !avatarLoadFailed ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarSrc}
+                  alt=""
+                  className="size-full object-cover"
+                  onError={() => setAvatarLoadFailed(true)}
+                />
+              ) : (
+                <div
+                  className="flex size-full items-center justify-center text-3xl font-medium text-white"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--orange-subtle-1), var(--orange-secondary))",
+                  }}
+                >
+                  {displayedForm.firstName?.[0]?.toUpperCase() ?? "?"}
+                </div>
+              )}
+            </div>
+
+            {/* small pencil badge — opens edit mode for the REST of the form */}
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={startEditing}
+                aria-label="Edit profile"
+                className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full border-2 border-white bg-orange-secondary text-white shadow-sm transition-colors hover:brightness-90"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="size-4"
+                >
+                  <path
+                    d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {profileError ? (
+            <p
+              role="alert"
+              className="py-10 text-center text-sm text-negative-primary"
+            >
+              Unable to load your profile: {profileError.message}
+            </p>
+          ) : isLoading ? (
+            <p className="py-10 text-center text-sm text-black-3">
+              Loading your profile…
+            </p>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Student ID" className="sm:col-span-2">
+                <ViewOrInput
+                  editing={isEditing}
+                  value={displayedForm.studentId}
+                  onChange={(v) => update("studentId", v)}
+                  placeholder="65010123"
+                />
+              </Field>
+
+              <Field label="First name">
+                <ViewOrInput
+                  editing={isEditing}
+                  value={displayedForm.firstName}
+                  onChange={(v) => update("firstName", v)}
+                  placeholder="First name"
+                />
+              </Field>
+
+              <Field label="Last name">
+                <ViewOrInput
+                  editing={isEditing}
+                  value={displayedForm.lastName}
+                  onChange={(v) => update("lastName", v)}
+                  placeholder="Last name"
+                />
+              </Field>
+
+              <Field label="Phone" className="sm:col-span-2">
+                <ViewOrInput
+                  editing={isEditing}
+                  value={displayedForm.phone}
+                  onChange={(v) => update("phone", v)}
+                  placeholder="08x-xxx-xxxx"
+                />
+              </Field>
+
+              <Field label="Email" className="sm:col-span-2">
+                <ViewOrInput
+                  editing={isEditing}
+                  type="email"
+                  value={displayedForm.email}
+                  onChange={(v) => update("email", v)}
+                  placeholder="you@kmitl.ac.th"
+                />
+              </Field>
+
+              <Field label="Department">
+                {isEditing ? (
+                  <Select
+                    value={displayedForm.department}
+                    onChange={(e) => update("department", e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Select department
+                    </option>
+                    {DEPARTMENTS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <ViewValue value={displayedForm.department} />
+                )}
+              </Field>
+
+              <Field label="Year">
+                {isEditing ? (
+                  <Select
+                    value={displayedForm.year}
+                    onChange={(e) => update("year", e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Select year
+                    </option>
+                    {YEARS.map((y) => (
+                      <option key={y} value={y}>
+                        Year {y}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <ViewValue
+                    value={displayedForm.year && `Year ${displayedForm.year}`}
+                  />
+                )}
+              </Field>
+
+              <Field label="Dorm building">
+                {isEditing ? (
+                  <Select
+                    value={displayedForm.dormBuilding}
+                    onChange={(e) => update("dormBuilding", e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Select building
+                    </option>
+                    {DORM_BUILDINGS.map((b) => (
+                      <option key={b} value={b}>
+                        Building {b}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <ViewValue
+                    value={
+                      displayedForm.dormBuilding &&
+                      `Building ${displayedForm.dormBuilding}`
+                    }
+                  />
+                )}
+              </Field>
+
+              <Field label="Dorm room">
+                <ViewOrInput
+                  editing={isEditing}
+                  value={displayedForm.dormRoom}
+                  onChange={(v) => update("dormRoom", v)}
+                  placeholder="e.g. 304"
+                />
+              </Field>
+            </div>
+          )}
+
+          {isEditing && (
+            <div className="mt-8 flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={cancelEditing}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSaving}
+                className="flex-1 bg-orange-secondary text-white hover:brightness-90"
+              >
+                {isSaving ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          )}
+
+          {saveError && (
+            <p role="alert" className="mt-4 text-sm text-negative-primary">
+              {saveError}
+            </p>
+          )}
+
+          {/* always available, independent of edit mode */}
+          <div className="mt-6 flex items-center justify-between rounded-xl border border-orange-subtle-2 bg-orange-subtle-2/40 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-black-1">Notifications</p>
+              <p className="text-xs text-black-3">
+                Announcements and reminders
+              </p>
+            </div>
+            <Switch
+              checked={notificationsEnabled}
+              onCheckedChange={handleNotificationToggle}
+            />
+          </div>
+          {logoutError && (
+            <p role="alert" className="mt-3 text-sm text-negative-primary">
+              Unable to log out: {logoutError}
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={isLoggingOut}
+            onClick={handleLogout}
+            className="mt-4 w-full"
+          >
+            {isLoggingOut ? "Logging out…" : "Log out"}
+          </Button>
+        </form>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function toProfileForm(profile: MyProfile): ProfileForm {
+  return {
+    studentId: profile.studentId ?? "",
+    firstName: profile.firstName ?? "",
+    lastName: profile.lastName ?? "",
+    email: profile.email,
+    phone: profile.phone ?? "",
+    department: profile.department ?? "",
+    year: profile.year?.toString() ?? "",
+    dormBuilding: profile.dormBuilding ?? "",
+    dormRoom: profile.dormRoom ?? "",
+    avatarUrl: profile.avatarUrl ?? "",
+  };
+}
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <label className={`flex flex-col gap-1.5 ${className ?? ""}`}>
+      <span className="text-sm font-medium text-black-1">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+/** Plain-text display used in view mode for a value with no dropdown. */
+function ViewValue({ value }: { value?: string | false }) {
+  return (
+    <p className="px-2.5 py-1 text-base text-black-1 md:text-sm">
+      {value || "—"}
+    </p>
+  );
+}
+
+/** Swaps between a read-only text display and a real Input depending on edit mode. */
+function ViewOrInput({
+  editing,
+  value,
+  onChange,
+  ...rest
+}: {
+  editing: boolean;
+  value: string;
+  onChange: (value: string) => void;
+} & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
+  if (!editing) return <ViewValue value={value} />;
+  return (
+    <Input value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
   );
 }
