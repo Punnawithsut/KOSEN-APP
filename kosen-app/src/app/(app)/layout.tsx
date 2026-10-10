@@ -15,7 +15,7 @@ export default async function AppLayout({
   //return children //comment this and uncomment below on production @everyone
   //return <RequireStandalone>{children}</RequireStandalone>;
   return (
-    //<RequireStandalone>
+    <RequireStandalone>
       <div className="flex min-h-screen flex-col">
         <Navbar/>
           <main className="flex-1">{children}</main>
@@ -26,6 +26,6 @@ export default async function AppLayout({
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         />
       </div>
-    //</RequireStandalone>
+    </RequireStandalone>
   );
 }
