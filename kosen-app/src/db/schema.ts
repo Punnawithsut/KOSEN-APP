@@ -11,8 +11,10 @@ import {
   uniqueIndex, 
   date, 
   time,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
+
 
 // ---------- Enums ----------
 
@@ -65,7 +67,14 @@ export const users = pgTable("users", {
   isConsented: boolean("is_consented").notNull().default(false),
   role: userRoleEnum("role").notNull().default("user"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references((): AnyPgColumn => users.userId),
+  updatedBy: uuid("updated_by").references((): AnyPgColumn => users.userId),
+  deletedBy: uuid("deleted_by").references((): AnyPgColumn => users.userId),
 });
 
 export const pushSubscriptions = pgTable(
@@ -79,7 +88,14 @@ export const pushSubscriptions = pgTable(
     p256dh: text("p256dh").notNull(),
     auth: text("auth").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.userId),
+    updatedBy: uuid("updated_by").references(() => users.userId),
+    deletedBy: uuid("deleted_by").references(() => users.userId),
   },
   (table) => ({
     userIdIdx: index("push_subscriptions_user_id_idx").on(table.userId),
@@ -100,7 +116,14 @@ export const announcements = pgTable(
     }),
     isPublished: boolean("is_published").notNull().default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.userId),
+    updatedBy: uuid("updated_by").references(() => users.userId),
+    deletedBy: uuid("deleted_by").references(() => users.userId),
   },
   (table) => ({
     categoryIdx: index("announcements_category_idx").on(table.category),
@@ -120,6 +143,14 @@ export const announcementAttachments = pgTable(
     fileType: varchar("file_type", { length: 50 }).default("image"),
     displayOrder: integer("display_order").default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.userId),
+    updatedBy: uuid("updated_by").references(() => users.userId),
+    deletedBy: uuid("deleted_by").references(() => users.userId),
   },
   (table) => ({
     announcementIdIdx: index("announcement_attachments_announcement_id_idx").on(
@@ -134,6 +165,14 @@ export const terms = pgTable("terms", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => users.userId),
+  updatedBy: uuid("updated_by").references(() => users.userId),
+  deletedBy: uuid("deleted_by").references(() => users.userId),
 }); // semester/term
 
 export const slots = pgTable("slots", {
@@ -145,6 +184,14 @@ export const slots = pgTable("slots", {
   displayOrder: integer("display_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => users.userId),
+  updatedBy: uuid("updated_by").references(() => users.userId),
+  deletedBy: uuid("deleted_by").references(() => users.userId),
 }); // slots
 
 export const units = pgTable(
@@ -157,7 +204,14 @@ export const units = pgTable(
     isActive: boolean("is_active").notNull().default(true), // "ปิดใช้" unit
     note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.userId),
+    updatedBy: uuid("updated_by").references(() => users.userId),
+    deletedBy: uuid("deleted_by").references(() => users.userId),
   },
   (table) => ({
     typeStatusIdx: index("units_item_type_status_idx").on(
@@ -210,7 +264,14 @@ export const loans = pgTable(
     returnNote: text("return_note"), // Condition notes from borrower
 
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.userId),
+    updatedBy: uuid("updated_by").references(() => users.userId),
+    deletedBy: uuid("deleted_by").references(() => users.userId),
   },
   (table) => ({
     // quota of calculator per term
