@@ -1,0 +1,1 @@
+ALTER TABLE "announcements" ADD COLUMN "title_image_url" text;

@@ -16,13 +16,14 @@ export const GET = withSessionMiddleware<AnnouncementParams>(
 
 export const PUT = withAdminMiddleware<AnnouncementParams>(
   async (req, { params }) => {
-    const { fields, files, replaceFiles } =
+    const { fields, files, replaceFiles, titleImage } =
       await announcementService.parseAnnouncementFormData(req);
     const announcement = await announcementService.modifyAnnouncement(
       params.id,
       fields,
       files,
       replaceFiles,
+      titleImage,
     );
     return NextResponse.json({
       ok: true,

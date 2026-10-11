@@ -20,7 +20,7 @@ export const announcementCategoryEnum = pgEnum("announcement_category", [
   "international affair",
   "academic affair",
   "club",
-  "others"
+  "others",
 ]);
 
 export const userRoleEnum = pgEnum("user_role", ["user", "counselor", "admin"]);
@@ -70,6 +70,7 @@ export const announcements = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     title: text("title").notNull(),
     content: text("content").notNull(),
+    titleImageUrl: text("title_image_url"),
     targetYear: integer("target_year"),
     targetDepartment: varchar("target_department", { length: 100 }),
     category: announcementCategoryEnum("category"),
