@@ -17,6 +17,7 @@ export type AnnouncementFile = {
 export type AnnouncementUpdateData = {
   name?: string;
   description?: string;
+  titleImageUrl?: string | null;
   year?: number | null;
   department?: string | null;
   type?: AnnouncementType | null;
@@ -97,6 +98,7 @@ export async function createAnnouncement(
         id: announcementId,
         title: data.name!,
         content: data.description!,
+        titleImageUrl: data.titleImageUrl ?? null,
         targetYear: data.year ?? null,
         targetDepartment: data.department ?? null,
         category: data.type ?? null,
@@ -145,10 +147,18 @@ export async function updateAnnouncementById(
             .filter(
               (storagePath): storagePath is string => storagePath !== null,
             );
+    const [previousAnnouncement] =
+      data.titleImageUrl === undefined
+        ? []
+        : await tx
+            .select({ titleImageUrl: announcements.titleImageUrl })
+            .from(announcements)
+            .where(eq(announcements.id, id));
 
     const updateData: {
       title?: string;
       content?: string;
+      titleImageUrl?: string | null;
       targetYear?: number | null;
       targetDepartment?: string | null;
       category?: AnnouncementType | null;
@@ -157,6 +167,8 @@ export async function updateAnnouncementById(
 
     if (data.name !== undefined) updateData.title = data.name;
     if (data.description !== undefined) updateData.content = data.description;
+    if (data.titleImageUrl !== undefined)
+      updateData.titleImageUrl = data.titleImageUrl;
     if (data.year !== undefined) updateData.targetYear = data.year;
     if (data.department !== undefined)
       updateData.targetDepartment = data.department;
@@ -194,6 +206,10 @@ export async function updateAnnouncementById(
         with: { attachments: true },
       }),
       removedStoragePaths: previousStoragePaths,
+      removedTitleImageUrl:
+        previousAnnouncement?.titleImageUrl === data.titleImageUrl
+          ? null
+          : (previousAnnouncement?.titleImageUrl ?? null),
     };
   });
 

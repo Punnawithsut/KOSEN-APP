@@ -57,6 +57,13 @@
       "when": 1791538118605,
       "tag": "0007_blue_micromax",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791715325895,
+      "tag": "0008_polite_senator_kelly",
+      "breakpoints": true
     }
   ]
 }

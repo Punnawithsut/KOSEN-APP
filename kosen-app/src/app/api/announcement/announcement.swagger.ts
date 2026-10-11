@@ -41,6 +41,11 @@ export const announcementDocs = {
                   type: "string",
                   example: "Announcement details",
                 },
+                titleImage: {
+                  type: "string",
+                  format: "binary",
+                  description: "Title image uploaded to Supabase Storage",
+                },
                 year: {
                   oneOf: [
                     { type: "integer", minimum: 1, maximum: 5 },
@@ -119,6 +124,12 @@ export const announcementDocs = {
               properties: {
                 name: { type: "string" },
                 description: { type: "string" },
+                titleImage: {
+                  type: "string",
+                  format: "binary",
+                  description:
+                    "Replacement title image uploaded to Supabase Storage",
+                },
                 year: {
                   oneOf: [
                     { type: "integer", minimum: 1, maximum: 5 },

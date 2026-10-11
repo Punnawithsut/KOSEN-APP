@@ -15,6 +15,7 @@ import {
   getAnnouncementFileUrl,
   removeAnnouncementFiles,
   uploadAnnouncementFiles,
+  uploadAnnouncementTitleImage,
 } from "./announcement.storage";
 
 const PAGE_SIZE = 5;
@@ -54,6 +55,30 @@ export async function parseAnnouncementFormData(request: Request) {
     fields[key] = key === "year" && value !== "all" ? Number(value) : value;
   }
 
+  if (formData.has("titleImageUrl")) {
+    throw new BadRequestError(
+      "titleImageUrl is response-only; upload the image using titleImage.",
+    );
+  }
+
+  const titleImageEntry = formData.get("titleImage");
+  let titleImage: File | null = null;
+  if (titleImageEntry !== null) {
+    if (typeof titleImageEntry === "string") {
+      throw new BadRequestError("titleImage must contain an uploaded image.");
+    }
+    if (titleImageEntry.size === 0) {
+      throw new BadRequestError("The title image cannot be empty.");
+    }
+    if (!titleImageEntry.type.startsWith("image/")) {
+      throw new BadRequestError("The title image must be an image file.");
+    }
+    if (titleImageEntry.size > 50 * 1024 * 1024) {
+      throw new BadRequestError("The title image must be 50 MiB or smaller.");
+    }
+    titleImage = titleImageEntry;
+  }
+
   const fileEntries = formData.getAll("files");
   if (fileEntries.length > 10) {
     throw new BadRequestError("An announcement can have at most 10 files.");
@@ -83,6 +108,7 @@ export async function parseAnnouncementFormData(request: Request) {
   return {
     fields,
     files,
+    titleImage,
     replaceFiles: formData.has("files") || clearFiles === "true",
   };
 }
@@ -100,6 +126,11 @@ async function serializeAnnouncement(announcement: AnnouncementRecord) {
     id: announcement.id,
     name: announcement.title,
     description: announcement.content,
+    titleImageUrl: announcement.titleImageUrl?.startsWith(
+      `${announcement.id}/title/`,
+    )
+      ? await getAnnouncementFileUrl(announcement.titleImageUrl)
+      : announcement.titleImageUrl,
     year: announcement.targetYear ?? "all",
     department: announcement.targetDepartment ?? "all",
     type: announcement.category ?? "all",
@@ -229,41 +260,49 @@ export async function createAnnouncement(
   authorId: string,
   body: unknown,
   files: File[],
+  titleImage: File | null = null,
 ) {
   const payload = parseObjectBody(body);
   const name = parseRequiredText(payload.name, "Name");
   const description = parseRequiredText(payload.description, "Description");
+  let titleImageUrl: string | null = null;
   const year = parseYear(payload.year);
   const department = parseDepartment(payload.department);
   const type = parseType(payload.type);
   const announcementId = randomUUID();
-  const uploadedFiles = files.length
-    ? await uploadAnnouncementFiles(announcementId, files)
-    : [];
-  const data: AnnouncementUpdateData = {
-    name,
-    description,
-    year,
-    department,
-    type,
-    files: uploadedFiles,
-  };
-
+  let uploadedFiles: Awaited<ReturnType<typeof uploadAnnouncementFiles>> = [];
+  let uploadedTitleImagePath: string | null = null;
   let announcement;
   try {
-    announcement = await insertAnnouncement(
-      announcementId,
-      authorId,
-      data,
-    );
+    uploadedFiles = files.length
+      ? await uploadAnnouncementFiles(announcementId, files)
+      : [];
+    if (titleImage) {
+      uploadedTitleImagePath = await uploadAnnouncementTitleImage(
+        announcementId,
+        titleImage,
+      );
+      titleImageUrl = uploadedTitleImagePath;
+    }
+
+    const data: AnnouncementUpdateData = {
+      name,
+      description,
+      titleImageUrl,
+      year,
+      department,
+      type,
+      files: uploadedFiles,
+    };
+    announcement = await insertAnnouncement(announcementId, authorId, data);
     if (!announcement) {
       throw new NotFoundError("Failed to create announcement.");
     }
-    
   } catch (error) {
-    await removeAnnouncementFiles(
-      uploadedFiles.map((file) => file.storagePath),
-    ).catch((cleanupError) =>
+    await removeAnnouncementFiles([
+      ...uploadedFiles.map((file) => file.storagePath),
+      ...(uploadedTitleImagePath ? [uploadedTitleImagePath] : []),
+    ]).catch((cleanupError) =>
       console.error("Failed to clean up announcement upload:", cleanupError),
     );
     throw error;
@@ -276,6 +315,7 @@ export async function modifyAnnouncement(
   body: unknown,
   files: File[],
   replaceFiles: boolean,
+  titleImage: File | null = null,
 ) {
   validateAnnouncementId(id);
   const payload = parseObjectBody(body);
@@ -284,35 +324,65 @@ export async function modifyAnnouncement(
   if ("name" in payload) data.name = parseRequiredText(payload.name, "Name");
   if ("description" in payload)
     data.description = parseRequiredText(payload.description, "Description");
+  if ("titleImageUrl" in payload) {
+    throw new BadRequestError(
+      "titleImageUrl is response-only; upload the image using titleImage.",
+    );
+  }
   if ("year" in payload) data.year = parseYear(payload.year);
   if ("department" in payload)
     data.department = parseDepartment(payload.department);
   if ("type" in payload) data.type = parseType(payload.type);
-  if (replaceFiles) {
-    data.files = files.length ? await uploadAnnouncementFiles(id, files) : [];
+  let uploadedTitleImagePath: string | null = null;
+  if (titleImage) {
+    if (!titleImage.type.startsWith("image/")) {
+      throw new BadRequestError("The title image must be an image file.");
+    }
+    if (titleImage.size === 0 || titleImage.size > 50 * 1024 * 1024) {
+      throw new BadRequestError(
+        "The title image must be non-empty and 50 MiB or smaller.",
+      );
+    }
   }
 
-  if (Object.keys(data).length === 0) {
+  if (replaceFiles) data.files = [];
+  let uploadedFiles: Awaited<ReturnType<typeof uploadAnnouncementFiles>> = [];
+
+  if (Object.keys(data).length === 0 && !titleImage) {
     throw new BadRequestError("No valid update fields provided.");
   }
 
-  const uploadedFiles = data.files ?? [];
   let result: Awaited<ReturnType<typeof updateAnnouncementById>>;
   try {
+    if (replaceFiles) {
+      uploadedFiles = files.length
+        ? await uploadAnnouncementFiles(id, files)
+        : [];
+      data.files = uploadedFiles;
+    }
+    if (titleImage) {
+      uploadedTitleImagePath = await uploadAnnouncementTitleImage(
+        id,
+        titleImage,
+      );
+      data.titleImageUrl = uploadedTitleImagePath;
+    }
     result = await updateAnnouncementById(id, data);
   } catch (error) {
-    await removeAnnouncementFiles(
-      uploadedFiles.map((file) => file.storagePath),
-    ).catch((cleanupError) =>
+    await removeAnnouncementFiles([
+      ...uploadedFiles.map((file) => file.storagePath),
+      ...(uploadedTitleImagePath ? [uploadedTitleImagePath] : []),
+    ]).catch((cleanupError) =>
       console.error("Failed to clean up announcement upload:", cleanupError),
     );
     throw error;
   }
 
   if (!result?.announcement) {
-    await removeAnnouncementFiles(
-      uploadedFiles.map((file) => file.storagePath),
-    ).catch((cleanupError) =>
+    await removeAnnouncementFiles([
+      ...uploadedFiles.map((file) => file.storagePath),
+      ...(uploadedTitleImagePath ? [uploadedTitleImagePath] : []),
+    ]).catch((cleanupError) =>
       console.error("Failed to clean up announcement upload:", cleanupError),
     );
     throw new NotFoundError("Announcement not found.");
@@ -321,6 +391,15 @@ export async function modifyAnnouncement(
   await removeAnnouncementFiles(result.removedStoragePaths).catch((error) =>
     console.error("Failed to remove replaced announcement files:", error),
   );
+  const oldTitleImagePath = result.removedTitleImageUrl;
+  if (oldTitleImagePath?.startsWith(`${id}/title/`)) {
+    await removeAnnouncementFiles([oldTitleImagePath]).catch((error) =>
+      console.error(
+        "Failed to remove replaced announcement title image:",
+        error,
+      ),
+    );
+  }
   return serializeAnnouncement(result.announcement);
 }
 
@@ -336,6 +415,9 @@ export async function removeAnnouncement(id: string) {
   const storagePaths = announcement.attachments
     .map((file) => file.storagePath)
     .filter((path): path is string => path !== null);
+  if (announcement.titleImageUrl?.startsWith(`${id}/title/`)) {
+    storagePaths.push(announcement.titleImageUrl);
+  }
   await removeAnnouncementFiles(storagePaths).catch((error) =>
     console.error("Failed to remove deleted announcement files:", error),
   );
