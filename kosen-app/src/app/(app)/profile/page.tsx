@@ -53,7 +53,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -68,12 +68,39 @@ export default function ProfilePage() {
   const avatarSrc = displayedForm.avatarUrl ? "/api/profile/avatar" : null;
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      const isGranted = Notification.permission === "granted";
-      queueMicrotask(() => {
-        setNotificationsEnabled(isGranted);
-      });
+    let active = true;
+
+    async function checkNotificationSubscription() {
+      if (
+        !("Notification" in window) ||
+        Notification.permission !== "granted" ||
+        !("serviceWorker" in navigator)
+      ) {
+        setNotificationsEnabled(false);
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (active) {
+          setNotificationsEnabled(
+            Notification.permission === "granted" && subscription !== null,
+          );
+        }
+      } catch (error) {
+        console.error("Unable to check the push notification subscription:", error);
+        if (active) {
+          setNotificationsEnabled(false);
+        }
+      }
     }
+
+    void checkNotificationSubscription();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   function update<K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) {
@@ -139,10 +166,10 @@ export default function ProfilePage() {
         await subscribeUserToPush(targetUserId);
         refreshNotificationPermission();
       } else {
-        const registeration = await navigator.serviceWorker.ready;
-        const subscription = await registeration.pushManager.getSubscription();
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
-          const res = await fetch("/api/unsubscribe", {
+          const res = await fetch("/api/notifications/unsubscribe", {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ endpoint: subscription.endpoint }),

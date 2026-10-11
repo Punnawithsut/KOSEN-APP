@@ -3,13 +3,37 @@
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { ArrowUpRight, Sparkles } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 
 function LoginContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+
+  useEffect(() => {
+    let active = true;
+
+    async function checkLoggedIn() {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error("Unable to check the current user:", error);
+        return;
+      }
+
+      if (active && data.user) {
+        router.replace("/announcement");
+      }
+    }
+
+    void checkLoggedIn();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   async function handleSignIn() {
     console.log("Login button clicked...");

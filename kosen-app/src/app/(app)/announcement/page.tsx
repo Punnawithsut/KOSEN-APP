@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 export default function AccouncementPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-4 p-6 text-slate-900">
@@ -10,6 +12,7 @@ export default function AccouncementPage() {
           This is the dedicated Announcement section.
         </p>
       </div>
+      <a href="/test">test</a>
     </main>
   );
 }
