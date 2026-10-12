@@ -24,7 +24,15 @@ const ALLOWED_DEPARTMENTS = [
   "Mechanical Engineering",
   "Electrical and Electronics Engineering",
 ] as const;
-const ALLOWED_TYPES = ["for_you", "news", "events"] as const;
+const ALLOWED_TYPES = [
+  "student affair",
+  "dormitory",
+  "industrial linkage",
+  "international affair",
+  "academic affair",
+  "club",
+  "others",
+] as const;
 
 type AnnouncementRecord = NonNullable<
   Awaited<ReturnType<typeof getAnnouncementById>>
