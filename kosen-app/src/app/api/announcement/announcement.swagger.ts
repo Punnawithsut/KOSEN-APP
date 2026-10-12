@@ -191,7 +191,7 @@ export const announcementDocs = {
     },
     delete: {
       tags: ["Announcements"],
-      summary: "Delete an announcement",
+      summary: "Soft-delete an announcement",
       parameters: [
         {
           name: "id",
@@ -201,7 +201,7 @@ export const announcementDocs = {
         },
       ],
       responses: {
-        200: { description: "Deleted successfully" },
+        200: { description: "Soft-deleted successfully" },
         401: { description: "Unauthorized" },
         403: { description: "Admin privileges required" },
         404: { description: "Announcement not found" },
