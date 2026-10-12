@@ -77,9 +77,19 @@ export const announcements = pgTable(
     authorId: uuid("author_id").references(() => users.userId, {
       onDelete: "set null",
     }),
+    createdBy: uuid("created_by").references(() => users.userId, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.userId, {
+      onDelete: "set null",
+    }),
+    deletedBy: uuid("deleted_by").references(() => users.userId, {
+      onDelete: "set null",
+    }),
     isPublished: boolean("is_published").notNull().default(true),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at"),
   },
   (table) => ({
     categoryIdx: index("announcements_category_idx").on(table.category),

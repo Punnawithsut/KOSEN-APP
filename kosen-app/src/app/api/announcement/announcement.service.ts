@@ -2,10 +2,9 @@ import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../_shared/errors";
 import {
   createAnnouncement as insertAnnouncement,
-  deleteAnnouncementById,
-  getAnnouncementForAdminById,
   getAnnouncementById,
   listAnnouncements as queryAnnouncements,
+  softDeleteAnnouncementById,
   updateAnnouncementById,
   type AnnouncementFilters,
   type AnnouncementType,
@@ -152,6 +151,9 @@ async function serializeAnnouncement(announcement: AnnouncementRecord) {
       })),
     ),
     authorId: announcement.authorId,
+    createdBy: announcement.createdBy,
+    updatedBy: announcement.updatedBy,
+    deletedBy: announcement.deletedBy,
     createdAt: announcement.createdAt,
     updatedAt: announcement.updatedAt,
   };
@@ -320,6 +322,7 @@ export async function createAnnouncement(
 
 export async function modifyAnnouncement(
   id: string,
+  updatedBy: string,
   body: unknown,
   files: File[],
   replaceFiles: boolean,
@@ -375,7 +378,7 @@ export async function modifyAnnouncement(
       );
       data.titleImageUrl = uploadedTitleImagePath;
     }
-    result = await updateAnnouncementById(id, data);
+    result = await updateAnnouncementById(id, updatedBy, data);
   } catch (error) {
     await removeAnnouncementFiles([
       ...uploadedFiles.map((file) => file.storagePath),
@@ -411,22 +414,9 @@ export async function modifyAnnouncement(
   return serializeAnnouncement(result.announcement);
 }
 
-export async function removeAnnouncement(id: string) {
+export async function removeAnnouncement(id: string, deletedBy: string) {
   validateAnnouncementId(id);
-  const announcement = await getAnnouncementForAdminById(id);
-  if (!announcement) throw new NotFoundError("Announcement not found.");
-
-  if (!(await deleteAnnouncementById(id))) {
+  if (!(await softDeleteAnnouncementById(id, deletedBy))) {
     throw new NotFoundError("Announcement not found.");
   }
-
-  const storagePaths = announcement.attachments
-    .map((file) => file.storagePath)
-    .filter((path): path is string => path !== null);
-  if (announcement.titleImageUrl?.startsWith(`${id}/title/`)) {
-    storagePaths.push(announcement.titleImageUrl);
-  }
-  await removeAnnouncementFiles(storagePaths).catch((error) =>
-    console.error("Failed to remove deleted announcement files:", error),
-  );
 }

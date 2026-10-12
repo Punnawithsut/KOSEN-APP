@@ -15,11 +15,12 @@ export const GET = withSessionMiddleware<AnnouncementParams>(
 );
 
 export const PUT = withAdminMiddleware<AnnouncementParams>(
-  async (req, { params }) => {
+  async (req, { params, user }) => {
     const { fields, files, replaceFiles, titleImage } =
       await announcementService.parseAnnouncementFormData(req);
     const announcement = await announcementService.modifyAnnouncement(
       params.id,
+      user.id,
       fields,
       files,
       replaceFiles,
@@ -34,11 +35,11 @@ export const PUT = withAdminMiddleware<AnnouncementParams>(
 );
 
 export const DELETE = withAdminMiddleware<AnnouncementParams>(
-  async (_req, { params }) => {
-    await announcementService.removeAnnouncement(params.id);
+  async (_req, { params, user }) => {
+    await announcementService.removeAnnouncement(params.id, user.id);
     return NextResponse.json({
       ok: true,
-      message: "Announcement deleted successfully",
+      message: "Announcement soft-deleted successfully",
     });
   },
 );
