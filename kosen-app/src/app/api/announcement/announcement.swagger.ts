@@ -65,7 +65,16 @@ export const announcementDocs = {
                 },
                 type: {
                   type: "string",
-                  enum: ["all", "for_you", "news", "events"],
+                  enum: [
+                    "all",
+                    "student affair",
+                    "dormitory",
+                    "industrial linkage",
+                    "international affair",
+                    "academic affair",
+                    "club",
+                    "others",
+                  ],
                   default: "all",
                 },
                 files: {
@@ -147,7 +156,16 @@ export const announcementDocs = {
                 },
                 type: {
                   type: "string",
-                  enum: ["all", "for_you", "news", "events"],
+                  enum: [
+                    "all",
+                    "student affair",
+                    "dormitory",
+                    "industrial linkage",
+                    "international affair",
+                    "academic affair",
+                    "club",
+                    "others",
+                  ],
                 },
                 files: {
                   type: "array",
