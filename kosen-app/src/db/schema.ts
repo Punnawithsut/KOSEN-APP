@@ -19,9 +19,13 @@ import { relations, sql } from "drizzle-orm";
 // ---------- Enums ----------
 
 export const announcementCategoryEnum = pgEnum("announcement_category", [
-  "for_you",
-  "news",
-  "events",
+  "student affair",
+  "dormitory",
+  "industrial linkage",
+  "international affair",
+  "academic affair",
+  "club",
+  "others",
 ]);
 
 export const userRoleEnum = pgEnum("user_role", ["user", "counselor", "admin"]);
@@ -108,10 +112,20 @@ export const announcements = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     title: text("title").notNull(),
     content: text("content").notNull(),
+    titleImageUrl: text("title_image_url"),
     targetYear: integer("target_year"),
     targetDepartment: varchar("target_department", { length: 100 }),
     category: announcementCategoryEnum("category"),
     authorId: uuid("author_id").references(() => users.userId, {
+      onDelete: "set null",
+    }),
+    createdBy: uuid("created_by").references(() => users.userId, {
+      onDelete: "set null",
+    }),
+    updatedBy: uuid("updated_by").references(() => users.userId, {
+      onDelete: "set null",
+    }),
+    deletedBy: uuid("deleted_by").references(() => users.userId, {
       onDelete: "set null",
     }),
     isPublished: boolean("is_published").notNull().default(true),
@@ -140,7 +154,7 @@ export const announcementAttachments = pgTable(
       .references(() => announcements.id, { onDelete: "cascade" }),
     fileUrl: text("file_url"),
     storagePath: text("storage_path"),
-    fileType: varchar("file_type", { length: 50 }).default("image"),
+    fileType: varchar("file_type", { length: 255 }).default("image"),
     displayOrder: integer("display_order").default(0),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

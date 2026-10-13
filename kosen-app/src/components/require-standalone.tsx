@@ -10,7 +10,7 @@ export function RequireStandalone({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isStandalone) {
-      router.replace("/");
+      router.replace("/no-standalone");
     }
   }, [isStandalone, router]);
 

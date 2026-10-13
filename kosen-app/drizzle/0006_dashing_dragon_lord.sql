@@ -1,1 +1,0 @@
-ALTER TABLE "announcement_attachments" ALTER COLUMN "file_url" DROP NOT NULL;

@@ -41,6 +41,11 @@ export const announcementDocs = {
                   type: "string",
                   example: "Announcement details",
                 },
+                titleImage: {
+                  type: "string",
+                  format: "binary",
+                  description: "Title image uploaded to Supabase Storage",
+                },
                 year: {
                   oneOf: [
                     { type: "integer", minimum: 1, maximum: 5 },
@@ -60,7 +65,16 @@ export const announcementDocs = {
                 },
                 type: {
                   type: "string",
-                  enum: ["all", "for_you", "news", "events"],
+                  enum: [
+                    "all",
+                    "student affair",
+                    "dormitory",
+                    "industrial linkage",
+                    "international affair",
+                    "academic affair",
+                    "club",
+                    "others",
+                  ],
                   default: "all",
                 },
                 files: {
@@ -119,6 +133,12 @@ export const announcementDocs = {
               properties: {
                 name: { type: "string" },
                 description: { type: "string" },
+                titleImage: {
+                  type: "string",
+                  format: "binary",
+                  description:
+                    "Replacement title image uploaded to Supabase Storage",
+                },
                 year: {
                   oneOf: [
                     { type: "integer", minimum: 1, maximum: 5 },
@@ -136,7 +156,16 @@ export const announcementDocs = {
                 },
                 type: {
                   type: "string",
-                  enum: ["all", "for_you", "news", "events"],
+                  enum: [
+                    "all",
+                    "student affair",
+                    "dormitory",
+                    "industrial linkage",
+                    "international affair",
+                    "academic affair",
+                    "club",
+                    "others",
+                  ],
                 },
                 files: {
                   type: "array",
@@ -162,7 +191,7 @@ export const announcementDocs = {
     },
     delete: {
       tags: ["Announcements"],
-      summary: "Delete an announcement",
+      summary: "Soft-delete an announcement",
       parameters: [
         {
           name: "id",
@@ -172,7 +201,7 @@ export const announcementDocs = {
         },
       ],
       responses: {
-        200: { description: "Deleted successfully" },
+        200: { description: "Soft-deleted successfully" },
         401: { description: "Unauthorized" },
         403: { description: "Admin privileges required" },
         404: { description: "Announcement not found" },
