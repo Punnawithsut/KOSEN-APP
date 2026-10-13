@@ -58,6 +58,31 @@ export async function uploadAnnouncementFiles(
   return uploaded;
 }
 
+export async function uploadAnnouncementTitleImage(
+  announcementId: string,
+  file: File,
+) {
+  const storagePath = `${announcementId}/title/${randomUUID()}-${safeFileName(file.name)}`;
+  const { error } = await (
+    await createClient()
+  ).storage
+    .from(BUCKET_NAME)
+    .upload(storagePath, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("Supabase announcement title image upload failed:", error);
+    throw new AppError(
+      "Failed to upload announcement title image to Supabase Storage.",
+      502,
+    );
+  }
+
+  return storagePath;
+}
+
 export async function getAnnouncementFileUrl(storagePath: string) {
   const { data, error } = await (
     await createClient()

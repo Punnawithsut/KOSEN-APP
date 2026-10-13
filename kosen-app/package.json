@@ -10,7 +10,8 @@
     "lint:fix": "eslint . --fix",
     "seed": "tsx src/db/seed.ts",
     "generate": "npx drizzle-kit generate",
-    "migrate": "npx drizzle-kit migrate"
+    "migrate": "npx drizzle-kit migrate",
+    "studio": "npx drizzle-kit studio"
   },
   "dependencies": {
     "@serwist/next": "^9.4.1",

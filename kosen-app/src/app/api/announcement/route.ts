@@ -14,12 +14,13 @@ export const GET = withSessionMiddleware(async (req) => {
 });
 
 export const POST = withAdminMiddleware(async (req, { user }) => {
-  const { fields, files } =
+  const { fields, files, titleImage } =
     await announcementService.parseAnnouncementFormData(req);
   const announcement = await announcementService.createAnnouncement(
     user.id,
     fields,
     files,
+    titleImage,
   );
   return NextResponse.json(
     {
