@@ -90,22 +90,27 @@ self.addEventListener("notificationclick", (event) => {
     (event.notification.data as { url?: string } | undefined)?.url ?? "/";
 
   const openApp = async () => {
-    // Resolve absolute URL reliably
     const targetUrl = new URL(targetPath, self.location.origin).href;
 
-    const allClients = await self.clients.matchAll({
+    const windowClients = await self.clients.matchAll({
       type: "window",
       includeUncontrolled: true,
     });
 
-    const matchingClient = allClients.find((client) => client.url === targetUrl);
-
-    if (matchingClient) {
-      await matchingClient.focus();
-      return;
+    for (const client of windowClients) {
+      if (client.url.startsWith(self.location.origin)) {
+        await client.focus();
+        
+        if ("navigate" in client && typeof client.navigate === "function") {
+          return client.navigate(targetUrl);
+        }
+        return;
+      }
     }
 
-    await self.clients.openWindow(targetUrl);
+    if (self.clients.openWindow) {
+      return self.clients.openWindow(targetUrl);
+    }
   };
 
   event.waitUntil(openApp());
