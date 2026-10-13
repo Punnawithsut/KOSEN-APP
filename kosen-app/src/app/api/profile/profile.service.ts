@@ -79,7 +79,7 @@ export async function modifyUserProfile(
     );
   }
 
-  const updatedUser = await updateUserById(userId, data);
+  const updatedUser = await updateUserById(userId, data, userId);
 
   if (!updatedUser) {
     throw new NotFoundError("Failed to update: User profile not found.");

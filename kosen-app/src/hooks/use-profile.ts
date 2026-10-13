@@ -17,6 +17,8 @@ export type MyProfile = {
   dormBuilding: string | null;
   dormRoom: string | null;
   avatarUrl: string | null;
+  createdBy: string | null;
+  updatedBy: string | null;
 };
 
 export type UpdateMyProfile = {
