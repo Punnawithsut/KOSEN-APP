@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Download, Share, Plus } from "lucide-react";
@@ -12,15 +12,30 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+function subscribeToUserAgent() {
+  return () => {};
+}
+
+function getIsIosSnapshot() {
+  if (typeof window === "undefined") return false;
+  const ua = window.navigator.userAgent;
+  return /iphone|ipad|ipod/i.test(ua) && !/crios|fxios/i.test(ua);
+}
+
+function getServerIsIosSnapshot() {
+  return false;
+}
+
 function useInstallPrompt() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isIos, setIsIos] = useState(false);
   const [installed, setInstalled] = useState(false);
+  const isIos = useSyncExternalStore(
+    subscribeToUserAgent,
+    getIsIosSnapshot,
+    getServerIsIosSnapshot,
+  );
 
   useEffect(() => {
-    const ua = window.navigator.userAgent;
-    setIsIos(/iphone|ipad|ipod/i.test(ua) && !/crios|fxios/i.test(ua));
-
     const handler = (e: Event) => {
       e.preventDefault();
       setPrompt(e as BeforeInstallPromptEvent);
