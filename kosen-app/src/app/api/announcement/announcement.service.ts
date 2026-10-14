@@ -9,6 +9,7 @@ import {
   type AnnouncementFilters,
   type AnnouncementType,
   type AnnouncementUpdateData,
+  PAGE_SIZE,
 } from "./announcement.repo";
 import {
   getAnnouncementFileUrl,
@@ -17,7 +18,6 @@ import {
   uploadAnnouncementTitleImage,
 } from "./announcement.storage";
 
-const PAGE_SIZE = 5;
 const ALLOWED_DEPARTMENTS = [
   "Computer Engineering",
   "Mechanical Engineering",

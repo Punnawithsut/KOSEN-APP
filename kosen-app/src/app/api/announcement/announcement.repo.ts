@@ -31,6 +31,8 @@ export type AnnouncementFilters = {
   searchType?: AnnouncementType;
 };
 
+export const PAGE_SIZE = 5;
+
 function buildAnnouncementWhere(filters: AnnouncementFilters) {
   return and(
     eq(announcements.isPublished, true),
@@ -64,14 +66,14 @@ export async function listAnnouncements(
   page: number,
 ) {
   const where = buildAnnouncementWhere(filters);
-  const offset = (page - 1) * 5;
+  const offset = (page - 1) * PAGE_SIZE;
 
   const [items, [{ total }]] = await Promise.all([
     db.query.announcements.findMany({
       where,
       with: { attachments: true },
       orderBy: [desc(announcements.createdAt)],
-      limit: 5,
+      limit: PAGE_SIZE,
       offset,
     }),
     db.select({ total: count() }).from(announcements).where(where),
