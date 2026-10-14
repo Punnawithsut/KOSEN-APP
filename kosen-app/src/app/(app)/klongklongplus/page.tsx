@@ -12,20 +12,9 @@ export default function ModulesExamplePage() {
         <EquipmentCard
           width={200}
           height={100}
-          titleText="Umbrellas"
-          image="/images/umbrella-thumb.jpg"
-          destination="/klongplus/umbrella"
-          description="Borrow an umbrella for rainy days"
-          extendedInfo="A limited number of umbrellas are available to borrow at the front desk. Return within 24 hours so the next person can use one too."
-          badgeText="3 new"
-        />
-
-        <EquipmentCard
-          width={200}
-          height={100}
           titleText="Calculator"
           image="/images/calculator-thumb.jpg"
-          destination="/klongplus/calculator"
+          destination="/klongklongplus/calculators"
           description="Scientific calculators for exams and classwork"
           extendedInfo="Borrow a scientific calculator for class or an exam. Please return it the same day you borrow it, since demand is highest during exam weeks."
         />
@@ -35,7 +24,7 @@ export default function ModulesExamplePage() {
           height={100}
           titleText="Charger"
           image="/images/charger-thumb.jpg"
-          destination="/klongplus/charger"
+          destination="/klongklongplus/chargers"
           description="Phone and laptop charging cables"
           extendedInfo="A selection of USB-C, Lightning, and laptop charging cables are available. Check availability before heading over — popular cables run out fast."
           badgeText="Popular"
