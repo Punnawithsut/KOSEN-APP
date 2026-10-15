@@ -100,7 +100,6 @@ const FILTERS: (Status | "All")[] = ["All", "Published", "Draft", "Archived"];
 
 export default function DemoPage() {
   const [rows, setRows] = React.useState<Announcement[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
 
   const [page, setPage] = React.useState(1);
   const [searchInput, setSearchInput] = React.useState("");
@@ -108,6 +107,11 @@ export default function DemoPage() {
   const [status, setStatus] = React.useState<Status | "All">("All");
 
   const [meta, setMeta] = React.useState({ total: 0, totalPages: 0 });
+  const requestKey = JSON.stringify([page, search, status]);
+  const [loadedRequestKey, setLoadedRequestKey] = React.useState<string | null>(
+    null,
+  );
+  const isLoading = loadedRequestKey !== requestKey;
 
   // Debounce search; changing the filter always resets to page 1.
   React.useEffect(() => {
@@ -128,19 +132,18 @@ export default function DemoPage() {
   // Fetch whenever page or filters change. The cleanup flag ignores stale responses.
   React.useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
 
     fetchAnnouncements({ page, search, status }).then((res) => {
       if (cancelled) return;
       setRows(res.items);
       setMeta({ total: res.total, totalPages: res.totalPages });
-      setIsLoading(false);
+      setLoadedRequestKey(requestKey);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [page, search, status]);
+  }, [page, search, status, requestKey]);
 
   const pagination: PaginationState = {
     page,

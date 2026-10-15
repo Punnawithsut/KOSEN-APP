@@ -64,11 +64,15 @@ const formatDate = (iso: string) => {
 
 export default function UserDemoPage() {
   const [rows, setRows] = React.useState<Calculator[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [searchInput, setSearchInput] = React.useState("");
   const [search, setSearch] = React.useState("");
   const [meta, setMeta] = React.useState({ total: 0, totalPages: 0 });
+  const requestKey = JSON.stringify([page, search]);
+  const [loadedRequestKey, setLoadedRequestKey] = React.useState<string | null>(
+    null,
+  );
+  const isLoading = loadedRequestKey !== requestKey;
 
   // Debounced search; changing it resets to page 1.
   React.useEffect(() => {
@@ -83,17 +87,16 @@ export default function UserDemoPage() {
 
   React.useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
     fetchCalculators({ page, search }).then((res) => {
       if (cancelled) return;
       setRows(res.items);
       setMeta({ total: res.total, totalPages: res.totalPages });
-      setIsLoading(false);
+      setLoadedRequestKey(requestKey);
     });
     return () => {
       cancelled = true;
     };
-  }, [page, search]);
+  }, [page, search, requestKey]);
 
   const pagination: PaginationState = {
     page,

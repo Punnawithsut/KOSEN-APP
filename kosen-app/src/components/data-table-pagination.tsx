@@ -164,6 +164,7 @@ export function DataTablePagination({
         </nav>
 
         <JumpToPage
+          key={page}
           page={page}
           totalPages={totalPages}
           disabled={isLoading}
@@ -186,10 +187,6 @@ function JumpToPage({
   onCommit: (page: number) => void;
 }) {
   const [value, setValue] = React.useState(String(page));
-
-  React.useEffect(() => {
-    setValue(String(page));
-  }, [page]);
 
   const commit = () => {
     const parsed = parseInt(value, 10);
