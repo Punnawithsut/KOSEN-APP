@@ -8,7 +8,10 @@ import * as termService from "../term.service";
 export const GET = withAdminMiddleware(
   async (_req, { params }) => {
     const term = await termService.getTerm(params.id);
-    return NextResponse.json({ ok: true, data: term });
+    return NextResponse.json({
+      ok: true,
+      data: termService.serializeTermDates(term),
+    });
   },
 );
 
@@ -20,7 +23,7 @@ export const PUT = withAdminMiddleware(
     return NextResponse.json({
       ok: true,
       message: "Term updated successfully",
-      data: term,
+      data: termService.serializeTermDates(term),
     });
   },
 );

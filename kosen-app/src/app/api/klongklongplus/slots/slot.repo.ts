@@ -1,4 +1,14 @@
-import { and, asc, count, eq, isNull, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  gt,
+  isNull,
+  lt,
+  ne,
+  type SQL,
+} from "drizzle-orm";
 import { db } from "@/db/client";
 import { loans, slots, slotKindEnum } from "@/db/schema";
 
@@ -41,6 +51,28 @@ export async function findSlotById(id: string) {
   return db.query.slots.findFirst({
     where: and(eq(slots.id, id), isNull(slots.deletedAt)),
   });
+}
+
+export async function hasActiveTimeOverlap(
+  startTime: string,
+  endTime: string,
+  excludeId?: string,
+) {
+  const [overlappingSlot] = await db
+    .select({ id: slots.id })
+    .from(slots)
+    .where(
+      and(
+        isNull(slots.deletedAt),
+        eq(slots.isActive, true),
+        excludeId ? ne(slots.id, excludeId) : undefined,
+        lt(slots.startTime, endTime),
+        gt(slots.endTime, startTime),
+      ),
+    )
+    .limit(1);
+
+  return Boolean(overlappingSlot);
 }
 
 export async function insertSlot(data: typeof slots.$inferInsert) {

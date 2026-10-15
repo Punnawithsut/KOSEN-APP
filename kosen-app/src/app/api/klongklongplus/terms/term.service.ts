@@ -3,11 +3,21 @@ import * as termRepo from "./term.repo";
 
 export type TermData = {
   name: string;
-  startDate: string;
-  endDate: string;
+  startDate: Date;
+  endDate: Date;
 };
 
 export type TermUpdateData = Partial<TermData>;
+
+export function serializeTermDates<T extends { startDate: Date; endDate: Date }>(
+  term: T,
+) {
+  return {
+    ...term,
+    startDate: term.startDate.toISOString().slice(0, 10),
+    endDate: term.endDate.toISOString().slice(0, 10),
+  };
+}
 
 function parseObject(raw: unknown): Record<string, unknown> {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
@@ -27,7 +37,7 @@ function parseName(raw: unknown): string {
   return name;
 }
 
-function parseDate(raw: unknown, field: string): string {
+function parseDate(raw: unknown, field: string): Date {
   if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
     throw new BadRequestError(`Field "${field}" must use YYYY-MM-DD format`);
   }
@@ -35,11 +45,11 @@ function parseDate(raw: unknown, field: string): string {
   if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== raw) {
     throw new BadRequestError(`Field "${field}" must be a valid date`);
   }
-  return raw;
+  return date;
 }
 
-function validateDateRange(startDate: string, endDate: string) {
-  if (startDate > endDate) {
+function validateDateRange(startDate: Date, endDate: Date) {
+  if (startDate.getTime() > endDate.getTime()) {
     throw new BadRequestError("startDate must be on or before endDate");
   }
 }
@@ -103,7 +113,29 @@ export async function getTerm(id: string) {
   return term;
 }
 
+function bangkokDate(now: Date): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return new Date(`${part("year")}-${part("month")}-${part("day")}T00:00:00.000Z`);
+}
+
+export async function getCurrentTerm() {
+  const term = await termRepo.findCurrentTerm(bangkokDate(new Date()));
+  if (!term) throw new NotFoundError("No current term found");
+  return term;
+}
+
 export async function createTerm(data: TermData, userId: string) {
+  if (await termRepo.hasDateOverlap(data.startDate, data.endDate)) {
+    throw new BadRequestError("Term date range overlaps with another term");
+  }
+
   return termRepo.insertTerm({
     ...data,
     createdBy: userId,
@@ -120,6 +152,13 @@ export async function updateTerm(
   const startDate = data.startDate ?? existing.startDate;
   const endDate = data.endDate ?? existing.endDate;
   validateDateRange(startDate, endDate);
+
+  if (
+    (data.startDate !== undefined || data.endDate !== undefined) &&
+    (await termRepo.hasDateOverlap(startDate, endDate, id))
+  ) {
+    throw new BadRequestError("Term date range overlaps with another term");
+  }
 
   const updated = await termRepo.updateTermById(id, {
     ...data,

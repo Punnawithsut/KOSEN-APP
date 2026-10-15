@@ -1,4 +1,15 @@
-import { and, asc, count, eq, ilike, isNull, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  gte,
+  ilike,
+  isNull,
+  lte,
+  ne,
+  type SQL,
+} from "drizzle-orm";
 import { db } from "@/db/client";
 import { loans, terms } from "@/db/schema";
 
@@ -35,6 +46,38 @@ export async function findTermById(id: string) {
   return db.query.terms.findFirst({
     where: and(eq(terms.id, id), isNull(terms.deletedAt)),
   });
+}
+
+export async function findCurrentTerm(date: Date) {
+  return db.query.terms.findFirst({
+    where: and(
+      isNull(terms.deletedAt),
+      lte(terms.startDate, date),
+      gte(terms.endDate, date),
+    ),
+    orderBy: [asc(terms.startDate)],
+  });
+}
+
+export async function hasDateOverlap(
+  startDate: Date,
+  endDate: Date,
+  excludeId?: string,
+) {
+  const [overlappingTerm] = await db
+    .select({ id: terms.id })
+    .from(terms)
+    .where(
+      and(
+        isNull(terms.deletedAt),
+        excludeId ? ne(terms.id, excludeId) : undefined,
+        lte(terms.startDate, endDate),
+        gte(terms.endDate, startDate),
+      ),
+    )
+    .limit(1);
+
+  return Boolean(overlappingTerm);
 }
 
 export async function insertTerm(

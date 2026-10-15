@@ -8,6 +8,7 @@ import {
 } from "../../_shared/errors";
 import * as loanRepo from "./loan.repo";
 import * as unitRepo from "../units/unit.repo";
+import { serializeTermDates } from "../terms/term.service";
 import * as profileService from "../../profile/profile.service";
 
 export type LoanStatus = (typeof loanStatusEnum.enumValues)[number];
@@ -90,16 +91,38 @@ export async function listLoans(
     page,
     filters.searchName,
   );
-  return { items, total, page, pageSize: loanRepo.PAGE_SIZE };
+  return {
+    items: items.map((item) => ({
+      ...item,
+      term: item.term ? serializeTermDates(item.term) : item.term,
+    })),
+    total,
+    page,
+    pageSize: loanRepo.PAGE_SIZE,
+  };
 }
 
 export async function listUserLoans(userId: string, page: number) {
   const { items, total } = await loanRepo.findUserLoans(userId, page);
-  return { items, total, page, pageSize: loanRepo.PAGE_SIZE };
+  return {
+    items: items.map((item) => ({
+      ...item,
+      term: item.term ? serializeTermDates(item.term) : item.term,
+    })),
+    total,
+    page,
+    pageSize: loanRepo.PAGE_SIZE,
+  };
 }
 
 export async function getLoanById(id: string) {
-  return loanRepo.findLoanById(id);
+  const loan = await loanRepo.findLoanById(id);
+  return loan
+    ? {
+        ...loan,
+        term: loan.term ? serializeTermDates(loan.term) : loan.term,
+      }
+    : loan;
 }
 
 function parseObject(raw: unknown): Record<string, unknown> {
@@ -266,7 +289,11 @@ async function validateBookingDateAndReferences(
   if (term.deletedAt || slot.deletedAt || !slot.isActive) {
     throw new BadRequestError("The selected term or time slot is inactive");
   }
-  if (slotDate < term.startDate || slotDate > term.endDate) {
+  const requestedDate = new Date(`${slotDate}T00:00:00.000Z`);
+  if (
+    requestedDate.getTime() < term.startDate.getTime() ||
+    requestedDate.getTime() > term.endDate.getTime()
+  ) {
     throw new BadRequestError("The requested date is outside the selected term");
   }
 

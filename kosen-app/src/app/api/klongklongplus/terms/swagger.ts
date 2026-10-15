@@ -6,6 +6,19 @@ const termIdParameter = {
 };
 
 export const termsDocs = {
+  "/api/klongklongplus/terms/current": {
+    get: {
+      tags: ["Terms"],
+      summary: "Get the current term",
+      description:
+        "Returns the non-deleted term whose date range includes today's date in Asia/Bangkok. Requires a logged-in session.",
+      responses: {
+        200: { description: "Current term" },
+        401: { description: "Unauthorized" },
+        404: { description: "No current term found" },
+      },
+    },
+  },
   "/api/klongklongplus/terms": {
     get: {
       tags: ["Terms"],

@@ -167,8 +167,8 @@ export const announcementAttachments = pgTable(
 export const terms = pgTable("terms", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(), // เช่น "1/2569"
-  startDate: date("start_date").notNull(),
-  endDate: date("end_date").notNull(),
+  startDate: date("start_date", { mode: "date" }).notNull(),
+  endDate: date("end_date", { mode: "date" }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
       .defaultNow()
