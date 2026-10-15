@@ -1,6 +1,18 @@
-import { asc, count, eq, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  ne,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { db } from "@/db/client";
-import { loans } from "@/db/schema";
+import { loans, slots, terms, units, users } from "@/db/schema";
 
 /**
  * Pure data access for `loans` — no business rules, no domain errors. The
@@ -9,15 +21,78 @@ import { loans } from "@/db/schema";
 
 export const PAGE_SIZE = 20;
 
-export async function findLoans(where: SQL | undefined, page: number) {
+const RESERVED_STATUSES = ["pending", "approved", "delivered", "overdue"] as const;
+
+export async function findLoans(
+  where: SQL | undefined,
+  page: number,
+  borrowerName?: string,
+) {
   const offset = (page - 1) * PAGE_SIZE;
+  const normalizedName = borrowerName?.trim().replace(/\s+/g, " ");
+  const borrowerNameWhere = normalizedName
+    ? inArray(
+        loans.borrowerId,
+        db
+          .select({ userId: users.userId })
+          .from(users)
+          .where(
+            or(
+              ilike(users.firstName, `%${normalizedName}%`),
+              ilike(users.lastName, `%${normalizedName}%`),
+              ilike(
+                sql`concat_ws(' ', ${users.firstName}, ${users.lastName})`,
+                `%${normalizedName}%`,
+              ),
+            ),
+          ),
+      )
+    : undefined;
+  const filtersWhere = and(where, borrowerNameWhere, isNull(loans.deletedAt));
+
+  const [items, [{ total }]] = await Promise.all([
+    db.query.loans.findMany({
+      where: filtersWhere,
+      with: {
+        borrower: true,
+        approver: true,
+        unit: true,
+        slot: true,
+        term: true,
+      },
+      orderBy: [asc(loans.slotDate), asc(loans.requestedAt)],
+      limit: PAGE_SIZE,
+      offset,
+    }),
+    db
+      .select({ total: count() })
+      .from(loans)
+      .where(filtersWhere),
+  ]);
+
+  return { items, total };
+}
+
+export async function findUserLoans(userId: string, page: number) {
+  const offset = (page - 1) * PAGE_SIZE;
+  const where = and(eq(loans.borrowerId, userId), isNull(loans.deletedAt));
 
   const [items, [{ total }]] = await Promise.all([
     db.query.loans.findMany({
       where,
       with: {
-        borrower: true,
-        approver: true,
+        borrower: {
+          columns: {
+            userId: true,
+            studentId: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            department: true,
+            year: true,
+          },
+        },
         unit: true,
         slot: true,
         term: true,
@@ -34,7 +109,7 @@ export async function findLoans(where: SQL | undefined, page: number) {
 
 export async function findLoanById(id: string) {
   return db.query.loans.findFirst({
-    where: eq(loans.id, id),
+    where: and(eq(loans.id, id), isNull(loans.deletedAt)),
     with: {
       borrower: true,
       approver: true,
@@ -43,6 +118,174 @@ export async function findLoanById(id: string) {
       term: true,
     },
   });
+}
+
+export async function findBookingDetails(termId: string, slotId: string) {
+  const [term, slot] = await Promise.all([
+    db.query.terms.findFirst({
+      where: eq(terms.id, termId),
+    }),
+    db.query.slots.findFirst({
+      where: eq(slots.id, slotId),
+    }),
+  ]);
+
+  return { term, slot };
+}
+
+export async function createUserLoan(data: {
+  borrowerId: string;
+  createdBy: string;
+  termId: string;
+  slotId: string;
+  slotDate: string;
+  unitId: string;
+  returnNote: string | null;
+}) {
+  return db.transaction(async (tx) => {
+    const [unit] = await tx
+      .select({
+        id: units.id,
+        itemType: units.itemType,
+        status: units.status,
+        isActive: units.isActive,
+      })
+      .from(units)
+      .where(eq(units.id, data.unitId))
+      .for("update");
+
+    if (!unit) return { kind: "unit_not_found" } as const;
+    if (!unit.isActive || unit.status !== "available") {
+      return { kind: "unit_unavailable" } as const;
+    }
+
+    const [reservation] = await tx
+      .select({ id: loans.id })
+      .from(loans)
+      .where(
+        and(
+          eq(loans.unitId, data.unitId),
+          eq(loans.slotDate, data.slotDate),
+          eq(loans.slotId, data.slotId),
+          inArray(loans.status, RESERVED_STATUSES),
+        ),
+      )
+      .limit(1);
+
+    if (reservation) return { kind: "unit_unavailable" } as const;
+
+    const [created] = await tx
+      .insert(loans)
+      .values({
+        ...data,
+        itemType: unit.itemType,
+        status: "pending",
+      })
+      .returning();
+
+    return { kind: "created", loan: created } as const;
+  });
+}
+
+export async function updateUserLoan(
+  id: string,
+  userId: string,
+  data: {
+    termId?: string;
+    slotId?: string;
+    slotDate?: string;
+    returnNote?: string | null;
+  },
+) {
+  return db.transaction(async (tx) => {
+    const [loan] = await tx
+      .select()
+      .from(loans)
+      .where(and(eq(loans.id, id), isNull(loans.deletedAt)))
+      .for("update");
+
+    if (!loan) return { kind: "not_found" } as const;
+    if (loan.createdBy !== userId) return { kind: "not_owner" } as const;
+    if (loan.status !== "pending") return { kind: "not_pending" } as const;
+
+    const slotDate = data.slotDate ?? loan.slotDate;
+    const slotId = data.slotId ?? loan.slotId;
+
+    const [unit] = await tx
+      .select({
+        id: units.id,
+        status: units.status,
+        isActive: units.isActive,
+      })
+      .from(units)
+      .where(eq(units.id, loan.unitId))
+      .for("update");
+
+    if (!unit) return { kind: "unit_not_found" } as const;
+    if (!unit.isActive || unit.status !== "available") {
+      return { kind: "unit_unavailable" } as const;
+    }
+
+    const [reservation] = await tx
+      .select({ id: loans.id })
+      .from(loans)
+      .where(
+        and(
+          eq(loans.unitId, loan.unitId),
+          eq(loans.slotDate, slotDate),
+          eq(loans.slotId, slotId),
+          inArray(loans.status, RESERVED_STATUSES),
+          ne(loans.id, id),
+        ),
+      )
+      .limit(1);
+
+    if (reservation) return { kind: "unit_unavailable" } as const;
+
+    const [updated] = await tx
+      .update(loans)
+      .set({
+        ...data,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(loans.id, id),
+          eq(loans.createdBy, userId),
+          eq(loans.status, "pending"),
+          isNull(loans.deletedAt),
+        ),
+      )
+      .returning();
+
+    if (!updated) return { kind: "not_pending" } as const;
+    return { kind: "updated", loan: updated } as const;
+  });
+}
+
+export async function deleteUserLoan(id: string, userId: string) {
+  const deletedAt = new Date();
+  const [deleted] = await db
+    .update(loans)
+    .set({
+      status: "cancelled",
+      deletedAt,
+      deletedBy: userId,
+      updatedAt: deletedAt,
+      updatedBy: userId,
+    })
+    .where(
+      and(
+        eq(loans.id, id),
+        eq(loans.createdBy, userId),
+        eq(loans.status, "pending"),
+        isNull(loans.deletedAt),
+      ),
+    )
+    .returning({ id: loans.id });
+
+  return deleted;
 }
 
 /**
@@ -57,7 +300,7 @@ export async function updateLoanWhere(
   const [updated] = await db
     .update(loans)
     .set(data)
-    .where(where)
+    .where(and(where, isNull(loans.deletedAt)))
     .returning();
 
   return updated;

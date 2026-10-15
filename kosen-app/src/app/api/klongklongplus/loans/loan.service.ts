@@ -8,6 +8,7 @@ import {
 } from "../../_shared/errors";
 import * as loanRepo from "./loan.repo";
 import * as unitRepo from "../units/unit.repo";
+import * as profileService from "../../profile/profile.service";
 
 export type LoanStatus = (typeof loanStatusEnum.enumValues)[number];
 export type ItemType = (typeof itemTypeEnum.enumValues)[number];
@@ -18,7 +19,23 @@ export type LoanFilters = {
   slotDate?: string; // YYYY-MM-DD
   slotId?: string;
   borrowerId?: string;
+  searchName?: string;
   mine?: boolean; // only loans this admin is responsible for ("งานของฉัน")
+};
+
+export type CreateUserLoanData = {
+  unitId: string;
+  termId: string;
+  slotId: string;
+  slotDate: string;
+  returnNote: string | null;
+};
+
+export type UpdateUserLoanData = {
+  termId?: string;
+  slotId?: string;
+  slotDate?: string;
+  returnNote?: string | null;
 };
 
 function buildLoanWhere(filters: LoanFilters, adminId?: string) {
@@ -51,6 +68,11 @@ export function parseListQuery(searchParams: URLSearchParams) {
     slotDate: searchParams.get("slotDate") ?? undefined,
     slotId: searchParams.get("slotId") ?? undefined,
     borrowerId: searchParams.get("borrowerId") ?? undefined,
+    searchName: searchParams
+      .get("searchName")
+      ?.trim()
+      .replace(/\s+/g, " ")
+      .toLocaleLowerCase(),
     mine: searchParams.get("mine") === "true",
   };
 
@@ -63,12 +85,291 @@ export async function listLoans(
   adminId?: string,
 ) {
   const where = buildLoanWhere(filters, adminId);
-  const { items, total } = await loanRepo.findLoans(where, page);
+  const { items, total } = await loanRepo.findLoans(
+    where,
+    page,
+    filters.searchName,
+  );
+  return { items, total, page, pageSize: loanRepo.PAGE_SIZE };
+}
+
+export async function listUserLoans(userId: string, page: number) {
+  const { items, total } = await loanRepo.findUserLoans(userId, page);
   return { items, total, page, pageSize: loanRepo.PAGE_SIZE };
 }
 
 export async function getLoanById(id: string) {
   return loanRepo.findLoanById(id);
+}
+
+function parseObject(raw: unknown): Record<string, unknown> {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new BadRequestError("Invalid request body");
+  }
+  return raw as Record<string, unknown>;
+}
+
+function parseUuid(value: unknown, field: string): string {
+  if (
+    typeof value !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+  ) {
+    throw new BadRequestError(`Field "${field}" must be a UUID`);
+  }
+  return value;
+}
+
+function parseSlotDate(value: unknown): string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new BadRequestError('Field "slotDate" must be a valid YYYY-MM-DD date');
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== value
+  ) {
+    throw new BadRequestError('Field "slotDate" must be a valid YYYY-MM-DD date');
+  }
+  return value;
+}
+
+function parseReturnNote(value: unknown): string | null {
+  if (value === null) return null;
+  if (typeof value !== "string") {
+    throw new BadRequestError('Field "returnNote" must be a string or null');
+  }
+  return value.trim() || null;
+}
+
+function rejectUnknownFields(
+  data: Record<string, unknown>,
+  allowedFields: string[],
+) {
+  const unsupported = Object.keys(data).find(
+    (field) => !allowedFields.includes(field),
+  );
+  if (unsupported) {
+    throw new BadRequestError(`Field "${unsupported}" cannot be provided`);
+  }
+}
+
+export function parseCreateUserLoanData(raw: unknown): CreateUserLoanData {
+  const data = parseObject(raw);
+  rejectUnknownFields(data, [
+    "unitId",
+    "termId",
+    "slotId",
+    "slotDate",
+    "returnNote",
+  ]);
+
+  return {
+    unitId: parseUuid(data.unitId, "unitId"),
+    termId: parseUuid(data.termId, "termId"),
+    slotId: parseUuid(data.slotId, "slotId"),
+    slotDate: parseSlotDate(data.slotDate),
+    returnNote:
+      data.returnNote === undefined ? null : parseReturnNote(data.returnNote),
+  };
+}
+
+export function parseUpdateUserLoanData(raw: unknown): UpdateUserLoanData {
+  const data = parseObject(raw);
+  if (Object.hasOwn(data, "unitId")) {
+    throw new BadRequestError(
+      "The unit cannot be changed; delete this request and create a new one",
+    );
+  }
+  rejectUnknownFields(data, ["termId", "slotId", "slotDate", "returnNote"]);
+  if (!Object.keys(data).length) {
+    throw new BadRequestError("At least one editable field is required");
+  }
+
+  const update: UpdateUserLoanData = {};
+  if (data.termId !== undefined) update.termId = parseUuid(data.termId, "termId");
+  if (data.slotId !== undefined) update.slotId = parseUuid(data.slotId, "slotId");
+  if (data.slotDate !== undefined)
+    update.slotDate = parseSlotDate(data.slotDate);
+  if (Object.hasOwn(data, "returnNote"))
+    update.returnNote = parseReturnNote(data.returnNote);
+
+  return update;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  );
+}
+
+function throwIfUniqueViolation(error: unknown): never {
+  if (isUniqueViolation(error)) {
+    throw new AppError(
+      "This unit is already reserved for the requested date and time slot",
+      409,
+    );
+  }
+  throw error;
+}
+
+function bangkokDate(now: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+async function requireCompleteProfile(userId: string) {
+  const profile = await profileService.fetchUserProfile(userId);
+  const requiredFields = [
+    ["studentId", profile.studentId],
+    ["firstName", profile.firstName],
+    ["lastName", profile.lastName],
+    ["phone", profile.phone],
+    ["email", profile.email],
+    ["department", profile.department],
+    ["year", profile.year],
+    ["dormBuilding", profile.dormBuilding],
+    ["dormRoom", profile.dormRoom],
+  ] as const;
+  const missingFields = requiredFields
+    .filter(([, value]) =>
+      typeof value === "string" ? !value.trim() : value === null,
+    )
+    .map(([field]) => field);
+
+  if (missingFields.length > 0) {
+    throw new BadRequestError(
+      `Complete your profile before requesting a loan. Missing: ${missingFields.join(", ")}`,
+    );
+  }
+}
+
+async function validateBookingDateAndReferences(
+  termId: string,
+  slotId: string,
+  slotDate: string,
+) {
+  const { term, slot } = await loanRepo.findBookingDetails(termId, slotId);
+  if (!term) throw new NotFoundError("Term not found");
+  if (!slot) throw new NotFoundError("Time slot not found");
+  if (term.deletedAt || slot.deletedAt || !slot.isActive) {
+    throw new BadRequestError("The selected term or time slot is inactive");
+  }
+  if (slotDate < term.startDate || slotDate > term.endDate) {
+    throw new BadRequestError("The requested date is outside the selected term");
+  }
+
+  const scheduledAt = new Date(`${slotDate}T${slot.startTime}+07:00`);
+  if (
+    slotDate < bangkokDate(new Date()) ||
+    Number.isNaN(scheduledAt.getTime()) ||
+    scheduledAt <= new Date()
+  ) {
+    throw new BadRequestError("Bookings cannot be made for past dates or times");
+  }
+}
+
+export async function createUserLoan(
+  userId: string,
+  data: CreateUserLoanData,
+) {
+  await requireCompleteProfile(userId);
+  await validateBookingDateAndReferences(data.termId, data.slotId, data.slotDate);
+
+  try {
+    const result = await loanRepo.createUserLoan({
+      ...data,
+      borrowerId: userId,
+      createdBy: userId,
+    });
+    if (result.kind === "unit_not_found") {
+      throw new NotFoundError("Unit not found");
+    }
+    if (result.kind === "unit_unavailable") {
+      throw new AppError(
+        "This unit is unavailable or already reserved for the requested date and time slot",
+        409,
+      );
+    }
+    return result.loan;
+  } catch (error) {
+    throwIfUniqueViolation(error);
+  }
+}
+
+export async function updateUserLoan(
+  id: string,
+  userId: string,
+  data: UpdateUserLoanData,
+) {
+  const existing = await loanRepo.findLoanById(id);
+  if (!existing) throw new NotFoundError("Loan not found");
+  if (existing.createdBy !== userId) {
+    throw new ForbiddenError("You can only edit your own loan requests");
+  }
+  if (existing.status !== "pending") {
+    throw new BadRequestError("Only pending loan requests can be edited");
+  }
+
+  await requireCompleteProfile(userId);
+
+  const termId = data.termId ?? existing.termId;
+  const slotId = data.slotId ?? existing.slotId;
+  const slotDate = data.slotDate ?? existing.slotDate;
+  await validateBookingDateAndReferences(termId, slotId, slotDate);
+
+  try {
+    const result = await loanRepo.updateUserLoan(id, userId, data);
+    if (result.kind === "not_found") throw new NotFoundError("Loan not found");
+    if (result.kind === "not_owner") {
+      throw new ForbiddenError("You can only edit your own loan requests");
+    }
+    if (result.kind === "not_pending") {
+      throw new BadRequestError("Only pending loan requests can be edited");
+    }
+    if (result.kind === "unit_not_found") throw new NotFoundError("Unit not found");
+    if (result.kind === "unit_unavailable") {
+      throw new AppError(
+        "This unit is unavailable or already reserved for the requested date and time slot",
+        409,
+      );
+    }
+    return result.loan;
+  } catch (error) {
+    throwIfUniqueViolation(error);
+  }
+}
+
+export async function deleteUserLoan(id: string, userId: string) {
+  const existing = await loanRepo.findLoanById(id);
+  if (!existing) throw new NotFoundError("Loan not found");
+  if (existing.createdBy !== userId) {
+    throw new ForbiddenError("You can only delete your own loan requests");
+  }
+  if (existing.status !== "pending") {
+    throw new BadRequestError("Only pending loan requests can be deleted");
+  }
+
+  const deleted = await loanRepo.deleteUserLoan(id, userId);
+  if (!deleted) {
+    const current = await loanRepo.findLoanById(id);
+    if (!current) throw new NotFoundError("Loan not found");
+    if (current.createdBy !== userId) {
+      throw new ForbiddenError("You can only delete your own loan requests");
+    }
+    throw new BadRequestError("Only pending loan requests can be deleted");
+  }
 }
 
 async function requireLoan(id: string) {
