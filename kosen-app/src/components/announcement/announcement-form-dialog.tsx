@@ -1,8 +1,9 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { ActionDialog } from "@/components/action-dialog";
+import { AnnouncementPreviewDialog } from "@/components/announcement/announcement-preview-dialog";
 import { Input } from "@/components/ui/input";
 import {
   ALL_VALUE,
@@ -81,8 +82,26 @@ export function AnnouncementFormDialog({
   const [titleImage, setTitleImage] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [clearFiles, setClearFiles] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Blob URLs for the preview live in a ref, so they are not part of the render
+  // dependency graph. Only `previewSrc` — what to actually show — is state.
+  const previewUrlsRef = useRef<string[]>([]);
+  const [previewSrc, setPreviewSrc] = useState<{
+    banner: string | null;
+    files: string[];
+  }>({ banner: null, files: [] });
+
+  // Unmount only. At mount this list is still empty, so StrictMode's extra
+  // cleanup pass revokes nothing instead of breaking a visible image.
+  useEffect(() => {
+    return () => {
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrlsRef.current = [];
+    };
+  }, []);
 
   function resetForm() {
     setName("");
@@ -93,7 +112,36 @@ export function AnnouncementFormDialog({
     setTitleImage(null);
     setFiles([]);
     setClearFiles(false);
+    closePreview();
     setError(null);
+  }
+
+  /**
+   * Object URLs are minted and revoked from event handlers, never from an
+   * effect. `reactStrictMode` double-invokes effects in dev, so an effect-based
+   * version would revoke URLs that are still on screen.
+   */
+  function revokePreviewUrls() {
+    previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrlsRef.current = [];
+  }
+
+  function openPreview() {
+    // Drop any previous batch first: Cancel then Preview again would otherwise
+    // leak one set of blob URLs per round trip.
+    revokePreviewUrls();
+
+    const banner = titleImage ? URL.createObjectURL(titleImage) : null;
+    const urls = files.map((file) => URL.createObjectURL(file));
+    previewUrlsRef.current = banner ? [banner, ...urls] : urls;
+    setPreviewSrc({ banner, files: urls });
+    setIsPreviewing(true);
+  }
+
+  function closePreview() {
+    revokePreviewUrls();
+    setPreviewSrc({ banner: null, files: [] });
+    setIsPreviewing(false);
   }
 
   /**
@@ -104,15 +152,21 @@ export function AnnouncementFormDialog({
    */
   function handleCancel() {
     setError(null);
+    closePreview();
     onOpenChange(false);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  /**
+   * The footer button no longer writes anything — it validates and switches to
+   * the preview, which is where publishing happens. Keeping this as the form's
+   * submit handler is what still gets the browser's own `required` checks.
+   */
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
-    // Mirror the server's limits locally so the user gets a clear message
-    // without a round trip that would only fail.
+    // Mirror the server's limits locally so the problem surfaces before the
+    // preview rather than as a 400 after publishing.
     if (files.length > MAX_FILES) {
       setError(`At most ${MAX_FILES} files are allowed.`);
       return;
@@ -124,6 +178,13 @@ export function AnnouncementFormDialog({
       setError(`${oversized.name} is larger than 50 MiB.`);
       return;
     }
+
+    openPreview();
+  }
+
+  /** The only write in this component, and it only runs from the preview. */
+  async function publish() {
+    setError(null);
 
     const body = new FormData();
     body.set("name", name.trim());
@@ -166,6 +227,8 @@ export function AnnouncementFormDialog({
       onOpenChange(false);
       onSaved();
     } catch (submitError) {
+      // Stay in the preview on failure, so a rejected publish does not cost the
+      // admin the text they typed or the files they picked.
       setError(
         submitError instanceof Error
           ? submitError.message
@@ -176,17 +239,40 @@ export function AnnouncementFormDialog({
     }
   }
 
-  return (
+  // A ternary rather than a fragment wrapping both overlays: the form keeps its
+  // own `<ActionDialog>` at the same nesting depth, so nothing below needs
+  // re-indenting, and only one overlay is ever mounted.
+  return isPreviewing ? (
+    <AnnouncementPreviewDialog
+      name={name.trim()}
+      description={description.trim()}
+      bannerUrl={previewSrc.banner}
+      currentTitleImageUrl={announcement?.titleImageUrl ?? null}
+      files={files}
+      fileUrls={previewSrc.files}
+      currentFiles={announcement?.files ?? []}
+      replacesAttachments={files.length > 0 || clearFiles}
+      isPublishing={submitting}
+      error={error}
+      onCancel={() => {
+        // Back to the form with everything still typed in, minus the publish
+        // error the preview was showing.
+        setError(null);
+        closePreview();
+      }}
+      onPublish={() => {
+        void publish();
+      }}
+    />
+  ) : (
     <ActionDialog
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Edit announcement" : "New announcement"}
       description="Leave a dropdown on “all” to target everyone."
-      actionLabel={isEdit ? "Save" : "Publish"}
-      loadingLabel={isEdit ? "Saving…" : "Publishing…"}
+      actionLabel="Preview"
       actionType="submit"
       actionForm={formId}
-      isLoading={submitting}
       isActionDisabled={!name.trim() || !description.trim()}
       onCancel={handleCancel}
     >
@@ -327,6 +413,11 @@ export function AnnouncementFormDialog({
               Shown as the card thumbnail and the detail banner.
               {isEdit ? " Leave empty to keep the current one." : ""}
             </p>
+            {titleImage ? (
+              <p className="mt-1 truncate text-[11px] font-medium text-orange-secondary">
+                Picked: {titleImage.name}
+              </p>
+            ) : null}
           </div>
 
           <div>
@@ -354,6 +445,16 @@ export function AnnouncementFormDialog({
                 ? " Choosing any replaces them all."
                 : ""}
             </p>
+
+            {/* The preview unmounts this form, and a file input cannot be
+                repopulated from state — it only ever shows what the user
+                physically selected. Without this line, coming back from the
+                preview looks like the picked files were thrown away. */}
+            {files.length > 0 ? (
+              <p className="mt-1 line-clamp-2 text-[11px] font-medium text-orange-secondary">
+                Picked: {files.map((file) => file.name).join(", ")}
+              </p>
+            ) : null}
 
             {isEdit && existingFileCount > 0 ? (
               <label className="mt-2 flex items-center gap-2 text-[11px] text-black-3">
