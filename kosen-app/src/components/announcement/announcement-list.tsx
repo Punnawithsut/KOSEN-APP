@@ -1,7 +1,7 @@
 "use client";
 
-import { ApiError } from "@/lib/api/fetcher";
 import { Button } from "@/components/ui/button";
+import { describeAnnouncementError } from "@/lib/announcement/errors";
 import type { Announcement } from "@/lib/announcement/types";
 
 import { AnnouncementCard } from "./announcement-card";
@@ -12,27 +12,6 @@ type AnnouncementListProps = {
   error: unknown;
   onRetry: () => void;
 };
-
-/**
- * Maps an SWR error to something a student can act on.
- *
- * `apiFetcher` throws `ApiError`, which carries the HTTP `status` but falls back
- * to a generic message (the API's own text lives under `{ ok: false, error }`,
- * which the fetcher does not read). So we branch on `status` here.
- */
-function describeError(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.status === 401) return "Please sign in to view announcements.";
-    if (error.status === 403) return "You do not have access to announcements.";
-    if (error.status === 400) {
-      return "That filter combination is not supported yet.";
-    }
-    return `Could not load announcements (error ${error.status}).`;
-  }
-
-  if (error instanceof Error && error.message) return error.message;
-  return "Something went wrong while loading announcements.";
-}
 
 /** Renders the four possible states: loading, error, empty, data. */
 export function AnnouncementList({
@@ -70,7 +49,7 @@ export function AnnouncementList({
         role="alert"
         className="rounded-2xl bg-noti-negative-subtle p-4 text-sm text-black-2"
       >
-        <p>{describeError(error)}</p>
+        <p>{describeAnnouncementError(error)}</p>
         <Button
           type="button"
           variant="outline"

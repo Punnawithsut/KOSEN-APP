@@ -46,11 +46,24 @@ export function AnnouncementHero() {
       </svg>
 
       <div className="absolute inset-x-0 top-[15%] px-6 md:top-[22%]">
-        <h1 className="font-display text-5xl leading-none tracking-tight text-white md:text-6xl lg:text-7xl">
+        {/*
+          `.hero-display` / `.hero-lede` (globals.css) size these in proportion
+          to the dome, rather than in fixed px.
+
+          Both artworks are SVGs with `preserveAspectRatio="… slice"`, so the
+          dome only gets as deep as the smaller axis allows, and `top-[15%]`
+          scales with it. Fixed px type keeps its height while everything around
+          it shrinks, so the text block eats an ever-larger share of the dome and
+          eventually runs off the orange onto the pale arcs.
+
+          Those classes are plain CSS rather than utilities because the desktop
+          formula needs a media query and a nested `max()`/`calc()`.
+        */}
+        <h1 className="hero-display font-display leading-none tracking-tight text-white">
           What&apos;s new?
         </h1>
 
-        <p className="mx-auto mt-5 max-w-[17rem] text-sm leading-relaxed text-white/85 md:max-w-[24rem] md:text-base lg:text-lg">
+        <p className="hero-lede mx-auto max-w-[17rem] leading-relaxed text-white/85">
           Stay updated with the latest school news, student activities, upcoming
           events, and important announcements.
         </p>

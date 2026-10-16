@@ -22,6 +22,12 @@ export type Announcement = {
   id: string;
   name: string;
   description: string;
+  /**
+   * The announcement's banner, already resolved to a signed Supabase URL (or
+   * `null`). Separate from `files` — the detail screen shows this at the top
+   * while `files` feeds the attachment chips and the gallery.
+   */
+  titleImageUrl: string | null;
   /** `"all"` when the announcement targets every year. */
   year: number | "all";
   /** `"all"` when the announcement targets every department. */
@@ -33,6 +39,39 @@ export type Announcement = {
   createdAt: string;
   updatedAt: string;
 };
+
+/** The `data` payload of `GET /api/announcement/[id]`. */
+export type AnnouncementDetailData = Announcement;
+
+/** A file whose `url` is known to be resolved — what the detail screen renders. */
+export type ResolvedAnnouncementFile = AnnouncementFile & { url: string };
+
+/**
+ * Splits `files` into what the detail screen shows where.
+ *
+ * `fileType` carries the raw MIME type (see `uploadAnnouncementFiles`), so the
+ * split is on the `image/` prefix rather than on a hand-maintained enum — a new
+ * image format needs no change here.
+ *
+ * Files with an unresolved `url` are dropped by the type predicate, which is
+ * also what lets the components render `file.url` without a non-null assertion.
+ */
+export function splitAnnouncementFiles(files: AnnouncementFile[]): {
+  images: ResolvedAnnouncementFile[];
+  attachments: ResolvedAnnouncementFile[];
+} {
+  const resolved = [...files]
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+    .filter((file): file is ResolvedAnnouncementFile => Boolean(file.url));
+
+  const isImage = (file: ResolvedAnnouncementFile) =>
+    Boolean(file.type?.startsWith("image/"));
+
+  return {
+    images: resolved.filter(isImage),
+    attachments: resolved.filter((file) => !isImage(file)),
+  };
+}
 
 /** Pagination metadata from `listAnnouncements`. */
 export type Pagination = {
