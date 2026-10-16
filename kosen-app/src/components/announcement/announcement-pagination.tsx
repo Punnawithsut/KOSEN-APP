@@ -15,8 +15,8 @@ type AnnouncementPaginationProps = {
 /**
  * `‹ 1 of 12 ›` page control.
  *
- * Deliberately hidden when there is only one page — a control that cannot do
- * anything is just noise.
+ * Always rendered — even with a single page — so the control stays visible in
+ * the layout. Both arrows simply disable when there is nowhere to go.
  */
 export function AnnouncementPagination({
   page,
@@ -24,15 +24,17 @@ export function AnnouncementPagination({
   disabled = false,
   onChange,
 }: AnnouncementPaginationProps) {
-  if (totalPages <= 1) return null;
+  // The API reports `totalPages: 0` when there are no rows, which would render
+  // as the nonsense "1 of 0". Clamp to a minimum of one page.
+  const pages = Math.max(1, totalPages);
 
   const isFirstPage = page <= 1;
-  const isLastPage = page >= totalPages;
+  const isLastPage = page >= pages;
 
   return (
     <nav
       aria-label="Announcement pages"
-      className="mt-4 flex items-center justify-center gap-4 rounded-full bg-blue-subtle-2 py-1.5"
+      className="mt-4 flex items-center justify-center gap-4 py-1.5"
     >
       <Button
         type="button"
@@ -48,9 +50,9 @@ export function AnnouncementPagination({
 
       <span
         aria-live="polite"
-        className="min-w-16 text-center text-sm font-medium text-blue-secondary"
+        className="min-w-16 text-center text-sm font-medium"
       >
-        {page} of {totalPages}
+        {page} of {pages}
       </span>
 
       <Button

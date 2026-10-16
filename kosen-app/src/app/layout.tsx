@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Inter } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
