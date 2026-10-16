@@ -55,6 +55,7 @@ export async function findSlotById(id: string) {
 }
 
 export async function hasActiveTimeOverlap(
+  kind: SlotKind,
   startTime: string,
   endTime: string,
   excludeId?: string,
@@ -66,6 +67,7 @@ export async function hasActiveTimeOverlap(
       and(
         isNull(slots.deletedAt),
         eq(slots.isActive, true),
+        eq(slots.kind, kind),
         excludeId ? ne(slots.id, excludeId) : undefined,
         lt(slots.startTime, endTime),
         gt(slots.endTime, startTime),

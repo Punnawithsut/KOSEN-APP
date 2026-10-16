@@ -93,11 +93,24 @@ export type Term = {
   name: string;
   startDate: string;
   endDate: string;
+  midtermStartDate: string | null;
+  midtermEndDate: string | null;
+  finalExamStartDate: string | null;
+  finalExamEndDate: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
-export type CreateTermData = Pick<Term, "name" | "startDate" | "endDate">;
+type TermExamDates = Pick<
+  Term,
+  | "midtermStartDate"
+  | "midtermEndDate"
+  | "finalExamStartDate"
+  | "finalExamEndDate"
+>;
+
+export type CreateTermData = Pick<Term, "name" | "startDate" | "endDate"> &
+  Partial<TermExamDates>;
 export type UpdateTermData = Partial<CreateTermData>;
 
 export type LoanRecord = {

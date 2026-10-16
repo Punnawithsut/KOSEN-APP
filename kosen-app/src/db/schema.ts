@@ -169,6 +169,10 @@ export const terms = pgTable("terms", {
   name: varchar("name", { length: 100 }).notNull(), // เช่น "1/2569"
   startDate: date("start_date", { mode: "date" }).notNull(),
   endDate: date("end_date", { mode: "date" }).notNull(),
+  midtermStartDate: date("midterm_start_date", { mode: "date" }),
+  midtermEndDate: date("midterm_end_date", { mode: "date" }),
+  finalExamStartDate: date("final_exam_start_date", { mode: "date" }),
+  finalExamEndDate: date("final_exam_end_date", { mode: "date" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
       .defaultNow()

@@ -324,6 +324,7 @@ export async function getAvailableSlots(
   const slots = await loanRepo.findAvailableSlots(
     unitId,
     slotDate,
+    isExamDate(slotDate, term) ? "exam" : "normal",
     excludeLoanId,
   );
   return slots.filter((slot) => {
@@ -334,6 +335,24 @@ export async function getAvailableSlots(
       scheduledAt.getTime() - now.getTime() >= slot.leadMin * 60_000
     );
   });
+}
+
+function isExamDate(
+  slotDate: string,
+  term: NonNullable<Awaited<ReturnType<typeof termRepo.findCurrentTerm>>>,
+) {
+  const dateOnly = (date: Date | null) =>
+    date?.toISOString().slice(0, 10) ?? null;
+  const isWithinPeriod = (start: Date | null, end: Date | null) => {
+    const startDate = dateOnly(start);
+    const endDate = dateOnly(end);
+    return startDate !== null && endDate !== null &&
+      slotDate >= startDate && slotDate <= endDate;
+  };
+  return (
+    isWithinPeriod(term.midtermStartDate, term.midtermEndDate) ||
+    isWithinPeriod(term.finalExamStartDate, term.finalExamEndDate)
+  );
 }
 
 export function parseUpdateUserLoanData(raw: unknown): UpdateUserLoanData {
@@ -447,6 +466,12 @@ async function validateBookingDateAndReferences(
     requestedDate.getTime() > term.endDate.getTime()
   ) {
     throw new BadRequestError("The requested date is outside the selected term");
+  }
+  const shouldUseExamSlots = isExamDate(slotDate, term);
+  if (slot.kind !== (shouldUseExamSlots ? "exam" : "normal")) {
+    throw new BadRequestError(
+      `The selected time slot must be a ${shouldUseExamSlots ? "exam" : "normal"} slot for the requested date`,
+    );
   }
 
   const scheduledAt = getScheduledStartAt(slotDate, slot.startTime);

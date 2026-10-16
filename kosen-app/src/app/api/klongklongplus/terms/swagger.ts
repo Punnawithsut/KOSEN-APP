@@ -48,7 +48,8 @@ export const termsDocs = {
     post: {
       tags: ["Terms"],
       summary: "Create a term",
-      description: "Requires an admin session.",
+      description:
+        "Requires an admin session. Exam date ranges are optional, must be provided as start/end pairs, and must fall within the term without overlapping each other.",
       requestBody: {
         required: true,
         content: {
@@ -60,6 +61,10 @@ export const termsDocs = {
                 name: { type: "string", maxLength: 100, example: "1/2569" },
                 startDate: { type: "string", format: "date" },
                 endDate: { type: "string", format: "date" },
+                midtermStartDate: { type: "string", format: "date", nullable: true },
+                midtermEndDate: { type: "string", format: "date", nullable: true },
+                finalExamStartDate: { type: "string", format: "date", nullable: true },
+                finalExamEndDate: { type: "string", format: "date", nullable: true },
               },
             },
           },
@@ -88,6 +93,8 @@ export const termsDocs = {
     put: {
       tags: ["Terms"],
       summary: "Update a term",
+      description:
+        "Exam date ranges must be provided as start/end pairs, must fall within the term, and must not overlap each other. Send null for both dates in a range to clear it.",
       parameters: [termIdParameter],
       requestBody: {
         required: true,
@@ -100,6 +107,10 @@ export const termsDocs = {
                 name: { type: "string", maxLength: 100 },
                 startDate: { type: "string", format: "date" },
                 endDate: { type: "string", format: "date" },
+                midtermStartDate: { type: "string", format: "date", nullable: true },
+                midtermEndDate: { type: "string", format: "date", nullable: true },
+                finalExamStartDate: { type: "string", format: "date", nullable: true },
+                finalExamEndDate: { type: "string", format: "date", nullable: true },
               },
             },
           },

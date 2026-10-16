@@ -202,7 +202,6 @@ export function LoanRequestDialog({
                 ))}
               </Select>
             </label>
-
             {term &&
               !slotDate &&
               !isTermLoading &&

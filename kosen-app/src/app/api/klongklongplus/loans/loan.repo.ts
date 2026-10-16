@@ -18,6 +18,7 @@ import {
   itemTypeEnum,
   loans,
   slots,
+  slotKindEnum,
   terms,
   units,
   users,
@@ -173,6 +174,7 @@ export async function findBookingDetails(termId: string, slotId: string) {
 export async function findAvailableSlots(
   unitId: string,
   slotDate: string,
+  kind: (typeof slotKindEnum.enumValues)[number],
   excludeLoanId?: string,
 ) {
   const reservation = db
@@ -192,6 +194,7 @@ export async function findAvailableSlots(
     where: and(
       isNull(slots.deletedAt),
       eq(slots.isActive, true),
+      eq(slots.kind, kind),
       notExists(reservation),
     ),
     orderBy: [asc(slots.displayOrder), asc(slots.startTime)],
