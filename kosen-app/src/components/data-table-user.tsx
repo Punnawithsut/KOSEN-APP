@@ -17,6 +17,10 @@ export interface DataTableUserItem {
   id: string | number;
   title: string;
   description?: string;
+  status?: {
+    label: string;
+    className: string;
+  };
   /** Small muted line, e.g. "post on 14/10/26" */
   meta?: string;
   /** Button label. Defaults to "more". */
@@ -89,9 +93,21 @@ export function DataTableUser<T>({
                 <div className="flex min-w-0 items-start gap-4">
                   {item.leading}
                   <div className="min-w-0 space-y-1.5">
-                    <h3 className="text-base font-medium leading-snug text-black-1 sm:text-lg">
-                      {item.title}
-                    </h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-medium leading-snug text-black-1 sm:text-lg">
+                        {item.title}
+                      </h3>
+                      {item.status && (
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
+                            item.status.className,
+                          )}
+                        >
+                          {item.status.label}
+                        </span>
+                      )}
+                    </div>
                     {item.description && (
                       <p className="line-clamp-2 text-sm text-black-3">
                         {item.description}

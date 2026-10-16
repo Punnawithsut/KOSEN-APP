@@ -10,6 +10,17 @@ import {
 } from "@/components/data-table-user";
 import { useUnits } from "@/hooks/use-unit";
 
+const UNIT_STATUS_STYLES = {
+  available: "bg-noti-positive-subtle text-black-2",
+  out: "bg-noti-warning-subtle text-black-2",
+  repair: "bg-muted text-muted-foreground",
+  lost: "bg-negative-subtle text-negative-primary",
+} as const;
+
+function formatUnitStatus(status: keyof typeof UNIT_STATUS_STYLES) {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 export default function ChargersPage() {
   const [page, setPage] = React.useState(1);
   const [searchInput, setSearchInput] = React.useState("");
@@ -70,8 +81,11 @@ export default function ChargersPage() {
         getItem={(unit) => ({
           id: unit.id,
           title: unit.code,
-          description: unit.note ?? `Status: ${unit.status}`,
-          meta: `Status: ${unit.status}`,
+          description: unit.note ?? undefined,
+          status: {
+            label: formatUnitStatus(unit.status),
+            className: UNIT_STATUS_STYLES[unit.status],
+          },
           href: `/calculators/${unit.code}`,
           actionLabel: "more",
         })}
