@@ -133,6 +133,7 @@ export type LoanFilters = {
   itemType?: ItemType;
   slotDate?: string;
   slotId?: string;
+  unitSearch?: string;
   borrowerId?: string;
   searchName?: string;
   mine?: boolean;

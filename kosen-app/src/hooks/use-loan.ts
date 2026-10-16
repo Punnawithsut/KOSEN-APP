@@ -26,8 +26,8 @@ export function useLoans(filters: LoanFilters = {}) {
   return useApi<ApiResponse<PagedData<LoanRecord>>>(url);
 }
 
-export function useMyLoans(page = 1) {
-  const url = `${MY_LOANS_URL}${queryString({ page })}`;
+export function useMyLoans(page = 1, filters: LoanFilters = {}) {
+  const url = `${MY_LOANS_URL}${queryString({ ...filters, page })}`;
   return useApi<ApiResponse<PagedData<LoanRecord>>>(url);
 }
 

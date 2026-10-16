@@ -7,8 +7,15 @@ import {
   type DataTableColumn,
   type PaginationState,
 } from "@/components/data-table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { useMyLoans } from "@/hooks/use-loan";
+import { useSlots } from "@/hooks/use-slot";
+import { useToast } from "@/hooks/use-toast";
 import type {
+  ItemType,
+  LoanFilters,
   LoanRecord,
   LoanStatus,
 } from "@/hooks/types/klongklongplus-types";
@@ -92,8 +99,48 @@ const columns: DataTableColumn<LoanRecord>[] = [
 
 export default function MyRequestsPage() {
   const [page, setPage] = React.useState(1);
-  const { data, error, isLoading } = useMyLoans(page);
+  const [filters, setFilters] = React.useState<LoanFilters>({});
+  const { toast } = useToast();
+  const { data, error, isLoading } = useMyLoans(page, filters);
+  const {
+    data: slotsResponse,
+    error: slotsError,
+  } = useSlots();
   const pageData = data?.data;
+  const slots = slotsResponse?.data.items ?? [];
+
+  React.useEffect(() => {
+    if (error) {
+      toast({
+        title: "Unable to load your requests",
+        description: error.message,
+        variant: "error",
+      });
+    }
+  }, [error, toast]);
+
+  React.useEffect(() => {
+    if (slotsError) {
+      toast({
+        title: "Unable to load time slots",
+        description: slotsError.message,
+        variant: "error",
+      });
+    }
+  }, [slotsError, toast]);
+
+  function updateFilter<K extends keyof LoanFilters>(
+    key: K,
+    value: LoanFilters[K],
+  ) {
+    setPage(1);
+    setFilters((current) => ({ ...current, [key]: value || undefined }));
+  }
+
+  function clearFilters() {
+    setFilters({});
+    setPage(1);
+  }
 
   const pagination: PaginationState = {
     page: pageData?.page ?? page,
@@ -113,11 +160,99 @@ export default function MyRequestsPage() {
         </p>
       </header>
 
-      {error && (
-        <p role="alert" className="text-sm text-negative-primary">
-          Unable to load your requests: {error.message}
-        </p>
-      )}
+      <section
+        aria-label="Filter requests"
+        className="grid gap-3 rounded-lg border border-orange-subtle-2 bg-background p-4 sm:grid-cols-2 lg:grid-cols-6"
+      >
+        <label className="space-y-1.5 text-sm font-medium text-black-2">
+          Unit name or code
+          <Input
+            className="h-8 text-sm"
+            value={filters.unitSearch ?? ""}
+            onChange={(event) => updateFilter("unitSearch", event.target.value)}
+            placeholder="Search unit"
+          />
+        </label>
+
+        <label className="space-y-1.5 text-sm font-medium text-black-2">
+          Unit type
+          <Select
+            className="h-8 text-sm"
+            value={filters.itemType ?? ""}
+            onChange={(event) =>
+              updateFilter(
+                "itemType",
+                (event.target.value || undefined) as ItemType | undefined,
+              )
+            }
+          >
+            <option value="">All types</option>
+            <option value="calculator">Calculator</option>
+            <option value="charger">Charger</option>
+          </Select>
+        </label>
+
+        <label className="space-y-1.5 text-sm font-medium text-black-2">
+          Borrow date
+          <Input
+            className="h-8 text-sm"
+            type="date"
+            value={filters.slotDate ?? ""}
+            onChange={(event) => updateFilter("slotDate", event.target.value)}
+          />
+        </label>
+
+        <label className="space-y-1.5 text-sm font-medium text-black-2">
+          Time slot
+          <Select
+            className="h-8 text-sm"
+            value={filters.slotId ?? ""}
+            onChange={(event) =>
+              updateFilter("slotId", event.target.value || undefined)
+            }
+          >
+            <option value="">All time slots</option>
+            {slots.map((slot) => (
+              <option key={slot.id} value={slot.id}>
+                {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
+              </option>
+            ))}
+          </Select>
+        </label>
+
+        <label className="space-y-1.5 text-sm font-medium text-black-2">
+          Status
+          <Select
+            className="h-8 text-sm"
+            value={filters.status ?? ""}
+            onChange={(event) =>
+              updateFilter(
+                "status",
+                (event.target.value || undefined) as LoanStatus | undefined,
+              )
+            }
+          >
+            <option value="">All statuses</option>
+            {Object.keys(STATUS_STYLES).map((status) => (
+              <option key={status} value={status}>
+                {formatStatus(status as LoanStatus)}
+              </option>
+            ))}
+          </Select>
+        </label>
+
+        <div className="flex items-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={clearFilters}
+            disabled={Object.values(filters).every((value) => !value)}
+          >
+            Clear filters
+          </Button>
+        </div>
+      </section>
 
       <DataTable
         columns={columns}
@@ -126,7 +261,11 @@ export default function MyRequestsPage() {
         pagination={pagination}
         onPageChange={setPage}
         isLoading={isLoading}
-        emptyMessage="You have not made any equipment requests yet."
+        emptyMessage={
+          Object.values(filters).some(Boolean)
+            ? "No requests match these filters."
+            : "You have not made any equipment requests yet."
+        }
       />
     </main>
   );

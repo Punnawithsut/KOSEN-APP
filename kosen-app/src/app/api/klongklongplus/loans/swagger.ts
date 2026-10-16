@@ -197,6 +197,50 @@ export const loansDocs = {
           required: false,
           schema: { type: "integer", minimum: 1, default: 1 },
         },
+        {
+          name: "unitSearch",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Filter by unit name or code",
+        },
+        {
+          name: "itemType",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["calculator", "charger"] },
+        },
+        {
+          name: "slotDate",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "date" },
+        },
+        {
+          name: "slotId",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "uuid" },
+        },
+        {
+          name: "status",
+          in: "query",
+          required: false,
+          schema: {
+            type: "string",
+            enum: [
+              "pending",
+              "approved",
+              "delivered",
+              "returned",
+              "overdue",
+              "cancelled",
+              "rejected",
+              "expired",
+              "no_show",
+            ],
+          },
+        },
       ],
       responses: {
         200: {

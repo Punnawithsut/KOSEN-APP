@@ -21,6 +21,7 @@ export type LoanFilters = {
   itemType?: ItemType;
   slotDate?: string; // YYYY-MM-DD
   slotId?: string;
+  unitSearch?: string;
   borrowerId?: string;
   searchName?: string;
   mine?: boolean; // only loans this admin is responsible for ("งานของฉัน")
@@ -119,8 +120,44 @@ export async function listLoans(
   };
 }
 
-export async function listUserLoans(userId: string, page: number) {
-  const { items, total } = await loanRepo.findUserLoans(userId, page);
+export function parseMyLoansQuery(searchParams: URLSearchParams) {
+  const page = parsePageQuery(searchParams, { pageSize: loanRepo.PAGE_SIZE });
+  const status = searchParams.get("status");
+  const itemType = searchParams.get("itemType");
+
+  if (status && !loanStatusEnum.enumValues.includes(status as LoanStatus)) {
+    throw new BadRequestError(
+      `status must be one of: ${loanStatusEnum.enumValues.join(", ")}`,
+    );
+  }
+  if (itemType && !itemTypeEnum.enumValues.includes(itemType as ItemType)) {
+    throw new BadRequestError(
+      `itemType must be one of: ${itemTypeEnum.enumValues.join(", ")}`,
+    );
+  }
+
+  return {
+    page,
+    filters: {
+      status: status ? (status as LoanStatus) : undefined,
+      itemType: itemType ? (itemType as ItemType) : undefined,
+      slotDate: searchParams.has("slotDate")
+        ? parseSlotDate(searchParams.get("slotDate"))
+        : undefined,
+      slotId: searchParams.has("slotId")
+        ? parseUuid(searchParams.get("slotId"), "slotId")
+        : undefined,
+      unitSearch: searchParams.get("unitSearch")?.trim() || undefined,
+    },
+  };
+}
+
+export async function listUserLoans(
+  userId: string,
+  page: number,
+  filters: Pick<LoanFilters, "status" | "itemType" | "slotDate" | "slotId" | "unitSearch"> = {},
+) {
+  const { items, total } = await loanRepo.findUserLoans(userId, page, filters);
   return {
     items: items.map((item) => ({
       ...item,

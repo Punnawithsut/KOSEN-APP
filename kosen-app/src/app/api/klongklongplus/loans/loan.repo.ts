@@ -81,9 +81,37 @@ export async function findLoans(
   return { items, total };
 }
 
-export async function findUserLoans(userId: string, page: number) {
+export async function findUserLoans(
+  userId: string,
+  page: number,
+  filters: {
+    status?: (typeof loans.$inferSelect)["status"];
+    itemType?: (typeof loans.$inferSelect)["itemType"];
+    slotDate?: string;
+    slotId?: string;
+    unitSearch?: string;
+  } = {},
+) {
   const offset = (page - 1) * PAGE_SIZE;
-  const where = and(eq(loans.borrowerId, userId), isNull(loans.deletedAt));
+  const unitSearch = filters.unitSearch?.trim();
+  const unitSearchWhere = unitSearch
+    ? inArray(
+        loans.unitId,
+        db
+          .select({ id: units.id })
+          .from(units)
+          .where(ilike(units.code, `%${unitSearch}%`)),
+      )
+    : undefined;
+  const where = and(
+    eq(loans.borrowerId, userId),
+    isNull(loans.deletedAt),
+    filters.status ? eq(loans.status, filters.status) : undefined,
+    filters.itemType ? eq(loans.itemType, filters.itemType) : undefined,
+    filters.slotDate ? eq(loans.slotDate, filters.slotDate) : undefined,
+    filters.slotId ? eq(loans.slotId, filters.slotId) : undefined,
+    unitSearchWhere,
+  );
 
   const [items, [{ total }]] = await Promise.all([
     db.query.loans.findMany({
