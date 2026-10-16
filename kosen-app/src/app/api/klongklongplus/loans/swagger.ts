@@ -46,7 +46,7 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "Create a loan request",
       description:
-        "Creates a pending request for the authenticated user. The unit type is determined from the selected unit.",
+        "Creates a pending request for the authenticated user. The unit type is determined from the selected unit; optional itemType must match that unit.",
       requestBody: {
         required: true,
         content: {
@@ -56,6 +56,7 @@ export const loansDocs = {
               required: ["unitId", "termId", "slotId", "slotDate"],
               properties: {
                 unitId: { type: "string", format: "uuid" },
+                itemType: { type: "string", enum: ["calculator", "charger"] },
                 termId: { type: "string", format: "uuid" },
                 slotId: { type: "string", format: "uuid" },
                 slotDate: { type: "string", format: "date" },
@@ -69,6 +70,7 @@ export const loansDocs = {
         201: { description: "Loan request created" },
         400: { description: "Invalid or past booking details" },
         401: { description: "Unauthorized" },
+        403: { description: "Admin users cannot create borrower requests" },
         404: { description: "Unit, term, or slot not found" },
         409: { description: "Unit is unavailable or already reserved" },
       },
@@ -182,7 +184,7 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "Edit a pending loan request",
       description:
-        "Only the authenticated creator can edit their own pending request. unitId is immutable; a different unit requires deleting and recreating the request.",
+        "Only the authenticated borrower or creator can edit their own pending request. Admin users cannot use this endpoint. unitId is immutable; a different unit requires deleting and recreating the request.",
       parameters: loanIdParameters,
       requestBody: {
         required: true,
@@ -205,7 +207,10 @@ export const loansDocs = {
         200: { description: "Loan request updated" },
         400: { description: "Request is not pending or contains invalid fields" },
         401: { description: "Unauthorized" },
-        403: { description: "Loan request belongs to another user" },
+        403: {
+          description:
+            "Loan request belongs to another user or caller is an admin",
+        },
         404: { description: "Loan, term, or slot not found" },
         409: { description: "Unit is unavailable or already reserved" },
       },
@@ -214,13 +219,16 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "Delete a pending loan request",
       description:
-        "Only the authenticated creator can delete their own pending request. The request is soft-deleted and marked cancelled.",
+        "Only the authenticated borrower or creator can delete their own pending request. Admin users cannot use this endpoint. The request is soft-deleted and marked cancelled.",
       parameters: loanIdParameters,
       responses: {
         200: { description: "Loan request deleted" },
         400: { description: "Loan request is not pending" },
         401: { description: "Unauthorized" },
-        403: { description: "Loan request belongs to another user" },
+        403: {
+          description:
+            "Loan request belongs to another user or caller is an admin",
+        },
         404: { description: "Loan request not found" },
       },
     },

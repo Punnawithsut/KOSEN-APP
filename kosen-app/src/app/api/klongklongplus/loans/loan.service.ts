@@ -6,6 +6,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "../../_shared/errors";
+import { parsePageQuery } from "../../_shared/pagination";
 import * as loanRepo from "./loan.repo";
 import * as unitRepo from "../units/unit.repo";
 import { serializeTermDates } from "../terms/term.service";
@@ -26,6 +27,7 @@ export type LoanFilters = {
 
 export type CreateUserLoanData = {
   unitId: string;
+  itemType?: ItemType;
   termId: string;
   slotId: string;
   slotDate: string;
@@ -52,29 +54,43 @@ function buildLoanWhere(filters: LoanFilters, adminId?: string) {
 
 /** Parse ?status=&itemType=&slotDate=&slotId=&borrowerId=&mine=&page= from the admin loans list query string. */
 export function parseListQuery(searchParams: URLSearchParams) {
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
+  const page = parsePageQuery(searchParams, { pageSize: loanRepo.PAGE_SIZE });
 
   const status = searchParams.get("status");
   const itemType = searchParams.get("itemType");
+  const mine = searchParams.get("mine");
+  if (status && !loanStatusEnum.enumValues.includes(status as LoanStatus)) {
+    throw new BadRequestError(
+      `status must be one of: ${loanStatusEnum.enumValues.join(", ")}`,
+    );
+  }
+  if (itemType && !itemTypeEnum.enumValues.includes(itemType as ItemType)) {
+    throw new BadRequestError(
+      `itemType must be one of: ${itemTypeEnum.enumValues.join(", ")}`,
+    );
+  }
+  if (mine !== null && mine !== "true" && mine !== "false") {
+    throw new BadRequestError("mine must be true or false");
+  }
 
   const filters: LoanFilters = {
-    status:
-      status && loanStatusEnum.enumValues.includes(status as LoanStatus)
-        ? (status as LoanStatus)
-        : undefined,
-    itemType:
-      itemType && itemTypeEnum.enumValues.includes(itemType as ItemType)
-        ? (itemType as ItemType)
-        : undefined,
-    slotDate: searchParams.get("slotDate") ?? undefined,
-    slotId: searchParams.get("slotId") ?? undefined,
-    borrowerId: searchParams.get("borrowerId") ?? undefined,
+    status: status ? (status as LoanStatus) : undefined,
+    itemType: itemType ? (itemType as ItemType) : undefined,
+    slotDate: searchParams.has("slotDate")
+      ? parseSlotDate(searchParams.get("slotDate"))
+      : undefined,
+    slotId: searchParams.has("slotId")
+      ? parseUuid(searchParams.get("slotId"), "slotId")
+      : undefined,
+    borrowerId: searchParams.has("borrowerId")
+      ? parseUuid(searchParams.get("borrowerId"), "borrowerId")
+      : undefined,
     searchName: searchParams
       .get("searchName")
       ?.trim()
       .replace(/\s+/g, " ")
       .toLocaleLowerCase(),
-    mine: searchParams.get("mine") === "true",
+    mine: mine === "true",
   };
 
   return { page, filters };
@@ -144,6 +160,18 @@ function parseUuid(value: unknown, field: string): string {
   return value;
 }
 
+function parseItemType(value: unknown, field: string): ItemType {
+  if (
+    typeof value !== "string" ||
+    !itemTypeEnum.enumValues.includes(value as ItemType)
+  ) {
+    throw new BadRequestError(
+      `Field "${field}" must be one of: ${itemTypeEnum.enumValues.join(", ")}`,
+    );
+  }
+  return value as ItemType;
+}
+
 function parseSlotDate(value: unknown): string {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new BadRequestError('Field "slotDate" must be a valid YYYY-MM-DD date');
@@ -182,6 +210,7 @@ export function parseCreateUserLoanData(raw: unknown): CreateUserLoanData {
   const data = parseObject(raw);
   rejectUnknownFields(data, [
     "unitId",
+    "itemType",
     "termId",
     "slotId",
     "slotDate",
@@ -190,6 +219,10 @@ export function parseCreateUserLoanData(raw: unknown): CreateUserLoanData {
 
   return {
     unitId: parseUuid(data.unitId, "unitId"),
+    itemType:
+      data.itemType === undefined
+        ? undefined
+        : parseItemType(data.itemType, "itemType"),
     termId: parseUuid(data.termId, "termId"),
     slotId: parseUuid(data.slotId, "slotId"),
     slotDate: parseSlotDate(data.slotDate),
@@ -233,7 +266,7 @@ function isUniqueViolation(error: unknown): boolean {
 function throwIfUniqueViolation(error: unknown): never {
   if (isUniqueViolation(error)) {
     throw new AppError(
-      "This unit is already reserved for the requested date and time slot",
+      "This loan request conflicts with an existing reservation or daily calculator limit",
       409,
     );
   }
@@ -297,13 +330,23 @@ async function validateBookingDateAndReferences(
     throw new BadRequestError("The requested date is outside the selected term");
   }
 
-  const scheduledAt = new Date(`${slotDate}T${slot.startTime}+07:00`);
+  const normalizedStartTime = slot.startTime.replace(
+    /(\.\d{3})\d+$/,
+    "$1",
+  );
+  const scheduledAt = new Date(`${slotDate}T${normalizedStartTime}+07:00`);
+  const now = new Date();
   if (
-    slotDate < bangkokDate(new Date()) ||
+    slotDate < bangkokDate(now) ||
     Number.isNaN(scheduledAt.getTime()) ||
-    scheduledAt <= new Date()
+    scheduledAt <= now
   ) {
     throw new BadRequestError("Bookings cannot be made for past dates or times");
+  }
+  if (scheduledAt.getTime() - now.getTime() < slot.leadMin * 60_000) {
+    throw new BadRequestError(
+      `Bookings must be made at least ${slot.leadMin} minutes before the slot starts`,
+    );
   }
 }
 
@@ -329,6 +372,9 @@ export async function createUserLoan(
         409,
       );
     }
+    if (result.kind === "unit_type_mismatch") {
+      throw new BadRequestError("The selected unit does not match itemType");
+    }
     return result.loan;
   } catch (error) {
     throwIfUniqueViolation(error);
@@ -342,7 +388,7 @@ export async function updateUserLoan(
 ) {
   const existing = await loanRepo.findLoanById(id);
   if (!existing) throw new NotFoundError("Loan not found");
-  if (existing.createdBy !== userId) {
+  if (existing.borrowerId !== userId && existing.createdBy !== userId) {
     throw new ForbiddenError("You can only edit your own loan requests");
   }
   if (existing.status !== "pending") {
@@ -381,7 +427,7 @@ export async function updateUserLoan(
 export async function deleteUserLoan(id: string, userId: string) {
   const existing = await loanRepo.findLoanById(id);
   if (!existing) throw new NotFoundError("Loan not found");
-  if (existing.createdBy !== userId) {
+  if (existing.borrowerId !== userId && existing.createdBy !== userId) {
     throw new ForbiddenError("You can only delete your own loan requests");
   }
   if (existing.status !== "pending") {
@@ -392,7 +438,7 @@ export async function deleteUserLoan(id: string, userId: string) {
   if (!deleted) {
     const current = await loanRepo.findLoanById(id);
     if (!current) throw new NotFoundError("Loan not found");
-    if (current.createdBy !== userId) {
+    if (current.borrowerId !== userId && current.createdBy !== userId) {
       throw new ForbiddenError("You can only delete your own loan requests");
     }
     throw new BadRequestError("Only pending loan requests can be deleted");

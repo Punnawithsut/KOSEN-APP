@@ -52,6 +52,26 @@ export function withSessionMiddleware<T = Record<string, string>>(
 }
 
 /**
+ * Checks authentication and prevents admin accounts from using borrower endpoints.
+ */
+export function withNonAdminSessionMiddleware<T = Record<string, string>>(
+  handler: Handler<SessionContext<T>>,
+) {
+  return withSessionMiddleware<T>(async (req, ctx) => {
+    const dbUser = await db.query.users.findFirst({
+      where: eq(users.userId, ctx.user.id),
+      columns: { role: true },
+    });
+
+    if (dbUser?.role === "admin") {
+      throw new ForbiddenError("Admin users cannot use borrower loan endpoints");
+    }
+
+    return handler(req, ctx);
+  });
+}
+
+/**
  * Checks if the user is authenticated AND has the 'admin' role in the database.
  */
 export function useAdminMiddleware<T = Record<string, string>>(

@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { itemTypeEnum, unitStatusEnum, units } from "@/db/schema";
 import { AppError, BadRequestError, NotFoundError } from "../../_shared/errors";
+import { parsePageQuery } from "../../_shared/pagination";
 import * as unitRepo from "./unit.repo";
 
 export type ItemType = (typeof itemTypeEnum.enumValues)[number];
@@ -37,7 +38,7 @@ function buildUnitWhere(filters: UnitFilters) {
 
 /** Parse ?itemType=&status=&isActive=&page= from the units list query string. */
 export function parseListQuery(searchParams: URLSearchParams) {
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
+  const page = parsePageQuery(searchParams, { pageSize: unitRepo.PAGE_SIZE });
 
   const itemType = searchParams.get("itemType");
   const status = searchParams.get("status");

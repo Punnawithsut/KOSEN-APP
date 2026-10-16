@@ -4,13 +4,14 @@ import {
   count,
   eq,
   gt,
+  inArray,
   isNull,
   lt,
   ne,
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db/client";
-import { loans, slots, slotKindEnum } from "@/db/schema";
+import { loans, loanStatusEnum, slots, slotKindEnum } from "@/db/schema";
 
 export type SlotKind = (typeof slotKindEnum.enumValues)[number];
 
@@ -92,11 +93,22 @@ export async function updateSlotById(
   return updated;
 }
 
-export async function hasLoanReferences(slotId: string) {
+export async function hasActiveLoanReferences(slotId: string) {
   const [loan] = await db
     .select({ id: loans.id })
     .from(loans)
-    .where(eq(loans.slotId, slotId))
+    .where(
+      and(
+        eq(loans.slotId, slotId),
+        isNull(loans.deletedAt),
+        inArray(loans.status, [
+          "pending",
+          "approved",
+          "delivered",
+          "overdue",
+        ] satisfies (typeof loanStatusEnum.enumValues)[number][]),
+      ),
+    )
     .limit(1);
   return Boolean(loan);
 }

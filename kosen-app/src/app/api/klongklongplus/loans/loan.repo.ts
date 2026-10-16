@@ -12,7 +12,14 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db/client";
-import { loans, slots, terms, units, users } from "@/db/schema";
+import {
+  itemTypeEnum,
+  loans,
+  slots,
+  terms,
+  units,
+  users,
+} from "@/db/schema";
 
 /**
  * Pure data access for `loans` — no business rules, no domain errors. The
@@ -136,6 +143,7 @@ export async function findBookingDetails(termId: string, slotId: string) {
 export async function createUserLoan(data: {
   borrowerId: string;
   createdBy: string;
+  itemType?: (typeof itemTypeEnum.enumValues)[number];
   termId: string;
   slotId: string;
   slotDate: string;
@@ -151,10 +159,13 @@ export async function createUserLoan(data: {
         isActive: units.isActive,
       })
       .from(units)
-      .where(eq(units.id, data.unitId))
+      .where(and(eq(units.id, data.unitId), isNull(units.deletedAt)))
       .for("update");
 
     if (!unit) return { kind: "unit_not_found" } as const;
+    if (data.itemType !== undefined && unit.itemType !== data.itemType) {
+      return { kind: "unit_type_mismatch" } as const;
+    }
     if (!unit.isActive || unit.status !== "available") {
       return { kind: "unit_unavailable" } as const;
     }
@@ -205,7 +216,9 @@ export async function updateUserLoan(
       .for("update");
 
     if (!loan) return { kind: "not_found" } as const;
-    if (loan.createdBy !== userId) return { kind: "not_owner" } as const;
+    if (loan.borrowerId !== userId && loan.createdBy !== userId) {
+      return { kind: "not_owner" } as const;
+    }
     if (loan.status !== "pending") return { kind: "not_pending" } as const;
 
     const slotDate = data.slotDate ?? loan.slotDate;
@@ -218,7 +231,7 @@ export async function updateUserLoan(
         isActive: units.isActive,
       })
       .from(units)
-      .where(eq(units.id, loan.unitId))
+      .where(and(eq(units.id, loan.unitId), isNull(units.deletedAt)))
       .for("update");
 
     if (!unit) return { kind: "unit_not_found" } as const;
@@ -252,7 +265,7 @@ export async function updateUserLoan(
       .where(
         and(
           eq(loans.id, id),
-          eq(loans.createdBy, userId),
+          or(eq(loans.borrowerId, userId), eq(loans.createdBy, userId)),
           eq(loans.status, "pending"),
           isNull(loans.deletedAt),
         ),
@@ -278,7 +291,7 @@ export async function deleteUserLoan(id: string, userId: string) {
     .where(
       and(
         eq(loans.id, id),
-        eq(loans.createdBy, userId),
+        or(eq(loans.borrowerId, userId), eq(loans.createdBy, userId)),
         eq(loans.status, "pending"),
         isNull(loans.deletedAt),
       ),

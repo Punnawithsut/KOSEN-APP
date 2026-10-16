@@ -5,13 +5,14 @@ import {
   eq,
   gte,
   ilike,
+  inArray,
   isNull,
   lte,
   ne,
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db/client";
-import { loans, terms } from "@/db/schema";
+import { loans, loanStatusEnum, terms } from "@/db/schema";
 
 export const PAGE_SIZE = 20;
 
@@ -99,11 +100,22 @@ export async function updateTermById(
   return updated;
 }
 
-export async function hasLoanReferences(termId: string) {
+export async function hasActiveLoanReferences(termId: string) {
   const [loan] = await db
     .select({ id: loans.id })
     .from(loans)
-    .where(eq(loans.termId, termId))
+    .where(
+      and(
+        eq(loans.termId, termId),
+        isNull(loans.deletedAt),
+        inArray(loans.status, [
+          "pending",
+          "approved",
+          "delivered",
+          "overdue",
+        ] satisfies (typeof loanStatusEnum.enumValues)[number][]),
+      ),
+    )
     .limit(1);
   return Boolean(loan);
 }

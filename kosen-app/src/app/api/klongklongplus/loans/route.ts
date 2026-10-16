@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import {
   parseJsonBody,
   useAdminMiddleware as withAdminMiddleware,
-  withSessionMiddleware,
+  withNonAdminSessionMiddleware,
 } from "../../_shared/middleware";
 import * as loanService from "./loan.service";
 
-export const POST = withSessionMiddleware(async (req, { user }) => {
+export const POST = withNonAdminSessionMiddleware(async (req, { user }) => {
   const body = await parseJsonBody<unknown>(req);
   const data = loanService.parseCreateUserLoanData(body);
   const loan = await loanService.createUserLoan(user.id, data);

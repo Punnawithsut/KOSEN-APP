@@ -1,5 +1,6 @@
 import { slotKindEnum } from "@/db/schema";
 import { AppError, BadRequestError, NotFoundError } from "../../_shared/errors";
+import { parsePageQuery } from "../../_shared/pagination";
 import * as slotRepo from "./slot.repo";
 
 export type SlotKind = (typeof slotKindEnum.enumValues)[number];
@@ -135,11 +136,7 @@ export function parseUpdateSlot(raw: unknown): SlotUpdateData {
 }
 
 export function parseListQuery(searchParams: URLSearchParams) {
-  const rawPage = searchParams.get("page") ?? "1";
-  const page = Number(rawPage);
-  if (!Number.isInteger(page) || page < 1) {
-    throw new BadRequestError("page must be a positive integer");
-  }
+  const page = parsePageQuery(searchParams, { pageSize: slotRepo.PAGE_SIZE });
 
   const rawKind = searchParams.get("kind");
   if (rawKind && !slotKindEnum.enumValues.includes(rawKind as SlotKind)) {
@@ -210,7 +207,10 @@ export async function updateSlot(
     throw new BadRequestError("Slot time overlaps with another active slot");
   }
 
-  if (data.isActive === false && (await slotRepo.hasLoanReferences(id))) {
+  if (
+    data.isActive === false &&
+    (await slotRepo.hasActiveLoanReferences(id))
+  ) {
     throw new AppError(
       "Slot is referenced by loan requests and cannot be deactivated",
       409,
@@ -228,7 +228,7 @@ export async function updateSlot(
 
 export async function deleteSlot(id: string, userId: string) {
   await getSlot(id);
-  if (await slotRepo.hasLoanReferences(id)) {
+  if (await slotRepo.hasActiveLoanReferences(id)) {
     throw new AppError(
       "Slot is referenced by loan requests and cannot be deleted",
       409,

@@ -1,4 +1,5 @@
 import { AppError, BadRequestError, NotFoundError } from "../../_shared/errors";
+import { parsePageQuery } from "../../_shared/pagination";
 import * as termRepo from "./term.repo";
 
 export type TermData = {
@@ -91,11 +92,7 @@ export function parseUpdateTerm(raw: unknown): TermUpdateData {
 }
 
 export function parseListQuery(searchParams: URLSearchParams) {
-  const rawPage = searchParams.get("page") ?? "1";
-  const page = Number(rawPage);
-  if (!Number.isInteger(page) || page < 1) {
-    throw new BadRequestError("page must be a positive integer");
-  }
+  const page = parsePageQuery(searchParams, { pageSize: termRepo.PAGE_SIZE });
   return {
     page,
     filters: { search: searchParams.get("search")?.trim() || undefined },
@@ -171,7 +168,7 @@ export async function updateTerm(
 
 export async function deleteTerm(id: string, userId: string) {
   await getTerm(id);
-  if (await termRepo.hasLoanReferences(id)) {
+  if (await termRepo.hasActiveLoanReferences(id)) {
     throw new AppError(
       "Term is referenced by loan requests and cannot be deleted",
       409,
