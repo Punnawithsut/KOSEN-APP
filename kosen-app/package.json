@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint . --fix",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "seed": "tsx src/db/seed.ts",
     "generate": "npx drizzle-kit generate",
     "migrate": "npx drizzle-kit migrate",
