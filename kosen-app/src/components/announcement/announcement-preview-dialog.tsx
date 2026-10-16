@@ -62,6 +62,27 @@ export function AnnouncementPreviewDialog({
   onCancel,
   onPublish,
 }: AnnouncementPreviewDialogProps) {
+  /**
+   * Hold the page behind the preview still.
+   *
+   * The form's `ActionDialog` used to own this — Radix locks body scroll while
+   * a dialog is open. The preview replaces that dialog, so without this the
+   * background becomes scrollable the instant Preview is pressed and its
+   * scrollbar reappears underneath.
+   *
+   * React runs a removed subtree's effect cleanups before the replacement's
+   * effects, so Radix restoring the old `overflow` cannot clobber this.
+   */
+  useEffect(() => {
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onCancel();
@@ -93,7 +114,7 @@ export function AnnouncementPreviewDialog({
       role="dialog"
       aria-modal="true"
       aria-label="Preview announcement"
-      className="fixed inset-0 z-[60] flex flex-col overflow-y-auto bg-bg-primary"
+      className="fixed inset-0 z-[60] flex flex-col overflow-y-auto overscroll-contain bg-background"
     >
       <div className="w-full flex-1 px-4 pt-4 md:px-6">
         <div className="mx-auto w-full max-w-[430px] md:max-w-3xl">
@@ -116,8 +137,14 @@ export function AnnouncementPreviewDialog({
 
       {/* Sticky so the two decisions stay reachable however long the body is.
           `flex-1` above pushes this to the bottom when the content is short, so
-          it never floats mid-screen. */}
-      <div className="sticky bottom-0 border-t border-orange-subtle-2 bg-bg-primary">
+          it never floats mid-screen.
+          Styled to match the navbar: same cream `bg-bg-primary`, same orange
+          hairline, and the same safe-area padding the mobile tab bar uses —
+          on a phone this bar sits exactly where that one does. */}
+      <div
+        className="sticky bottom-0 border-t border-orange-subtle-2 bg-bg-primary"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         <div className="mx-auto flex w-full max-w-[430px] flex-col gap-2 px-4 py-3 md:max-w-3xl md:flex-row md:items-center md:justify-end md:px-6">
           {error ? (
             <p
