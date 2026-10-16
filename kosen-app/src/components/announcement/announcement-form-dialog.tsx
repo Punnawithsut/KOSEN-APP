@@ -445,11 +445,6 @@ export function AnnouncementFormDialog({
               Shown as the card thumbnail and the detail banner.
               {isEdit ? " Leave empty to keep the current one." : ""}
             </p>
-            {titleImage ? (
-              <p className="mt-1 truncate text-[11px] font-medium text-orange-secondary">
-                Picked: {titleImage.name}
-              </p>
-            ) : null}
           </div>
 
           <div>
@@ -490,16 +485,6 @@ export function AnnouncementFormDialog({
                 ? " Choosing any replaces them all."
                 : ""}
             </p>
-
-            {/* The preview unmounts this form, and a file input cannot be
-                repopulated from state — it only ever shows what the user
-                physically selected. Without this line, coming back from the
-                preview looks like the picked files were thrown away. */}
-            {files.length > 0 ? (
-              <p className="mt-1 line-clamp-2 text-[11px] font-medium text-orange-secondary">
-                Picked: {files.map((file) => file.name).join(", ")}
-              </p>
-            ) : null}
 
             {isEdit && existingFileCount > 0 ? (
               <label className="mt-2 flex items-center gap-2 text-[11px] text-black-3">
