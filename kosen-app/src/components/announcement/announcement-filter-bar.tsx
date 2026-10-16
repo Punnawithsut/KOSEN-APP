@@ -43,7 +43,7 @@ function FilterSelect({
   onChange,
 }: FilterSelectProps) {
   return (
-    <div className="relative min-w-0 flex-1">
+    <div className="relative min-w-0 flex-1 md:w-32 md:flex-none">
       <select
         aria-label={label}
         value={String(value)}
@@ -125,11 +125,11 @@ export function AnnouncementFilterBar({
   profilePending = false,
 }: AnnouncementFilterBarProps) {
   return (
-    <section aria-label="Announcement filters" className="px-4 pt-3">
+    <section aria-label="Announcement filters" className="px-4 pt-3 md:px-6">
       {/* Light-blue surface, matching the design's filter bar. */}
-      <div className="flex flex-col gap-2 rounded-2xl bg-blue-subtle-2 p-2">
+      <div className="flex flex-col gap-2 rounded-2xl bg-blue-subtle-2 p-2 md:flex-row md:items-center md:gap-3">
         {/* Quick filters */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 md:shrink-0">
           <QuickFilterButton
             active={mode === "for-you"}
             disabled={profilePending}
@@ -143,7 +143,7 @@ export function AnnouncementFilterBar({
         </div>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative md:flex-1">
           <SearchIcon
             aria-hidden
             className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-blue-secondary/70"
@@ -158,7 +158,7 @@ export function AnnouncementFilterBar({
         </div>
 
         {/* Dropdowns */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 md:shrink-0">
           <FilterSelect
             label="Year"
             value={filters.searchYear}

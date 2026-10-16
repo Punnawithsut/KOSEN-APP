@@ -7,7 +7,15 @@
 // This route renders the exact same component with no gate, so you can develop
 // it in a normal browser tab at http://localhost:3000/announcement-dev
 import AnnouncementPage from "@/app/(app)/announcement/page";
+import { Navbar } from "@/components/navbar";
 
 export default function AnnouncementDevPage() {
-  return <AnnouncementPage />;
+  return (
+    <>
+      {/* Same fixed h-16 bar the (app) layout renders, so the hero's
+          `100vh - 4rem` height matches production. */}
+      <Navbar />
+      <AnnouncementPage />
+    </>
+  );
 }

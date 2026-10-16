@@ -44,7 +44,7 @@ export function AnnouncementList({
   // 1. Loading — only reached when there is no data at all yet.
   if (isLoading) {
     return (
-      <div aria-busy className="space-y-3">
+      <div aria-busy className="grid gap-3 sm:grid-cols-2">
         {[0, 1, 2].map((index) => (
           <div
             key={index}
@@ -87,7 +87,7 @@ export function AnnouncementList({
 
   // 4. Data
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 sm:grid-cols-2">
       {items.map((announcement) => (
         <AnnouncementCard key={announcement.id} announcement={announcement} />
       ))}

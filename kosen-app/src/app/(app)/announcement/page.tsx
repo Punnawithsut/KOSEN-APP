@@ -40,8 +40,9 @@ const EMPTY_DROPDOWN_FILTERS: DropdownFilters = {
  */
 export default function AnnouncementPage() {
   const [page, setPage] = useState(1);
-  const [dropdownFilters, setDropdownFilters] =
-    useState<DropdownFilters>(EMPTY_DROPDOWN_FILTERS);
+  const [dropdownFilters, setDropdownFilters] = useState<DropdownFilters>(
+    EMPTY_DROPDOWN_FILTERS,
+  );
   const [mode, setMode] = useState<FilterMode>("all");
   const [searchInput, setSearchInput] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -109,10 +110,11 @@ export default function AnnouncementPage() {
 
   return (
     <main className="min-h-screen bg-bg-primary pb-10">
-      {/* Phone-width column so proportions match the design on wider screens. */}
-      <div className="mx-auto flex w-full max-w-[430px] flex-col">
-        <AnnouncementHero />
+      {/* Full-bleed: the desktop design has the dome fill the whole first screen. */}
+      <AnnouncementHero />
 
+      {/* Content column: phone width on mobile, wider on tablet/desktop. */}
+      <div className="mx-auto flex w-full max-w-[430px] flex-col md:max-w-3xl lg:max-w-6xl">
         <AnnouncementFilterBar
           filters={filters}
           mode={mode}
@@ -125,7 +127,7 @@ export default function AnnouncementPage() {
         />
 
         {toastMessage ? (
-          <div className="px-4">
+          <div className="px-4 md:px-6">
             <AnnouncementToast
               message={toastMessage}
               onDismiss={dismissToast}
@@ -134,7 +136,7 @@ export default function AnnouncementPage() {
           </div>
         ) : null}
 
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-4 md:px-6">
           <AnnouncementList
             items={items}
             isLoading={isLoading}
