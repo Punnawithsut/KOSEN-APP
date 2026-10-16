@@ -104,20 +104,13 @@ function EditLoanDialog({
   } = useAvailableSlots(loan.unitId, editDate, !!editDate, loan.id);
   const { trigger: updateLoan, isMutating: isUpdating } = useUpdateLoan(loan.id);
   const availableSlots = availableSlotsResponse?.data ?? [];
-  const selectedSlotIsCurrent =
-    editDate === loan.slotDate &&
-    editSlotId === loan.slotId &&
-    !availableSlots.some((slot) => slot.id === loan.slotId);
   const today = getBangkokDate();
   const minDate = loan.term.startDate > today ? loan.term.startDate : today;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (loan.status !== "pending" || !editDate || !editSlotId) return;
-    if (
-      !availableSlots.some((slot) => slot.id === editSlotId) &&
-      !(editDate === loan.slotDate && editSlotId === loan.slotId)
-    ) {
+    if (!availableSlots.some((slot) => slot.id === editSlotId)) {
       toast({
         title: "Choose an available time slot",
         description: "The selected slot is no longer available for this date.",
@@ -156,8 +149,7 @@ function EditLoanDialog({
       isActionDisabled={
         areAvailableSlotsLoading ||
         !!availableSlotsError ||
-        (!availableSlots.some((slot) => slot.id === editSlotId) &&
-          !selectedSlotIsCurrent)
+        !availableSlots.some((slot) => slot.id === editSlotId)
       }
     >
       <form id="edit-loan-request-form" onSubmit={handleSubmit}>
@@ -195,7 +187,7 @@ function EditLoanDialog({
               disabled={
                 !editDate ||
                 areAvailableSlotsLoading ||
-                (availableSlots.length === 0 && !selectedSlotIsCurrent) ||
+                availableSlots.length === 0 ||
                 isUpdating
               }
               required
@@ -209,13 +201,9 @@ function EditLoanDialog({
                       ? "No available slots for this date"
                       : "Select a time slot"}
               </option>
-              {selectedSlotIsCurrent && (
-                <option value={loan.slotId}>
-                  {loan.slot.startTime.slice(0, 5)}–{loan.slot.endTime.slice(0, 5)}
-                </option>
-              )}
               {availableSlots.map((slot) => (
                 <option key={slot.id} value={slot.id}>
+                  {slot.kind === "exam" ? "Exam" : "Normal"}:{" "}
                   {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
                 </option>
               ))}
