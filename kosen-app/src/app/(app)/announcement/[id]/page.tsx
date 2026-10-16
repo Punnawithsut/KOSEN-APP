@@ -8,6 +8,10 @@ import { AnnouncementDetailView } from "@/components/announcement/announcement-d
 import { Button } from "@/components/ui/button";
 import { useAnnouncement } from "@/hooks/use-announcement";
 import { describeAnnouncementError } from "@/lib/announcement/errors";
+import {
+  titleImageSrc,
+  titleImageSrcSet,
+} from "@/lib/announcement/title-image";
 import { splitAnnouncementFiles } from "@/lib/announcement/types";
 
 /** Announcement detail screen — banner, body, attachments, gallery. */
@@ -75,7 +79,16 @@ export default function AnnouncementDetailPage() {
       <AnnouncementDetailView
         name={announcement.name}
         description={announcement.description}
-        titleImageUrl={announcement.titleImageUrl}
+        titleImage={
+          announcement.titleImageUrl
+            ? {
+                src: titleImageSrc(id, 1600),
+                srcSet: titleImageSrcSet(id),
+                sizes:
+                  "(min-width: 1024px) 79vw, (min-width: 768px) 768px, 100vw",
+              }
+            : null
+        }
         images={images}
         attachments={attachments}
         bannerOverlay={backButton}

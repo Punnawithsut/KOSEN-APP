@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { FileTextIcon } from "lucide-react";
 
 import { AnnouncementGallery } from "@/components/announcement/announcement-gallery";
+import type { TitleImage } from "@/lib/announcement/title-image";
 import type { ResolvedAnnouncementFile } from "@/lib/announcement/types";
 
 /**
@@ -26,7 +27,13 @@ export function attachmentLabel(file: ResolvedAnnouncementFile): string {
 type AnnouncementDetailViewProps = {
   name: string;
   description: string;
-  titleImageUrl: string | null;
+  /**
+   * The banner, or `null` for the tinted placeholder band.
+   *
+   * A descriptor rather than a bare URL so the detail screen can pass a sized
+   * srcset while the admin preview passes a blob URL with no variants.
+   */
+  titleImage: TitleImage | null;
   images: ResolvedAnnouncementFile[];
   attachments: ResolvedAnnouncementFile[];
   /** Sits over the banner's top-left corner — the back button, when there is one. */
@@ -44,7 +51,7 @@ type AnnouncementDetailViewProps = {
 export function AnnouncementDetailView({
   name,
   description,
-  titleImageUrl,
+  titleImage,
   images,
   attachments,
   bannerOverlay,
@@ -57,13 +64,14 @@ export function AnnouncementDetailView({
           back button always has a surface to sit on. Same tint the list cards
           use for their no-image placeholder. */}
       <div className="relative">
-        {titleImageUrl ? (
-          // Plain <img>: these are short-lived signed Supabase URLs (or blob:
-          // URLs in the preview), so next/image optimisation is not a fit.
+        {titleImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={titleImageUrl}
+            src={titleImage.src}
+            srcSet={titleImage.srcSet}
+            sizes={titleImage.sizes}
             alt=""
+            decoding="async"
             className="aspect-[16/9] w-full rounded-2xl object-cover"
           />
         ) : (
@@ -78,12 +86,12 @@ export function AnnouncementDetailView({
         ) : null}
       </div>
 
-      <h1 className="mt-4 text-base font-bold text-black-1 md:text-xl">
+      <h1 className="mt-4 text-base font-bold break-words text-black-1 md:text-xl">
         {name}
       </h1>
 
       {/* `pre-line` keeps the paragraph breaks authors type into the textarea. */}
-      <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-black-2 md:text-base">
+      <p className="mt-2 text-sm leading-relaxed break-words whitespace-pre-line text-black-2 md:text-base">
         {description}
       </p>
 

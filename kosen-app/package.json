@@ -32,6 +32,7 @@
     "react-dom": "19.2.4",
     "serwist": "^9.5.11",
     "shadcn": "^3.8.3",
+    "sharp": "^0.35.5",
     "swagger-ui-react": "^5.33.0",
     "swr": "^2.5.1",
     "tailwind-merge": "^3.6.0",

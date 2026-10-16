@@ -1,12 +1,58 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
+} from "react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MinusIcon,
+  PlusIcon,
+  RotateCcwIcon,
+  XIcon,
+} from "lucide-react";
 
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import type { ResolvedAnnouncementFile } from "@/lib/announcement/types";
 
 /** The design's strip holds three tiles: two thumbs and an overflow counter. */
 const VISIBLE_TILES = 3;
+
+/** 1 = fit. Past about 4x a phone photo is just mush. */
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+
+/** One click of the +/- buttons, and one wheel notch. */
+const BUTTON_STEP = 1.5;
+const WHEEL_STEP = 1.15;
+
+type View = { scale: number; x: number; y: number };
+
+const FIT: View = { scale: 1, x: 0, y: 0 };
+
+/**
+ * Keeps a zoomed photo on screen.
+ *
+ * `x` and `y` are percentages of the image's own box, which is what CSS
+ * `translate` percentages mean — so the furthest it may travel is half of the
+ * extra size the scale added.
+ */
+function clampView(next: View): View {
+  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next.scale));
+  if (scale === 1) return FIT;
+
+  const bound = ((scale - 1) * 100) / 2;
+  return {
+    scale,
+    x: Math.min(bound, Math.max(-bound, next.x)),
+    y: Math.min(bound, Math.max(-bound, next.y)),
+  };
+}
 
 type AnnouncementGalleryProps = {
   images: ResolvedAnnouncementFile[];
@@ -21,10 +67,37 @@ type AnnouncementGalleryProps = {
  */
 export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [view, setView] = useState<View>(FIT);
+  const [isGesturing, setIsGesturing] = useState(false);
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  // Live pointer positions, keyed by pointerId, so a second finger can turn a
+  // drag into a pinch without losing the first one's position.
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ distance: number; scale: number } | null>(null);
+  const lastDragRef = useRef<{ x: number; y: number } | null>(null);
   const total = images.length;
+
+  // Only while the viewer is actually open. This component stays mounted for as
+  // long as the detail page shows a thumbnail strip, so locking unconditionally
+  // would freeze the detail page of every announcement that has images.
+  useBodyScrollLock(openIndex !== null);
+
+  /**
+   * Every way of changing photo goes through here, so a new image always starts
+   * fitted. Carrying a zoom across images is disorienting and the pan offsets
+   * would be meaningless. Doing it here rather than in an effect on `openIndex`
+   * keeps it out of the cascading-render pattern the lint rule rejects.
+   */
+  const goTo = useCallback((index: number | null) => {
+    setView(FIT);
+    setOpenIndex(index);
+  }, []);
 
   const step = useCallback(
     (delta: number) => {
+      setView(FIT);
       setOpenIndex((current) => {
         if (current === null || total === 0) return current;
         // Wrap around, so a long gallery never dead-ends.
@@ -47,6 +120,93 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [openIndex, step]);
 
+  // Keep the current thumbnail in view when arrowing through a long set —
+  // `block: "nearest"` stops it from also nudging the scroll position
+  // vertically.
+  useEffect(() => {
+    if (openIndex === null) return;
+    stripRef.current?.children[openIndex]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [openIndex]);
+
+  function zoomTo(nextScale: number) {
+    setView((current) => clampView({ ...current, scale: nextScale }));
+  }
+
+  function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
+    if (event.deltaY === 0) return;
+    // No `preventDefault`: the overlay is fixed and the page behind is locked,
+    // so there is nothing for the wheel to scroll anyway.
+    const factor = event.deltaY < 0 ? WHEEL_STEP : 1 / WHEEL_STEP;
+    setView((current) =>
+      clampView({ ...current, scale: current.scale * factor }),
+    );
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    // A press on one of the overlay's buttons must not start a pan.
+    if ((event.target as HTMLElement).closest("button")) return;
+
+    pointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+    setIsGesturing(true);
+
+    if (pointersRef.current.size === 2) {
+      const [first, second] = [...pointersRef.current.values()];
+      pinchRef.current = {
+        distance: Math.hypot(first.x - second.x, first.y - second.y),
+        // Snapshot the scale: during the pinch, `view` is stale by design.
+        scale: view.scale,
+      };
+      lastDragRef.current = null;
+    } else {
+      lastDragRef.current = { x: event.clientX, y: event.clientY };
+    }
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const pointers = pointersRef.current;
+    if (!pointers.has(event.pointerId)) return;
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    const pinch = pinchRef.current;
+    if (pinch && pointers.size >= 2) {
+      const [first, second] = [...pointers.values()];
+      const distance = Math.hypot(first.x - second.x, first.y - second.y);
+      const nextScale = pinch.scale * (distance / pinch.distance);
+      setView((current) => clampView({ ...current, scale: nextScale }));
+      return;
+    }
+
+    const last = lastDragRef.current;
+    const image = imageRef.current;
+    if (!last || !image || view.scale === MIN_SCALE) return;
+    if (!image.offsetWidth || !image.offsetHeight) return;
+
+    lastDragRef.current = { x: event.clientX, y: event.clientY };
+    // Pixels -> the percentages `translate` expects, measured against the
+    // image's own box rather than the viewport.
+    const dx = ((event.clientX - last.x) / image.offsetWidth) * 100;
+    const dy = ((event.clientY - last.y) / image.offsetHeight) * 100;
+    setView((current) =>
+      clampView({ ...current, x: current.x + dx, y: current.y + dy }),
+    );
+  }
+
+  function endPointer(event: ReactPointerEvent<HTMLDivElement>) {
+    pointersRef.current.delete(event.pointerId);
+    if (pointersRef.current.size < 2) pinchRef.current = null;
+    if (pointersRef.current.size === 0) {
+      lastDragRef.current = null;
+      setIsGesturing(false);
+    }
+  }
+
   if (total === 0) return null;
 
   const shown = total > VISIBLE_TILES ? VISIBLE_TILES - 1 : total;
@@ -60,7 +220,7 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
           <button
             key={image.url}
             type="button"
-            onClick={() => setOpenIndex(index)}
+            onClick={() => goTo(index)}
             aria-label={`Open image ${index + 1} of ${total}`}
             className="min-w-0 flex-1 overflow-hidden rounded-xl transition-opacity hover:opacity-90"
           >
@@ -79,7 +239,7 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
         {overflow > 0 ? (
           <button
             type="button"
-            onClick={() => setOpenIndex(shown)}
+            onClick={() => goTo(shown)}
             aria-label={`Open the remaining ${overflow} images`}
             className="flex min-w-0 flex-1 items-center justify-center rounded-xl bg-blue-subtle-2 text-sm font-semibold text-blue-secondary transition-colors hover:bg-blue-subtle-1"
           >
@@ -95,43 +255,155 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
           aria-label={`Image ${openIndex + 1} of ${total}`}
           // z-60 clears the navbar and the bottom tab bar (both z-50) and the
           // sticky filter bar (z-40).
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-bg-primary"
+          className="fixed inset-0 z-[60] flex flex-col bg-bg-primary"
         >
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => setOpenIndex(null)}
-            className="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full text-black-1 transition-colors hover:bg-black-6"
+          <div className="flex shrink-0 items-center justify-between gap-2 px-4 py-3">
+            <p aria-live="polite" className="text-sm font-medium text-black-3">
+              {openIndex + 1} / {total}
+            </p>
+
+            <div className="flex items-center gap-1">
+              {/* Only once zoomed — a reset that does nothing is just noise.
+                  First in the row on purpose: the group is anchored to the
+                  right edge, so gaining a button on its left leaves − + ✕
+                  exactly where they were. Appending it at the end would slide
+                  the close button out from under the user's finger. */}
+              {view.scale > MIN_SCALE ? (
+                <button
+                  type="button"
+                  aria-label="Fit to screen"
+                  onClick={() => setView(FIT)}
+                  className="flex size-10 items-center justify-center rounded-full text-black-1 transition-colors hover:bg-black-6"
+                >
+                  <RotateCcwIcon className="size-5" />
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                aria-label="Zoom out"
+                onClick={() => zoomTo(view.scale / BUTTON_STEP)}
+                disabled={view.scale <= MIN_SCALE}
+                className="flex size-10 items-center justify-center rounded-full text-black-1 transition-colors hover:bg-black-6 disabled:opacity-30"
+              >
+                <MinusIcon className="size-5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Zoom in"
+                onClick={() => zoomTo(view.scale * BUTTON_STEP)}
+                disabled={view.scale >= MAX_SCALE}
+                className="flex size-10 items-center justify-center rounded-full text-black-1 transition-colors hover:bg-black-6 disabled:opacity-30"
+              >
+                <PlusIcon className="size-5" />
+              </button>
+
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => goTo(null)}
+                className="flex size-10 items-center justify-center rounded-full text-black-1 transition-colors hover:bg-black-6"
+              >
+                <XIcon className="size-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* `min-h-0` is what lets this shrink: without it the image refuses to
+              give the filmstrip any room and the strip gets pushed off screen.
+
+              `touch-action: none` is required for the pinch — without it the
+              browser claims the touch gesture for panning the page and the
+              pointer events we need never arrive. */}
+          <div
+            onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={endPointer}
+            onPointerCancel={endPointer}
+            style={{ touchAction: "none" }}
+            className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-4"
           >
-            <XIcon className="size-6" />
-          </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              ref={imageRef}
+              src={current.url}
+              alt=""
+              decoding="async"
+              // Without this the browser starts its own image drag on
+              // mousedown and the pan never sees the move events.
+              draggable={false}
+              style={{
+                transform: `translate(${view.x}%, ${view.y}%) scale(${view.scale})`,
+                transition: isGesturing ? "none" : "transform 150ms ease-out",
+              }}
+              className={`max-h-full max-w-full rounded-2xl object-contain ${
+                view.scale > MIN_SCALE ? "cursor-grab" : ""
+              }`}
+            />
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={current.url}
-            alt=""
-            className="max-h-[80vh] max-w-[86vw] rounded-2xl object-contain"
-          />
+            {total > 1 ? (
+              <>
+                <button
+                  type="button"
+                  aria-label="Previous image"
+                  onClick={() => step(-1)}
+                  className="absolute top-1/2 left-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-orange-primary text-white transition-colors hover:bg-orange-secondary"
+                >
+                  <ChevronLeftIcon className="size-6" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next image"
+                  onClick={() => step(1)}
+                  className="absolute top-1/2 right-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-orange-primary text-white transition-colors hover:bg-orange-secondary"
+                >
+                  <ChevronRightIcon className="size-6" />
+                </button>
+              </>
+            ) : null}
+          </div>
 
+          {/* The filmstrip. Every image is listed, not just the first few — once
+              the viewer is open the count is a fact about the set, not a limit.
+
+              `w-fit max-w-full` + `mx-auto` centres the strip while it fits and
+              lets it scroll once it doesn't. Centring the *contents* instead
+              (`justify-center` on a full-width scroller) is the usual attempt
+              and it clips the first thumbnails off the left edge where they
+              can't be scrolled back to. */}
           {total > 1 ? (
-            <>
-              <button
-                type="button"
-                aria-label="Previous image"
-                onClick={() => step(-1)}
-                className="absolute top-1/2 left-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-orange-primary text-white transition-colors hover:bg-orange-secondary"
-              >
-                <ChevronLeftIcon className="size-6" />
-              </button>
-              <button
-                type="button"
-                aria-label="Next image"
-                onClick={() => step(1)}
-                className="absolute top-1/2 right-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-orange-primary text-white transition-colors hover:bg-orange-secondary"
-              >
-                <ChevronRightIcon className="size-6" />
-              </button>
-            </>
+            <div
+              ref={stripRef}
+              className="mx-auto flex w-fit max-w-full shrink-0 gap-2 overflow-x-auto px-4 py-3"
+              style={{
+                paddingBottom:
+                  "calc(0.75rem + env(safe-area-inset-bottom, 0px))",
+              }}
+            >
+              {images.map((image, index) => (
+                <button
+                  key={image.url}
+                  type="button"
+                  onClick={() => goTo(index)}
+                  aria-label={`Show image ${index + 1} of ${total}`}
+                  aria-current={index === openIndex ? "true" : undefined}
+                  className={`shrink-0 overflow-hidden rounded-lg ring-2 transition-colors ${
+                    index === openIndex
+                      ? "ring-orange-primary"
+                      : "ring-transparent hover:ring-black-5"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={image.url}
+                    alt=""
+                    loading="lazy"
+                    className="size-16 object-cover"
+                  />
+                </button>
+              ))}
+            </div>
           ) : null}
         </div>
       ) : null}

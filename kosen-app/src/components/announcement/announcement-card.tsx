@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { memo } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 
+import {
+  titleImageSrc,
+  titleImageSrcSet,
+} from "@/lib/announcement/title-image";
 import type { Announcement } from "@/lib/announcement/types";
 
 /** Formats an ISO timestamp as dd/mm/yy, matching the design's "post on …". */
@@ -52,8 +57,12 @@ const ICON_CLASS = "size-[clamp(0.875rem,1.04vw,1.25rem)]";
 const THUMBNAIL_CLASS =
   "aspect-[4/3] w-[45%] shrink-0 rounded-[clamp(0.75rem,1vw,1.5rem)] bg-blue-subtle-2 object-cover lg:aspect-[5/3] lg:w-[41%]";
 
-/** Presentation only — takes data as props, holds no state. */
-export function AnnouncementCard({
+/**
+ * Memoised on purpose: the page re-renders on every keystroke in the search
+ * box, and without this all ten cards re-render with it. The props are a stable
+ * item object plus stable state setters, so the comparison actually hits.
+ */
+export const AnnouncementCard = memo(function AnnouncementCard({
   announcement,
   onEdit,
   onDelete,
@@ -61,11 +70,11 @@ export function AnnouncementCard({
   return (
     <article className="flex items-center gap-[clamp(0.75rem,2vw,2.5rem)] border-b border-black-5 py-3 last:border-b-0">
       <div className="flex min-w-0 flex-1 flex-col">
-        <h2 className="line-clamp-2 text-[clamp(0.875rem,1.667vw,2rem)] leading-[1.3] font-bold text-black-1">
+        <h2 className="line-clamp-2 text-[clamp(0.875rem,1.667vw,2rem)] leading-[1.3] font-bold break-words text-black-1">
           {announcement.name}
         </h2>
 
-        <p className="mt-[0.45em] line-clamp-2 text-[clamp(0.6875rem,1.302vw,1.5625rem)] leading-[1.45] text-black-3">
+        <p className="mt-[0.45em] line-clamp-2 text-[clamp(0.6875rem,1.302vw,1.5625rem)] leading-[1.45] break-words text-black-3">
           {announcement.description}
         </p>
 
@@ -107,16 +116,20 @@ export function AnnouncementCard({
 
       {/* The card image comes from the announcement's TITLE image, not from
           `files`. `files` feeds the detail screen's attachment chips and
-          gallery; the list deliberately shows the banner instead. */}
+          gallery; the list deliberately shows the banner instead.
+
+          Plain <img> with a hand-written srcset rather than next/image: the
+          route behind this URL already resizes, so the optimiser would only
+          fetch our WebP and re-encode it a second time. */}
       {announcement.titleImageUrl ? (
-        // Plain <img>: these are short-lived signed Supabase URLs, so
-        // next/image optimisation (and the remotePatterns config it needs)
-        // is not a good fit here.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={announcement.titleImageUrl}
+          src={titleImageSrc(announcement.id, 800)}
+          srcSet={titleImageSrcSet(announcement.id)}
+          sizes="(min-width: 1024px) 33vw, 45vw"
           alt=""
           loading="lazy"
+          decoding="async"
           className={THUMBNAIL_CLASS}
         />
       ) : (
@@ -124,4 +137,4 @@ export function AnnouncementCard({
       )}
     </article>
   );
-}
+});

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { AnnouncementDetailView } from "@/components/announcement/announcement-detail-view";
 import { Button } from "@/components/ui/button";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import {
   splitAnnouncementFiles,
   type AnnouncementFile,
@@ -63,25 +64,12 @@ export function AnnouncementPreviewDialog({
   onPublish,
 }: AnnouncementPreviewDialogProps) {
   /**
-   * Hold the page behind the preview still.
-   *
-   * The form's `ActionDialog` used to own this — Radix locks body scroll while
-   * a dialog is open. The preview replaces that dialog, so without this the
-   * background becomes scrollable the instant Preview is pressed and its
-   * scrollbar reappears underneath.
-   *
-   * React runs a removed subtree's effect cleanups before the replacement's
-   * effects, so Radix restoring the old `overflow` cannot clobber this.
+   * The form's `ActionDialog` used to hold this lock for us — Radix locks body
+   * scroll while a dialog is open — and the preview replaces that dialog, so
+   * without this the background becomes scrollable the instant Preview is
+   * pressed and its scrollbar reappears underneath.
    */
-  useEffect(() => {
-    const { body } = document;
-    const previousOverflow = body.style.overflow;
-    body.style.overflow = "hidden";
-
-    return () => {
-      body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock();
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -128,7 +116,13 @@ export function AnnouncementPreviewDialog({
           <AnnouncementDetailView
             name={name}
             description={description}
-            titleImageUrl={bannerUrl ?? currentTitleImageUrl}
+            // Blob URL for a just-picked banner, signed URL for a stored one.
+            // Neither can be resized, so no srcset here.
+            titleImage={
+              (bannerUrl ?? currentTitleImageUrl)
+                ? { src: (bannerUrl ?? currentTitleImageUrl) as string }
+                : null
+            }
             images={images}
             attachments={attachments}
           />
