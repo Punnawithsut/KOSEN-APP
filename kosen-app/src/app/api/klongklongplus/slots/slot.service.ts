@@ -174,7 +174,11 @@ export async function getSlot(id: string) {
 export async function createSlot(data: SlotData, userId: string) {
   if (
     data.isActive &&
-    (await slotRepo.hasActiveTimeOverlap(data.startTime, data.endTime))
+    (await slotRepo.hasActiveTimeOverlap(
+      data.kind,
+      data.startTime,
+      data.endTime,
+    ))
   ) {
     throw new BadRequestError("Slot time overlaps with another active slot");
   }
@@ -194,6 +198,7 @@ export async function updateSlot(
   const existing = await getSlot(id);
   const startTime = data.startTime ?? existing.startTime;
   const endTime = data.endTime ?? existing.endTime;
+  const kind = data.kind ?? existing.kind;
   validateTimeRange(startTime, endTime);
 
   const isActive = data.isActive ?? existing.isActive;
@@ -201,8 +206,9 @@ export async function updateSlot(
     isActive &&
     (data.startTime !== undefined ||
       data.endTime !== undefined ||
+      data.kind !== undefined ||
       data.isActive === true) &&
-    (await slotRepo.hasActiveTimeOverlap(startTime, endTime, id))
+    (await slotRepo.hasActiveTimeOverlap(kind, startTime, endTime, id))
   ) {
     throw new BadRequestError("Slot time overlaps with another active slot");
   }

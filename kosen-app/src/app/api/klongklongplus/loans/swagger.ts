@@ -46,7 +46,7 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "List available booking slots",
       description:
-        "Returns active, future slots for the selected unit and date that have not been reserved. Requires an authenticated session.",
+        "Returns all active future slots that have not been reserved. Slot kind is selected automatically: exam slots are returned during the term's midterm or final exam date ranges; normal slots are returned on other dates. Requires an authenticated session.",
       parameters: [
         {
           name: "unitId",
@@ -70,7 +70,7 @@ export const loansDocs = {
         },
       ],
       responses: {
-        200: { description: "Available slots for the selected unit and date" },
+        200: { description: "All available slots for the selected unit and date" },
         400: { description: "Invalid date or date outside an active term" },
         401: { description: "Unauthorized" },
         404: { description: "Unit not found" },

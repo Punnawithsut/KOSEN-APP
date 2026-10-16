@@ -197,12 +197,12 @@ export function LoanRequestDialog({
                 </option>
                 {slots.map((slot) => (
                   <option key={slot.id} value={slot.id}>
+                    {slot.kind === "exam" ? "Exam" : "Normal"}:{" "}
                     {slot.startTime.slice(0, 5)}–{slot.endTime.slice(0, 5)}
                   </option>
                 ))}
               </Select>
             </label>
-
             {term &&
               !slotDate &&
               !isTermLoading &&
