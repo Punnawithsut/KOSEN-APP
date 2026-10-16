@@ -1,12 +1,12 @@
 import useSWRMutation from "swr/mutation";
 import { useSWRConfig } from "swr";
-import { ApiError } from "./fetcher";
+import { apiErrorFromResponse, ApiError } from "./fetcher";
 
 type Method = "POST" | "PATCH" | "PUT" | "DELETE";
 
-type MutationArg = {
+type MutationArg<Body = unknown> = {
   method: Method;
-  body?: unknown;
+  body?: Body;
 };
 
 async function sender<T = unknown>(
@@ -30,40 +30,58 @@ async function sender<T = unknown>(
   const res = await fetch(url, options);
 
   if (!res.ok) {
-    const info = await res.json().catch(() => null);
-    const message =
-      (info as { message?: string } | null)?.message ??
-      `Request failed (${res.status})`;
-    throw new ApiError(message, res.status, info);
+    throw await apiErrorFromResponse(res);
   }
 
   if (res.status === 204) return undefined as T;
   return res.json();
 }
 
-export function useApiMutation<T = unknown>(url: string) {
-  return useSWRMutation<T, ApiError, string, MutationArg>(url, sender);
+export function useApiMutation<T = unknown, Body = unknown>(url: string) {
+  return useSWRMutation<T, ApiError, string, MutationArg<Body>>(url, sender);
 }
 
 type MutationOptions = {
   revalidateKeys?: string | string[];
+  revalidateKeyPrefixes?: string | string[];
 };
 
-function useMethodMutation<T = unknown>(
+function useMethodMutation<T = unknown, Body = unknown>(
   url: string,
   method: Method,
   options?: MutationOptions,
 ) {
-  const { trigger, ...rest } = useApiMutation<T>(url);
+  const { trigger, ...rest } = useApiMutation<T, Body>(url);
   const { mutate } = useSWRConfig();
 
-  async function run(body?: unknown) {
-    const result = await trigger({ method, body });
+  async function run(body?: Body) {
+    const hasRevalidationTargets =
+      options?.revalidateKeys || options?.revalidateKeyPrefixes;
+    const result = await trigger(
+      { method, body },
+      hasRevalidationTargets ? { revalidate: false } : undefined,
+    );
     if (options?.revalidateKeys) {
       const keys = Array.isArray(options.revalidateKeys)
         ? options.revalidateKeys
         : [options.revalidateKeys];
       await Promise.all(keys.map((key) => mutate(key)));
+    }
+    if (options?.revalidateKeyPrefixes) {
+      const prefixes = Array.isArray(options.revalidateKeyPrefixes)
+        ? options.revalidateKeyPrefixes
+        : [options.revalidateKeyPrefixes];
+      await Promise.all(
+        prefixes.map((prefix) =>
+          mutate(
+            (key) =>
+              typeof key === "string" &&
+              (key === prefix ||
+                key.startsWith(`${prefix}?`) ||
+                key.startsWith(`${prefix}/`)),
+          ),
+        ),
+      );
     }
     return result;
   }
@@ -74,18 +92,27 @@ function useMethodMutation<T = unknown>(
 /** const { trigger: createThing, isMutating } = usePost("/api/things");
  *  await createThing({ name: "..." }); */
 
-export function usePost<T = unknown>(url: string, options?: MutationOptions) {
-  return useMethodMutation<T>(url, "POST", options);
+export function usePost<T = unknown, Body = unknown>(
+  url: string,
+  options?: MutationOptions,
+) {
+  return useMethodMutation<T, Body>(url, "POST", options);
 }
 
-/** const { trigger: saveProfile, isMutating } = usePatch("/api/profile", { revalidateKeys: "/api/profile" });
+/** const { trigger: saveProfile, isMutating } = usePatch("/api/profile");
  *  await saveProfile(form); */
-export function usePatch<T = unknown>(url: string, options?: MutationOptions) {
-  return useMethodMutation<T>(url, "PATCH", options);
+export function usePatch<T = unknown, Body = unknown>(
+  url: string,
+  options?: MutationOptions,
+) {
+  return useMethodMutation<T, Body>(url, "PATCH", options);
 }
 
-export function usePut<T = unknown>(url: string, options?: MutationOptions) {
-  return useMethodMutation<T>(url, "PUT", options);
+export function usePut<T = unknown, Body = unknown>(
+  url: string,
+  options?: MutationOptions,
+) {
+  return useMethodMutation<T, Body>(url, "PUT", options);
 }
 
 /** const { trigger: deleteThing, isMutating } = useDelete("/api/things/123");

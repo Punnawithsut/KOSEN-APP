@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../_shared/errors";
+import { parsePageQuery } from "../_shared/pagination";
 import {
   ANNOUNCEMENT_PAGE_SIZE,
   createAnnouncement as insertAnnouncement,
@@ -10,6 +11,7 @@ import {
   type AnnouncementFilters,
   type AnnouncementType,
   type AnnouncementUpdateData,
+  PAGE_SIZE,
 } from "./announcement.repo";
 import {
   getAnnouncementFileUrl,
@@ -210,13 +212,10 @@ function parseRequiredText(value: unknown, field: string): string {
 }
 
 export function parseListQuery(searchParams: URLSearchParams) {
-  const pageValue = searchParams.get("page");
-  const page = pageValue === null ? NaN : Number(pageValue);
-  if (!Number.isInteger(page) || page < 1) {
-    throw new BadRequestError(
-      "A positive integer page query parameter is required.",
-    );
-  }
+  const page = parsePageQuery(searchParams, {
+    pageSize: PAGE_SIZE,
+    required: true,
+  });
 
   const filters: AnnouncementFilters = {};
   const searchName = searchParams.get("searchName")?.trim();

@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import {
   useAdminMiddleware as withAdminMiddleware,
   parseJsonBody,
+  withSessionMiddleware,
 } from "../../_shared/middleware";
 import * as unitService from "./unit.service";
 
-export const GET = withAdminMiddleware(async (req) => {
+export const GET = withSessionMiddleware(async (req) => {
   const { page, filters } = unitService.parseListQuery(
     req.nextUrl.searchParams,
   );

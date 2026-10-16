@@ -1,0 +1,2 @@
+DROP INDEX "loans_calc_per_day_uq";--> statement-breakpoint
+CREATE UNIQUE INDEX "loans_calc_per_day_uq" ON "loans" USING btree ("borrower_id","slot_date") WHERE item_type = 'calculator' and status in ('pending','approved','delivered','overdue','no_show');

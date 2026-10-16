@@ -19,11 +19,16 @@ export async function getUserById(userId: string) {
   });
 }
 
-export async function updateUserById(userId: string, data: UpdateProfileData) {
+export async function updateUserById(
+  userId: string,
+  data: UpdateProfileData,
+  updatedBy: string,
+) {
   const [updatedUser] = await db
     .update(users)
     .set({
       ...data,
+      updatedBy,
       updatedAt: new Date(),
     })
     .where(eq(users.userId, userId))

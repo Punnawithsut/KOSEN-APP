@@ -41,7 +41,76 @@ const conditionRequestBody = {
 const loanIdParameters = [loanIdParameter];
 
 export const loansDocs = {
+  "/api/klongklongplus/loans/available-slots": {
+    get: {
+      tags: ["Loans"],
+      summary: "List available booking slots",
+      description:
+        "Returns active, future slots for the selected unit and date that have not been reserved. Requires an authenticated session.",
+      parameters: [
+        {
+          name: "unitId",
+          in: "query",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+        },
+        {
+          name: "slotDate",
+          in: "query",
+          required: true,
+          schema: { type: "string", format: "date" },
+        },
+        {
+          name: "excludeLoanId",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "uuid" },
+          description:
+            "Pending loan to exclude from reservation checks when editing that loan",
+        },
+      ],
+      responses: {
+        200: { description: "Available slots for the selected unit and date" },
+        400: { description: "Invalid date or date outside an active term" },
+        401: { description: "Unauthorized" },
+        404: { description: "Unit not found" },
+        409: { description: "Unit is unavailable" },
+      },
+    },
+  },
   "/api/klongklongplus/loans": {
+    post: {
+      tags: ["Loans"],
+      summary: "Create a loan request",
+      description:
+        "Creates a pending request for the authenticated user, including admins. The unit type is determined from the selected unit; optional itemType must match that unit.",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["unitId", "termId", "slotId", "slotDate"],
+              properties: {
+                unitId: { type: "string", format: "uuid" },
+                itemType: { type: "string", enum: ["calculator", "charger"] },
+                termId: { type: "string", format: "uuid" },
+                slotId: { type: "string", format: "uuid" },
+                slotDate: { type: "string", format: "date" },
+                returnNote: { type: "string", nullable: true },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        201: { description: "Loan request created" },
+        400: { description: "Invalid or past booking details" },
+        401: { description: "Unauthorized" },
+        404: { description: "Unit, term, or slot not found" },
+        409: { description: "Unit is unavailable or already reserved" },
+      },
+    },
     get: {
       tags: ["Loans"],
       summary: "List loans",
@@ -98,6 +167,14 @@ export const loansDocs = {
           schema: { type: "string", format: "uuid" },
         },
         {
+          name: "searchName",
+          in: "query",
+          required: false,
+          description:
+            "Case-insensitive partial search across the borrower's first name, last name, or full name",
+          schema: { type: "string", example: "pun" },
+        },
+        {
           name: "mine",
           in: "query",
           required: false,
@@ -112,6 +189,127 @@ export const loansDocs = {
         },
         401: { description: "Unauthorized" },
         403: { description: "Admin privileges required" },
+      },
+    },
+  },
+  "/api/klongklongplus/loans/mine": {
+    get: {
+      tags: ["Loans"],
+      summary: "List the authenticated user's loan requests",
+      description:
+        "Returns the current user's loans with borrower, unit, slot, and term details. Results are paginated and exclude soft-deleted requests.",
+      parameters: [
+        {
+          name: "page",
+          in: "query",
+          required: false,
+          schema: { type: "integer", minimum: 1, default: 1 },
+        },
+        {
+          name: "unitSearch",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Filter by unit name or code",
+        },
+        {
+          name: "itemType",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["calculator", "charger"] },
+        },
+        {
+          name: "slotDate",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "date" },
+        },
+        {
+          name: "slotId",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "uuid" },
+        },
+        {
+          name: "status",
+          in: "query",
+          required: false,
+          schema: {
+            type: "string",
+            enum: [
+              "pending",
+              "approved",
+              "delivered",
+              "returned",
+              "overdue",
+              "cancelled",
+              "rejected",
+              "expired",
+              "no_show",
+            ],
+          },
+        },
+      ],
+      responses: {
+        200: {
+          description:
+            "User loans and pagination metadata (items, total, page, pageSize)",
+        },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/klongklongplus/loans/{id}": {
+    put: {
+      tags: ["Loans"],
+      summary: "Edit a pending loan request",
+      description:
+        "Any authenticated user, including admins, can edit their own pending request. unitId is immutable; a different unit requires deleting and recreating the request.",
+      parameters: loanIdParameters,
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              minProperties: 1,
+              properties: {
+                termId: { type: "string", format: "uuid" },
+                slotId: { type: "string", format: "uuid" },
+                slotDate: { type: "string", format: "date" },
+                returnNote: { type: "string", nullable: true },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Loan request updated" },
+        400: { description: "Request is not pending or contains invalid fields" },
+        401: { description: "Unauthorized" },
+        403: {
+          description:
+            "Loan request belongs to another user or caller is an admin",
+        },
+        404: { description: "Loan, term, or slot not found" },
+        409: { description: "Unit is unavailable or already reserved" },
+      },
+    },
+    delete: {
+      tags: ["Loans"],
+      summary: "Delete a pending loan request",
+      description:
+        "Any authenticated user, including admins, can delete their own pending request. The request is soft-deleted and marked cancelled.",
+      parameters: loanIdParameters,
+      responses: {
+        200: { description: "Loan request deleted" },
+        400: { description: "Loan request is not pending" },
+        401: { description: "Unauthorized" },
+        403: {
+          description:
+            "Loan request belongs to another user or caller is an admin",
+        },
+        404: { description: "Loan request not found" },
       },
     },
   },
