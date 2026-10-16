@@ -2,23 +2,22 @@
  * Filter option lists for the announcement filter bar.
  *
  * ─────────────────────────────────────────────────────────────────────────────
- * Why `enabled` exists
+ * How `enabled` is used
  * ─────────────────────────────────────────────────────────────────────────────
- * The design calls for a wider taxonomy than the backend currently accepts.
- * `announcement.service.ts` only allows:
- *   searchType       ∈ for_you | news | events
- *   searchDepartment ∈ Computer Engineering | Mechanical Engineering |
+ * Every option is checked against the server-side allow-lists in
+ * `announcement.service.ts`:
+ *   searchType       ∈ student affair | dormitory | industrial linkage |
+ *                      international affair | academic affair | club | others
+ *   searchDepartment ∈ Computer Engineering | Mechatronics Engineering |
  *                      Electrical and Electronics Engineering
  *   searchYear       ∈ 1..5
  * Anything else makes `parseType` / `parseYear` throw a 400.
  *
- * So every option carries `enabled`:
- *   - `enabled: true`  -> the backend accepts it today; it is selectable.
+ *   - `enabled: true`  -> the backend accepts it; it is selectable.
  *   - `enabled: false` -> rendered in the dropdown but NOT selectable, marked
  *                         "(soon)". Flip to `true` once the backend lands.
  *
- * When the backend enum/department work ships, this file is the ONLY thing
- * that changes — no component edits.
+ * Only `adv.` is still disabled: `parseYear` rejects anything outside 1..5.
  */
 
 export type FilterOption<T extends string | number> = {
@@ -35,19 +34,18 @@ export const ALL_VALUE = "all";
 
 /**
  * Departments.
+ * Mirrors `ALLOWED_DEPARTMENTS` in `announcement.service.ts`.
  * The design shows short labels (`Computer`, `Electrical & …`) while the API
  * validates full names, so `label` and `value` differ here on purpose.
  */
 export const DEPARTMENTS: FilterOption<string>[] = [
   { label: "Computer", value: "Computer Engineering", enabled: true },
-  { label: "Mechanical", value: "Mechanical Engineering", enabled: true },
+  { label: "Mechatronics", value: "Mechatronics Engineering", enabled: true },
   {
     label: "Electrical & Electronics",
     value: "Electrical and Electronics Engineering",
     enabled: true,
   },
-  // Appears in the design, but the backend has no matching value yet.
-  { label: "Mechatronic", value: "Mechatronic", enabled: false },
 ];
 
 /**
@@ -65,22 +63,23 @@ export const YEARS: FilterOption<number>[] = [
 
 /**
  * Announcement categories.
- * NONE of these are accepted by the current backend enum
- * (`announcement_category` = for_you | news | events), so the whole dropdown
- * renders disabled until the schema migration ships.
+ *
+ * Mirrors the `announcement_category` enum in `db/schema.ts`. The stored values
+ * contain spaces (`"student affair"`, not `"student_affair"`), so they are sent
+ * URL-encoded in the `searchType` query param.
  */
 export const TYPES: FilterOption<string>[] = [
-  { label: "Student Affairs", value: "student_affair", enabled: false },
-  { label: "Dormitory", value: "dormitory", enabled: false },
-  { label: "Industrial Linkage", value: "industrial_linkage", enabled: false },
+  { label: "Student Affairs", value: "student affair", enabled: true },
+  { label: "Dormitory", value: "dormitory", enabled: true },
+  { label: "Industrial Linkage", value: "industrial linkage", enabled: true },
   {
     label: "International Affairs",
-    value: "international_affair",
-    enabled: false,
+    value: "international affair",
+    enabled: true,
   },
-  { label: "Academic Affairs", value: "academic_affair", enabled: false },
-  { label: "Club", value: "club", enabled: false },
-  { label: "Others", value: "others", enabled: false },
+  { label: "Academic Affairs", value: "academic affair", enabled: true },
+  { label: "Club", value: "club", enabled: true },
+  { label: "Others", value: "others", enabled: true },
 ];
 
 /** True when the Type dropdown has nothing selectable yet. */

@@ -17,7 +17,7 @@ import { subscribeUserToPush } from "@/lib/notifications/push";
 
 const DEPARTMENTS = [
   "Computer Engineering",
-  "Mechanical Engineering",
+  "Mechatronics Engineering",
   "Electrical and Electronics Engineering",
 ];
 const YEARS = [1, 2, 3, 4, 5];
@@ -89,7 +89,10 @@ export default function ProfilePage() {
           );
         }
       } catch (error) {
-        console.error("Unable to check the push notification subscription:", error);
+        console.error(
+          "Unable to check the push notification subscription:",
+          error,
+        );
         if (active) {
           setNotificationsEnabled(false);
         }

@@ -7,7 +7,7 @@ import { NotFoundError, BadRequestError } from "../_shared/errors";
 
 const ALLOWED_DEPARTMENTS = [
   "Computer Engineering",
-  "Mechanical Engineering",
+  "Mechatronics Engineering",
   "Electrical and Electronics Engineering",
 ] as const;
 

@@ -20,7 +20,7 @@ import {
 const PAGE_SIZE = 5;
 const ALLOWED_DEPARTMENTS = [
   "Computer Engineering",
-  "Mechanical Engineering",
+  "Mechatronics Engineering",
   "Electrical and Electronics Engineering",
 ] as const;
 const ALLOWED_TYPES = [

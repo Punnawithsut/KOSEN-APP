@@ -58,7 +58,7 @@ export const announcementDocs = {
                   enum: [
                     "all",
                     "Computer Engineering",
-                    "Mechanical Engineering",
+                    "Mechatronics Engineering",
                     "Electrical and Electronics Engineering",
                   ],
                   default: "all",
@@ -150,7 +150,7 @@ export const announcementDocs = {
                   enum: [
                     "all",
                     "Computer Engineering",
-                    "Mechanical Engineering",
+                    "Mechatronics Engineering",
                     "Electrical and Electronics Engineering",
                   ],
                 },
