@@ -1,16 +1,24 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { PlusIcon } from "lucide-react";
 
+import { AnnouncementDeleteDialog } from "@/components/announcement/announcement-delete-dialog";
 import { AnnouncementFilterBar } from "@/components/announcement/announcement-filter-bar";
+import { AnnouncementFormDialog } from "@/components/announcement/announcement-form-dialog";
 import { AnnouncementHero } from "@/components/announcement/announcement-hero";
 import { AnnouncementList } from "@/components/announcement/announcement-list";
 import { AnnouncementPagination } from "@/components/announcement/announcement-pagination";
 import { AnnouncementToast } from "@/components/announcement/announcement-toast";
+import { Button } from "@/components/ui/button";
 import { useAnnouncements } from "@/hooks/use-announcements";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useMyProfile } from "@/hooks/use-profile";
-import type { AnnouncementFilters, FilterMode } from "@/lib/announcement/types";
+import type {
+  Announcement,
+  AnnouncementFilters,
+  FilterMode,
+} from "@/lib/announcement/types";
 
 const PROFILE_INCOMPLETE_MESSAGE =
   "Please configure your student year and department first.";
@@ -46,6 +54,16 @@ export default function AnnouncementPage() {
   const [mode, setMode] = useState<FilterMode>("all");
   const [searchInput, setSearchInput] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  // The form dialog serves both modes: creating is tracked by `isFormOpen`,
+  // editing by this. Closing them through one handler keeps them from drifting.
+  const [editing, setEditing] = useState<Announcement | null>(null);
+  const [deleting, setDeleting] = useState<Announcement | null>(null);
+
+  function closeForm() {
+    setIsFormOpen(false);
+    setEditing(null);
+  }
 
   // Only the settled search term should hit the network.
   const debouncedSearch = useDebouncedValue(searchInput, 300);
@@ -56,9 +74,18 @@ export default function AnnouncementPage() {
     ...dropdownFilters,
   };
 
-  const { data: profile, isLoading: profilePending } = useMyProfile();
+  const { data: profileResponse, isLoading: profilePending } = useMyProfile();
   const { items, pagination, isLoading, isValidating, error, refetch } =
     useAnnouncements({ page, filters });
+
+  // `useMyProfile` hands back the raw `{ data }` envelope, same as the profile
+  // screen does. Unwrapping it once here keeps every read below on the profile
+  // itself rather than on an envelope.
+  const profile = profileResponse?.data;
+
+  // Admins get the write controls overlaid on the same screen the students see,
+  // so there is no second route to keep in sync.
+  const isAdmin = profile?.role === "admin";
 
   // Each handler below also resets `page`, because a new filter invalidates the
   // current offset. Doing that here (instead of in an effect) is what keeps this
@@ -156,6 +183,8 @@ export default function AnnouncementPage() {
             items={items}
             isLoading={isLoading}
             error={error}
+            onEdit={isAdmin ? setEditing : undefined}
+            onDelete={isAdmin ? setDeleting : undefined}
             onRetry={() => {
               void refetch();
             }}
@@ -169,6 +198,54 @@ export default function AnnouncementPage() {
           />
         </div>
       </div>
+
+      {/* Always-on create button for admins. `fixed` rather than `sticky`: a
+          sticky box that sits below the fold is pinned to the viewport edge from
+          the moment it mounts, so it would behave the same here but come with a
+          containing-block dependency on the content column. Matches the
+          klongklongplus FAB — `bottom-24` clears the h-16 mobile tab bar, and
+          `z-40` stays under the navbar's `z-50`. */}
+      {isAdmin ? (
+        <Button
+          type="button"
+          size="icon-lg"
+          aria-label="New announcement"
+          onClick={() => setIsFormOpen(true)}
+          className="animate-in fade-in zoom-in-95 fixed right-6 bottom-24 z-40 size-14 rounded-full bg-orange-secondary text-white shadow-lg duration-150 hover:brightness-90 md:bottom-6"
+        >
+          <PlusIcon className="size-6" />
+        </Button>
+      ) : null}
+
+      {isAdmin ? (
+        <AnnouncementFormDialog
+          // Remount per record so the fields are initialised from the right
+          // announcement instead of being synced into state by an effect. The
+          // key cycles through "create" on every close, so re-opening the same
+          // announcement still gets a fresh remount.
+          key={editing?.id ?? "create"}
+          open={isFormOpen || editing !== null}
+          announcement={editing}
+          onOpenChange={(open) => {
+            if (!open) closeForm();
+          }}
+          onSaved={() => {
+            void refetch();
+          }}
+        />
+      ) : null}
+
+      {isAdmin ? (
+        <AnnouncementDeleteDialog
+          announcement={deleting}
+          onOpenChange={(open) => {
+            if (!open) setDeleting(null);
+          }}
+          onDeleted={() => {
+            void refetch();
+          }}
+        />
+      ) : null}
     </main>
   );
 }

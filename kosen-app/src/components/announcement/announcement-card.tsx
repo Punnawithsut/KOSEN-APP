@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 
 import type { Announcement } from "@/lib/announcement/types";
 
@@ -15,7 +16,21 @@ function formatPostDate(iso: string): string {
 
 type AnnouncementCardProps = {
   announcement: Announcement;
+  /** Admin-only. Leave both out and the plain student card renders. */
+  onEdit?: (announcement: Announcement) => void;
+  onDelete?: (announcement: Announcement) => void;
 };
+
+/**
+ * Fluid hit area for the admin icons, on the same vw scale as the rest of the
+ * card. Plain buttons rather than `Button` so no variant class has to be
+ * overridden — with fluid sizing, overriding `size-8` would come down to
+ * which utility the stylesheet happens to emit last.
+ */
+const ICON_BUTTON_CLASS =
+  "grid size-[clamp(1.75rem,1.98vw,2.375rem)] shrink-0 place-items-center rounded-full transition-colors";
+
+const ICON_CLASS = "size-[clamp(0.875rem,1.04vw,1.25rem)]";
 
 /**
  * Fluid card scale, calibrated against the Figma desktop frame.
@@ -38,7 +53,11 @@ const THUMBNAIL_CLASS =
   "aspect-[4/3] w-[45%] shrink-0 rounded-[clamp(0.75rem,1vw,1.5rem)] bg-blue-subtle-2 object-cover lg:aspect-[5/3] lg:w-[41%]";
 
 /** Presentation only — takes data as props, holds no state. */
-export function AnnouncementCard({ announcement }: AnnouncementCardProps) {
+export function AnnouncementCard({
+  announcement,
+  onEdit,
+  onDelete,
+}: AnnouncementCardProps) {
   return (
     <article className="flex items-center gap-[clamp(0.75rem,2vw,2.5rem)] border-b border-black-5 py-3 last:border-b-0">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -54,12 +73,36 @@ export function AnnouncementCard({ announcement }: AnnouncementCardProps) {
           post on {formatPostDate(announcement.createdAt)}
         </p>
 
-        <Link
-          href={`/announcement/${announcement.id}`}
-          className="mt-[0.8em] self-start rounded-full bg-orange-primary px-[1.4em] py-[0.35em] text-[clamp(0.6875rem,0.938vw,1.125rem)] font-medium text-white transition-colors hover:bg-orange-secondary"
-        >
-          more
-        </Link>
+        <div className="mt-[0.8em] flex items-center gap-2 self-start">
+          <Link
+            href={`/announcement/${announcement.id}`}
+            className="rounded-full bg-orange-primary px-[1.4em] py-[0.35em] text-[clamp(0.6875rem,0.938vw,1.125rem)] font-medium text-white transition-colors hover:bg-orange-secondary"
+          >
+            more
+          </Link>
+
+          {onEdit ? (
+            <button
+              type="button"
+              aria-label={`Edit ${announcement.name}`}
+              onClick={() => onEdit(announcement)}
+              className={`${ICON_BUTTON_CLASS} text-black-3 hover:bg-black-6 hover:text-black-1`}
+            >
+              <Pencil className={ICON_CLASS} />
+            </button>
+          ) : null}
+
+          {onDelete ? (
+            <button
+              type="button"
+              aria-label={`Delete ${announcement.name}`}
+              onClick={() => onDelete(announcement)}
+              className={`${ICON_BUTTON_CLASS} text-destructive hover:bg-destructive/10`}
+            >
+              <Trash2 className={ICON_CLASS} />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {/* The card image comes from the announcement's TITLE image, not from

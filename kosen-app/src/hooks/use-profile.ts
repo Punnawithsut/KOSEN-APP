@@ -8,6 +8,9 @@ type ApiResponse<T> = {
 export type MyProfile = {
   userId: string;
   studentId: string | null;
+  // Mirrors the `user_role` pgEnum in `src/db/schema.ts`. `getUserById` selects
+  // the whole row, so this is already on the wire — it was just missing here.
+  role: "user" | "counselor" | "admin";
   firstName: string | null;
   lastName: string | null;
   email: string;

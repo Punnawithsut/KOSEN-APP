@@ -13,7 +13,6 @@ import {
  * drift from the `limit`/`offset` used below; they used to be two separate
  * hardcoded 5s that had to be edited in lockstep.
  */
-export const ANNOUNCEMENT_PAGE_SIZE = 10;
 
 export type AnnouncementType =
   (typeof announcementCategoryEnum.enumValues)[number];
@@ -40,7 +39,7 @@ export type AnnouncementFilters = {
   searchType?: AnnouncementType;
 };
 
-export const PAGE_SIZE = 5;
+export const PAGE_SIZE = 10;
 
 function buildAnnouncementWhere(filters: AnnouncementFilters) {
   return and(

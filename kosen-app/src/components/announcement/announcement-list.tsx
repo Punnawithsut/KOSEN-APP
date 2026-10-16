@@ -11,6 +11,9 @@ type AnnouncementListProps = {
   isLoading: boolean;
   error: unknown;
   onRetry: () => void;
+  /** Admin-only. Leave both out for the plain student list. */
+  onEdit?: (announcement: Announcement) => void;
+  onDelete?: (announcement: Announcement) => void;
 };
 
 /** Renders the four possible states: loading, error, empty, data. */
@@ -19,6 +22,8 @@ export function AnnouncementList({
   isLoading,
   error,
   onRetry,
+  onEdit,
+  onDelete,
 }: AnnouncementListProps) {
   // 1. Loading — only reached when there is no data at all yet.
   if (isLoading) {
@@ -76,7 +81,12 @@ export function AnnouncementList({
   return (
     <div className="flex flex-col">
       {items.map((announcement) => (
-        <AnnouncementCard key={announcement.id} announcement={announcement} />
+        <AnnouncementCard
+          key={announcement.id}
+          announcement={announcement}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   );

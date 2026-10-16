@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../_shared/errors";
 import { parsePageQuery } from "../_shared/pagination";
 import {
-  ANNOUNCEMENT_PAGE_SIZE,
   createAnnouncement as insertAnnouncement,
   getAnnouncementById,
   listAnnouncements as queryAnnouncements,
@@ -50,7 +49,20 @@ export async function parseAnnouncementFormData(request: Request) {
   let formData: FormData;
   try {
     formData = await request.formData();
-  } catch {
+  } catch (error) {
+    // This used to discard the underlying parse error, so a generic 400 was the
+    // only clue anyone ever got. The header dump is what separates "the body
+    // never arrived" from "the body arrived malformed" — they look identical
+    // from the outside but have completely different causes.
+    console.error(
+      "[announcement] multipart parse failed",
+      {
+        contentType: request.headers.get("content-type"),
+        contentLength: request.headers.get("content-length"),
+        contentEncoding: request.headers.get("content-encoding"),
+      },
+      error,
+    );
     throw new BadRequestError("Request must contain multipart form data.");
   }
 
@@ -251,9 +263,9 @@ export async function listAnnouncements(
     ),
     pagination: {
       page,
-      pageSize: ANNOUNCEMENT_PAGE_SIZE,
+      pageSize: PAGE_SIZE,
       total,
-      totalPages: Math.ceil(total / ANNOUNCEMENT_PAGE_SIZE),
+      totalPages: Math.ceil(total / PAGE_SIZE),
     },
   };
 }

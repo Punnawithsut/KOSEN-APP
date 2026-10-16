@@ -43,7 +43,14 @@ export const config = {
     /*
      * Run on every request except static assets and image optimization files —
      * no point refreshing auth cookies for a .png or a JS chunk.
+     *
+     * `/api` is excluded too. Every API route builds its own Supabase client in
+     * `_shared/middleware.ts` and refreshes its own cookies through
+     * `next/headers`, so running here only duplicates a `getUser()` round trip
+     * (visible as the `proxy.ts` line in the request log) and puts the request
+     * body through the middleware request-forwarding path — which is not worth
+     * risking on multipart uploads.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|api/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
