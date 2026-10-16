@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import {
   parseJsonBody,
   useAdminMiddleware as withAdminMiddleware,
+  withSessionMiddleware,
 } from "../../_shared/middleware";
 import * as slotService from "./slot.service";
 
-export const GET = withAdminMiddleware(async (req) => {
+export const GET = withSessionMiddleware(async (req) => {
   const { page, filters } = slotService.parseListQuery(req.nextUrl.searchParams);
   const data = await slotService.listSlots(page, filters);
   return NextResponse.json({ ok: true, data });

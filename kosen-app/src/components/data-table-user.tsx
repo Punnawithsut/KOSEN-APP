@@ -29,6 +29,8 @@ export interface DataTableUserItem {
   href?: string;
   /** Renders the action as a button (ignored if href is set). */
   onAction?: () => void;
+  /** Disables the row action button. */
+  actionDisabled?: boolean;
   /** Optional leading slot (icon, thumbnail...). */
   leading?: React.ReactNode;
 }
@@ -128,6 +130,7 @@ export function DataTableUser<T>({
                     type="button"
                     onClick={item.onAction}
                     className={actionClass}
+                    disabled={item.actionDisabled}
                   >
                     {label}
                   </button>

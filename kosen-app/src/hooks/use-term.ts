@@ -28,8 +28,10 @@ export function useTerm(id: string | null) {
   return useApi<ApiResponse<Term>>(url);
 }
 
-export function useCurrentTerm() {
-  return useApi<ApiResponse<Term>>(`${TERMS_URL}/current`);
+export function useCurrentTerm(enabled = true) {
+  return useApi<ApiResponse<Term>>(
+    enabled ? `${TERMS_URL}/current` : null,
+  );
 }
 
 export function useCreateTerm() {

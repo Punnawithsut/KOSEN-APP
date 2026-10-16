@@ -13,10 +13,22 @@ import { queryString } from "@/hooks/types/klongklongplus-types";
 
 const SLOTS_URL = "/api/klongklongplus/slots";
 
-export function useSlots(filters: SlotFilters = {}) {
+export function useSlots(filters: SlotFilters = {}, enabled = true) {
   const { page = 1, ...query } = filters;
   const url = `${SLOTS_URL}${queryString({ ...query, page })}`;
-  return useApi<ApiResponse<PagedData<Slot>>>(url);
+  return useApi<ApiResponse<PagedData<Slot>>>(enabled ? url : null);
+}
+
+export function useAvailableSlots(
+  unitId: string | null,
+  slotDate: string,
+  enabled = true,
+) {
+  const url =
+    unitId && slotDate
+      ? `/api/klongklongplus/loans/available-slots${queryString({ unitId, slotDate })}`
+      : null;
+  return useApi<ApiResponse<Slot[]>>(enabled ? url : null);
 }
 
 export function useSlot(id: string | null) {

@@ -41,12 +41,41 @@ const conditionRequestBody = {
 const loanIdParameters = [loanIdParameter];
 
 export const loansDocs = {
+  "/api/klongklongplus/loans/available-slots": {
+    get: {
+      tags: ["Loans"],
+      summary: "List available booking slots",
+      description:
+        "Returns active, future slots for the selected unit and date that have not been reserved. Requires an authenticated session.",
+      parameters: [
+        {
+          name: "unitId",
+          in: "query",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+        },
+        {
+          name: "slotDate",
+          in: "query",
+          required: true,
+          schema: { type: "string", format: "date" },
+        },
+      ],
+      responses: {
+        200: { description: "Available slots for the selected unit and date" },
+        400: { description: "Invalid date or date outside an active term" },
+        401: { description: "Unauthorized" },
+        404: { description: "Unit not found" },
+        409: { description: "Unit is unavailable" },
+      },
+    },
+  },
   "/api/klongklongplus/loans": {
     post: {
       tags: ["Loans"],
       summary: "Create a loan request",
       description:
-        "Creates a pending request for the authenticated user. The unit type is determined from the selected unit; optional itemType must match that unit.",
+        "Creates a pending request for the authenticated user, including admins. The unit type is determined from the selected unit; optional itemType must match that unit.",
       requestBody: {
         required: true,
         content: {
@@ -70,7 +99,6 @@ export const loansDocs = {
         201: { description: "Loan request created" },
         400: { description: "Invalid or past booking details" },
         401: { description: "Unauthorized" },
-        403: { description: "Admin users cannot create borrower requests" },
         404: { description: "Unit, term, or slot not found" },
         409: { description: "Unit is unavailable or already reserved" },
       },

@@ -9,6 +9,7 @@ import {
 import { parsePageQuery } from "../../_shared/pagination";
 import * as loanRepo from "./loan.repo";
 import * as unitRepo from "../units/unit.repo";
+import * as termRepo from "../terms/term.repo";
 import { serializeTermDates } from "../terms/term.service";
 import * as profileService from "../../profile/profile.service";
 
@@ -231,6 +232,46 @@ export function parseCreateUserLoanData(raw: unknown): CreateUserLoanData {
   };
 }
 
+export function parseAvailableSlotsQuery(searchParams: URLSearchParams) {
+  return {
+    unitId: parseUuid(searchParams.get("unitId"), "unitId"),
+    slotDate: parseSlotDate(searchParams.get("slotDate")),
+  };
+}
+
+function getScheduledStartAt(slotDate: string, startTime: string) {
+  const normalizedStartTime = startTime.replace(/(\.\d{3})\d+$/, "$1");
+  return new Date(`${slotDate}T${normalizedStartTime}+07:00`);
+}
+
+export async function getAvailableSlots(unitId: string, slotDate: string) {
+  const unit = await unitRepo.findUnitById(unitId);
+  if (!unit || unit.deletedAt) throw new NotFoundError("Unit not found");
+  if (!unit.isActive || unit.status !== "available") {
+    throw new AppError("This unit is currently unavailable", 409);
+  }
+
+  const requestedDate = new Date(`${slotDate}T00:00:00.000Z`);
+  const term = await termRepo.findCurrentTerm(requestedDate);
+  if (!term) {
+    throw new BadRequestError("The requested date is outside an active term");
+  }
+  if (slotDate < bangkokDate(new Date())) {
+    throw new BadRequestError("Bookings cannot be made for past dates");
+  }
+
+  const now = new Date();
+  const slots = await loanRepo.findAvailableSlots(unitId, slotDate);
+  return slots.filter((slot) => {
+    const scheduledAt = getScheduledStartAt(slotDate, slot.startTime);
+    return (
+      !Number.isNaN(scheduledAt.getTime()) &&
+      scheduledAt > now &&
+      scheduledAt.getTime() - now.getTime() >= slot.leadMin * 60_000
+    );
+  });
+}
+
 export function parseUpdateUserLoanData(raw: unknown): UpdateUserLoanData {
   const data = parseObject(raw);
   if (Object.hasOwn(data, "unitId")) {
@@ -254,19 +295,33 @@ export function parseUpdateUserLoanData(raw: unknown): UpdateUserLoanData {
   return update;
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
+function getUniqueViolationConstraint(error: unknown): string | null {
+  if (typeof error !== "object" || error === null) return null;
+  if (
     "code" in error &&
-    error.code === "23505"
-  );
+    error.code === "23505" &&
+    "constraint" in error &&
+    typeof error.constraint === "string"
+  ) {
+    return error.constraint;
+  }
+  if ("cause" in error && error.cause !== error) {
+    return getUniqueViolationConstraint(error.cause);
+  }
+  return null;
 }
 
 function throwIfUniqueViolation(error: unknown): never {
-  if (isUniqueViolation(error)) {
+  const constraint = getUniqueViolationConstraint(error);
+  if (constraint === "loans_unit_slot_active_uq") {
     throw new AppError(
-      "This loan request conflicts with an existing reservation or daily calculator limit",
+      "This unit has already been reserved for the requested date and time slot. Please choose another slot.",
+      409,
+    );
+  }
+  if (constraint === "loans_calc_per_day_uq") {
+    throw new AppError(
+      "You already have a calculator request for this date. Please choose another date.",
       409,
     );
   }
@@ -330,11 +385,7 @@ async function validateBookingDateAndReferences(
     throw new BadRequestError("The requested date is outside the selected term");
   }
 
-  const normalizedStartTime = slot.startTime.replace(
-    /(\.\d{3})\d+$/,
-    "$1",
-  );
-  const scheduledAt = new Date(`${slotDate}T${normalizedStartTime}+07:00`);
+  const scheduledAt = getScheduledStartAt(slotDate, slot.startTime);
   const now = new Date();
   if (
     slotDate < bangkokDate(now) ||

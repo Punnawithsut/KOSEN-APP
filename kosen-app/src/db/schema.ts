@@ -306,11 +306,11 @@ export const loans = pgTable(
       .on(table.unitId, table.slotDate, table.slotId)
       .where(sql`status in ('pending','approved','delivered','overdue')`),
 
-    // Limits calculator loans to 1 request/day/user (excludes cancelled, rejected, and expired)
+    // Limits calculator loans to 1 active request/day/user; returned loans no longer count.
     calcPerDayUq: uniqueIndex("loans_calc_per_day_uq")
       .on(table.borrowerId, table.slotDate)
       .where(
-        sql`item_type = 'calculator' and status in ('pending','approved','delivered','returned','overdue','no_show')`,
+        sql`item_type = 'calculator' and status in ('pending','approved','delivered','overdue','no_show')`,
       ),
   }),
 ); // loans

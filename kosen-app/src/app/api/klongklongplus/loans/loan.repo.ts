@@ -7,6 +7,7 @@ import {
   inArray,
   isNull,
   ne,
+  notExists,
   or,
   sql,
   type SQL,
@@ -138,6 +139,29 @@ export async function findBookingDetails(termId: string, slotId: string) {
   ]);
 
   return { term, slot };
+}
+
+export async function findAvailableSlots(unitId: string, slotDate: string) {
+  const reservation = db
+    .select({ id: loans.id })
+    .from(loans)
+    .where(
+      and(
+        eq(loans.unitId, unitId),
+        eq(loans.slotDate, slotDate),
+        eq(loans.slotId, slots.id),
+        inArray(loans.status, RESERVED_STATUSES),
+      ),
+    );
+
+  return db.query.slots.findMany({
+    where: and(
+      isNull(slots.deletedAt),
+      eq(slots.isActive, true),
+      notExists(reservation),
+    ),
+    orderBy: [asc(slots.displayOrder), asc(slots.startTime)],
+  });
 }
 
 export async function createUserLoan(data: {

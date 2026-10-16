@@ -8,7 +8,9 @@ import {
   DataTableUser,
   type PaginationState,
 } from "@/components/data-table-user";
+import { LoanRequestDialog } from "@/components/klongklongplus/loan-request-dialog";
 import { useUnits } from "@/hooks/use-unit";
+import type { Unit } from "@/hooks/use-unit";
 
 const UNIT_STATUS_STYLES = {
   available: "bg-noti-positive-subtle text-black-2",
@@ -25,6 +27,8 @@ export default function ChargersPage() {
   const [page, setPage] = React.useState(1);
   const [searchInput, setSearchInput] = React.useState("");
   const [search, setSearch] = React.useState("");
+  const [selectedUnit, setSelectedUnit] = React.useState<Unit | null>(null);
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     const timeout = setTimeout(() => {
@@ -86,13 +90,22 @@ export default function ChargersPage() {
             label: formatUnitStatus(unit.status),
             className: UNIT_STATUS_STYLES[unit.status],
           },
-          href: `/calculators/${unit.code}`,
-          actionLabel: "more",
+          onAction: () => {
+            setSelectedUnit(unit);
+            setIsRequestDialogOpen(true);
+          },
+          actionDisabled: unit.status !== "available",
+          actionLabel: "Request",
         })}
         pagination={pagination}
         onPageChange={setPage}
         isLoading={isLoading}
         emptyMessage="No chargers match your search."
+      />
+      <LoanRequestDialog
+        unit={selectedUnit}
+        open={isRequestDialogOpen}
+        onOpenChange={setIsRequestDialogOpen}
       />
     </main>
   );
