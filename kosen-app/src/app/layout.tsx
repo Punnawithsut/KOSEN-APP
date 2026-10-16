@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif, Inter } from "next/font/google";
 import "./globals.css";
-import { DevServiceWorkerReset } from "@/components/dev-service-worker-reset";
 import { cn } from "@/lib/utils";
 
 // Must be `--font-inter`, NOT `--font-sans`.
@@ -63,13 +62,7 @@ export default function RootLayout({
         instrumentSerif.variable,
       )}
     >
-      <body className="min-h-full flex flex-col">
-        {/* Dev-only: clears a service worker left behind by `npm start`, which
-            otherwise serves stale chunks and breaks hydration. Renders nothing
-            and is a no-op in production. */}
-        <DevServiceWorkerReset />
-        {children}
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

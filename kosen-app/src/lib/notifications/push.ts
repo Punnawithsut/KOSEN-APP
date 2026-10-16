@@ -9,9 +9,7 @@ export function supportsPushNotifications(): boolean {
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
 
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
@@ -23,7 +21,9 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-export async function subscribeUserToPush(userId: string): Promise<PushSubscription | null> {
+export async function subscribeUserToPush(
+  userId: string,
+): Promise<PushSubscription | null> {
   if (
     typeof window === "undefined" ||
     !("serviceWorker" in navigator) ||
@@ -37,9 +37,24 @@ export async function subscribeUserToPush(userId: string): Promise<PushSubscript
     throw new Error("Notification permission was denied by the user.");
   }
 
-  const registration = await navigator.serviceWorker.register("/sw.js", {
-    scope: "/",
-  });
+  // Serwist is disabled outside production (see `next.config.ts`), so in dev
+  // `public/sw.js` is a leftover from the last `next build`. Registering it
+  // makes that worker serve its old precache over Turbopack's fresh HTML — a
+  // React hydration mismatch, and a UI that silently ignores recent edits. So
+  // reuse a worker if one is already installed, but never create one here in
+  // development.
+  const registration =
+    (await navigator.serviceWorker.getRegistration()) ??
+    (process.env.NODE_ENV === "production"
+      ? await navigator.serviceWorker.register("/sw.js", { scope: "/" })
+      : null);
+
+  if (!registration) {
+    throw new Error(
+      "Push notifications need a service worker, and Serwist is disabled in development.",
+    );
+  }
+
   await navigator.serviceWorker.ready;
 
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -83,7 +98,10 @@ export async function unsubscribeUserFromPush(): Promise<boolean> {
   return false;
 }
 
-async function saveSubscriptionToServer(subscription: PushSubscription, userId: string) {
+async function saveSubscriptionToServer(
+  subscription: PushSubscription,
+  userId: string,
+) {
   const subObj = subscription.toJSON();
   const response = await fetch("/api/notifications/subscribe", {
     method: "POST",
