@@ -33,12 +33,14 @@ export default function AnnouncementDetailPage() {
   if (id === null || isLoading) {
     return (
       <div className="mx-auto w-full max-w-[430px] px-4 pt-3 pb-8 md:max-w-3xl md:px-6">
-        <div aria-busy className="animate-pulse space-y-4">
-          <div className="size-9 rounded-full bg-black-5" />
-          <div className="aspect-[16/9] w-full rounded-2xl bg-blue-subtle-3" />
-          <div className="h-4 w-2/3 rounded bg-black-5" />
-          <div className="h-3 w-full rounded bg-black-6" />
-          <div className="h-3 w-5/6 rounded bg-black-6" />
+        <div aria-busy className="animate-pulse">
+          <div className="mb-3 size-9 rounded-full bg-black-5" />
+          <div className="space-y-4">
+            <div className="aspect-[16/9] w-full rounded-2xl bg-blue-subtle-3" />
+            <div className="h-4 w-2/3 rounded bg-black-5" />
+            <div className="h-3 w-full rounded bg-black-6" />
+            <div className="h-3 w-5/6 rounded bg-black-6" />
+          </div>
         </div>
       </div>
     );
@@ -76,6 +78,11 @@ export default function AnnouncementDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-[430px] px-4 pt-3 pb-8 md:max-w-3xl md:px-6">
+      {/* Above the banner, not on top of it. Overlaid, the button sat over the
+          part of the photo most likely to carry detail, and had to stay legible
+          against whatever colour happened to be underneath it. */}
+      <div className="mb-3">{backButton}</div>
+
       <AnnouncementDetailView
         name={announcement.name}
         description={announcement.description}
@@ -91,7 +98,6 @@ export default function AnnouncementDetailPage() {
         }
         images={images}
         attachments={attachments}
-        bannerOverlay={backButton}
       />
     </div>
   );

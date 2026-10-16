@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { FileTextIcon } from "lucide-react";
 
 import { AnnouncementGallery } from "@/components/announcement/announcement-gallery";
@@ -36,8 +35,6 @@ type AnnouncementDetailViewProps = {
   titleImage: TitleImage | null;
   images: ResolvedAnnouncementFile[];
   attachments: ResolvedAnnouncementFile[];
-  /** Sits over the banner's top-left corner — the back button, when there is one. */
-  bannerOverlay?: ReactNode;
 };
 
 /**
@@ -54,37 +51,29 @@ export function AnnouncementDetailView({
   titleImage,
   images,
   attachments,
-  bannerOverlay,
 }: AnnouncementDetailViewProps) {
   return (
     <>
-      {/* Banner. Without a `titleImageUrl` we render a tinted band of the SAME
-          aspect rather than collapsing the block: the layout then does not jump
-          between announcements that have an image and ones that don't, and the
-          back button always has a surface to sit on. Same tint the list cards
-          use for their no-image placeholder. */}
-      <div className="relative">
-        {titleImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={titleImage.src}
-            srcSet={titleImage.srcSet}
-            sizes={titleImage.sizes}
-            alt=""
-            decoding="async"
-            className="aspect-[16/9] w-full rounded-2xl object-cover"
-          />
-        ) : (
-          <div
-            aria-hidden
-            className="aspect-[16/9] w-full rounded-2xl bg-blue-subtle-2"
-          />
-        )}
-
-        {bannerOverlay ? (
-          <div className="absolute top-3 left-3">{bannerOverlay}</div>
-        ) : null}
-      </div>
+      {/* Banner. Without a title image we render a tinted band of the SAME
+          aspect rather than collapsing the block, so the layout doesn't jump
+          between announcements that have an image and ones that don't. Same
+          tint the list cards use for their no-image placeholder. */}
+      {titleImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={titleImage.src}
+          srcSet={titleImage.srcSet}
+          sizes={titleImage.sizes}
+          alt=""
+          decoding="async"
+          className="aspect-[16/9] w-full rounded-2xl object-cover"
+        />
+      ) : (
+        <div
+          aria-hidden
+          className="aspect-[16/9] w-full rounded-2xl bg-blue-subtle-2"
+        />
+      )}
 
       <h1 className="mt-4 text-base font-bold break-words text-black-1 md:text-xl">
         {name}
