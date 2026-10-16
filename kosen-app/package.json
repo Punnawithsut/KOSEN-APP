@@ -10,7 +10,8 @@
     "lint:fix": "eslint . --fix",
     "seed": "tsx src/db/seed.ts",
     "generate": "npx drizzle-kit generate",
-    "migrate": "npx drizzle-kit migrate"
+    "migrate": "npx drizzle-kit migrate",
+    "studio": "npx drizzle-kit studio"
   },
   "dependencies": {
     "@serwist/next": "^9.4.1",
@@ -18,7 +19,8 @@
     "@supabase/supabase-js": "^2.110.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.3",
+    "express": "^5.2.1",
     "lucide-react": "^1.24.0",
     "next": "^16.3.0",
     "next-swagger-doc": "^0.5.0",

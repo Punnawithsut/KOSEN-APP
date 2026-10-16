@@ -152,6 +152,7 @@ export default function AnnouncementPage() {
           />
         </div>
       </div>
+      <a href="/test">test</a>
     </main>
   );
 }

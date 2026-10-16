@@ -17,6 +17,7 @@ export type AnnouncementFile = {
 export type AnnouncementUpdateData = {
   name?: string;
   description?: string;
+  titleImageUrl?: string | null;
   year?: number | null;
   department?: string | null;
   type?: AnnouncementType | null;
@@ -33,6 +34,7 @@ export type AnnouncementFilters = {
 function buildAnnouncementWhere(filters: AnnouncementFilters) {
   return and(
     eq(announcements.isPublished, true),
+    isNull(announcements.deletedAt),
     filters.searchName
       ? ilike(announcements.title, `%${filters.searchName}%`)
       : undefined,
@@ -80,7 +82,11 @@ export async function listAnnouncements(
 
 export async function getAnnouncementById(id: string) {
   return db.query.announcements.findFirst({
-    where: and(eq(announcements.id, id), eq(announcements.isPublished, true)),
+    where: and(
+      eq(announcements.id, id),
+      eq(announcements.isPublished, true),
+      isNull(announcements.deletedAt),
+    ),
     with: { attachments: true },
   });
 }
@@ -97,10 +103,12 @@ export async function createAnnouncement(
         id: announcementId,
         title: data.name!,
         content: data.description!,
+        titleImageUrl: data.titleImageUrl ?? null,
         targetYear: data.year ?? null,
         targetDepartment: data.department ?? null,
         category: data.type ?? null,
         authorId,
+        createdBy: authorId,
       })
       .returning({ id: announcements.id });
 
@@ -129,6 +137,7 @@ export async function createAnnouncement(
 
 export async function updateAnnouncementById(
   id: string,
+  updatedBy: string,
   data: AnnouncementUpdateData,
 ) {
   const updated = await db.transaction(async (tx) => {
@@ -145,18 +154,29 @@ export async function updateAnnouncementById(
             .filter(
               (storagePath): storagePath is string => storagePath !== null,
             );
+    const [previousAnnouncement] =
+      data.titleImageUrl === undefined
+        ? []
+        : await tx
+            .select({ titleImageUrl: announcements.titleImageUrl })
+            .from(announcements)
+            .where(eq(announcements.id, id));
 
     const updateData: {
       title?: string;
       content?: string;
+      titleImageUrl?: string | null;
       targetYear?: number | null;
       targetDepartment?: string | null;
       category?: AnnouncementType | null;
+      updatedBy: string;
       updatedAt: Date;
-    } = { updatedAt: new Date() };
+    } = { updatedBy, updatedAt: new Date() };
 
     if (data.name !== undefined) updateData.title = data.name;
     if (data.description !== undefined) updateData.content = data.description;
+    if (data.titleImageUrl !== undefined)
+      updateData.titleImageUrl = data.titleImageUrl;
     if (data.year !== undefined) updateData.targetYear = data.year;
     if (data.department !== undefined)
       updateData.targetDepartment = data.department;
@@ -165,7 +185,7 @@ export async function updateAnnouncementById(
     const [existing] = await tx
       .update(announcements)
       .set(updateData)
-      .where(eq(announcements.id, id))
+      .where(and(eq(announcements.id, id), isNull(announcements.deletedAt)))
       .returning({ id: announcements.id });
 
     if (!existing) return null;
@@ -194,23 +214,22 @@ export async function updateAnnouncementById(
         with: { attachments: true },
       }),
       removedStoragePaths: previousStoragePaths,
+      removedTitleImageUrl:
+        previousAnnouncement?.titleImageUrl === data.titleImageUrl
+          ? null
+          : (previousAnnouncement?.titleImageUrl ?? null),
     };
   });
 
   return updated;
 }
 
-export async function getAnnouncementForAdminById(id: string) {
-  return db.query.announcements.findFirst({
-    where: eq(announcements.id, id),
-    with: { attachments: true },
-  });
-}
-
-export async function deleteAnnouncementById(id: string) {
+export async function softDeleteAnnouncementById(id: string, deletedBy: string) {
+  const deletedAt = new Date();
   const [deleted] = await db
-    .delete(announcements)
-    .where(eq(announcements.id, id))
+    .update(announcements)
+    .set({ deletedAt, deletedBy, updatedAt: deletedAt, updatedBy: deletedBy })
+    .where(and(eq(announcements.id, id), isNull(announcements.deletedAt)))
     .returning({ id: announcements.id });
 
   return Boolean(deleted);
