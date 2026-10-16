@@ -31,6 +31,9 @@ const MAX_SCALE = 4;
 const BUTTON_STEP = 1.5;
 const WHEEL_STEP = 1.15;
 
+/** How far a finger must travel sideways before it counts as a page turn. */
+const SWIPE_THRESHOLD = 60;
+
 type View = { scale: number; x: number; y: number };
 
 const FIT: View = { scale: 1, x: 0, y: 0 };
@@ -69,6 +72,8 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [view, setView] = useState<View>(FIT);
   const [isGesturing, setIsGesturing] = useState(false);
+  /** Live horizontal offset in px while a swipe is in progress. */
+  const [swipeX, setSwipeX] = useState(0);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
@@ -77,6 +82,7 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchRef = useRef<{ distance: number; scale: number } | null>(null);
   const lastDragRef = useRef<{ x: number; y: number } | null>(null);
+  const swipeRef = useRef<{ x: number; y: number } | null>(null);
   const total = images.length;
 
   // Only while the viewer is actually open. This component stays mounted for as
@@ -92,12 +98,14 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
    */
   const goTo = useCallback((index: number | null) => {
     setView(FIT);
+    setSwipeX(0);
     setOpenIndex(index);
   }, []);
 
   const step = useCallback(
     (delta: number) => {
       setView(FIT);
+      setSwipeX(0);
       setOpenIndex((current) => {
         if (current === null || total === 0) return current;
         // Wrap around, so a long gallery never dead-ends.
@@ -164,8 +172,15 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
         scale: view.scale,
       };
       lastDragRef.current = null;
+      swipeRef.current = null;
+      setSwipeX(0);
     } else {
       lastDragRef.current = { x: event.clientX, y: event.clientY };
+      // One finger on an un-zoomed photo is a page turn, not a pan. Zoomed in,
+      // the drag means pan — there is somewhere to pan to.
+      if (total > 1 && view.scale === MIN_SCALE) {
+        swipeRef.current = { x: event.clientX, y: event.clientY };
+      }
     }
   }
 
@@ -180,6 +195,17 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
       const distance = Math.hypot(first.x - second.x, first.y - second.y);
       const nextScale = pinch.scale * (distance / pinch.distance);
       setView((current) => clampView({ ...current, scale: nextScale }));
+      return;
+    }
+
+    // Swiping: the photo tracks the finger, and the decision is made on release.
+    // Only clearly-horizontal travel counts, so a diagonal flick doesn't turn
+    // the page underneath the user.
+    const swipe = swipeRef.current;
+    if (swipe) {
+      const dx = event.clientX - swipe.x;
+      const dy = event.clientY - swipe.y;
+      if (Math.abs(dx) > Math.abs(dy)) setSwipeX(dx);
       return;
     }
 
@@ -201,6 +227,33 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
   function endPointer(event: ReactPointerEvent<HTMLDivElement>) {
     pointersRef.current.delete(event.pointerId);
     if (pointersRef.current.size < 2) pinchRef.current = null;
+
+    const swipe = swipeRef.current;
+    if (swipe && pointersRef.current.size === 0) {
+      const dx = event.clientX - swipe.x;
+      const dy = event.clientY - swipe.y;
+      const containerWidth = event.currentTarget.clientWidth;
+
+      if (Math.abs(dx) >= SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+        // Drag left -> next, so the photo always moves the way the finger did.
+        const delta = dx < 0 ? 1 : -1;
+
+        // `step` zeroes the offset, so this must come after it. The incoming
+        // photo is then parked a full width away — on the side the finger was
+        // travelling towards — and released on the next frame. Mounting off to
+        // the far side is what makes it arrive rather than appear.
+        step(delta);
+        setSwipeX(delta === 1 ? containerWidth : -containerWidth);
+        requestAnimationFrame(() => setSwipeX(0));
+      } else {
+        // Fell short: clearing this also clears `isGesturing`, re-enabling the
+        // transform transition, so the photo springs back to centre.
+        setSwipeX(0);
+      }
+
+      swipeRef.current = null;
+    }
+
     if (pointersRef.current.size === 0) {
       lastDragRef.current = null;
       setIsGesturing(false);
@@ -258,9 +311,39 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
           className="fixed inset-0 z-[60] flex flex-col bg-bg-primary"
         >
           <div className="flex shrink-0 items-center justify-between gap-2 px-4 py-3">
-            <p aria-live="polite" className="text-sm font-medium text-black-3">
-              {openIndex + 1} / {total}
-            </p>
+            {/* Paging lives up here beside the count, not floating over the
+                photo. Centred on the image the arrows covered the subject —
+                and a screenshot is busiest exactly at its edges. */}
+            <div className="flex items-center gap-0.5">
+              {total > 1 ? (
+                <button
+                  type="button"
+                  aria-label="Previous image"
+                  onClick={() => step(-1)}
+                  className="flex size-10 items-center justify-center rounded-full text-black-1 transition-colors hover:bg-black-6"
+                >
+                  <ChevronLeftIcon className="size-5" />
+                </button>
+              ) : null}
+
+              <p
+                aria-live="polite"
+                className="min-w-12 text-center text-sm font-medium text-black-3"
+              >
+                {openIndex + 1} / {total}
+              </p>
+
+              {total > 1 ? (
+                <button
+                  type="button"
+                  aria-label="Next image"
+                  onClick={() => step(1)}
+                  className="flex size-10 items-center justify-center rounded-full text-black-1 transition-colors hover:bg-black-6"
+                >
+                  <ChevronRightIcon className="size-5" />
+                </button>
+              ) : null}
+            </div>
 
             <div className="flex items-center gap-1">
               {/* Only once zoomed — a reset that does nothing is just noise.
@@ -326,6 +409,10 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+              // Keyed by photo: without this React reuses the single element,
+              // and the browser animates ONE transform from the drag offset to
+              // zero — which drags the incoming photo in from the wrong side.
+              key={current.url}
               ref={imageRef}
               src={current.url}
               alt=""
@@ -334,34 +421,13 @@ export function AnnouncementGallery({ images }: AnnouncementGalleryProps) {
               // mousedown and the pan never sees the move events.
               draggable={false}
               style={{
-                transform: `translate(${view.x}%, ${view.y}%) scale(${view.scale})`,
+                transform: `translate(calc(${view.x}% + ${swipeX}px), ${view.y}%) scale(${view.scale})`,
                 transition: isGesturing ? "none" : "transform 150ms ease-out",
               }}
               className={`max-h-full max-w-full rounded-2xl object-contain ${
                 view.scale > MIN_SCALE ? "cursor-grab" : ""
               }`}
             />
-
-            {total > 1 ? (
-              <>
-                <button
-                  type="button"
-                  aria-label="Previous image"
-                  onClick={() => step(-1)}
-                  className="absolute top-1/2 left-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-orange-primary text-white transition-colors hover:bg-orange-secondary"
-                >
-                  <ChevronLeftIcon className="size-6" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Next image"
-                  onClick={() => step(1)}
-                  className="absolute top-1/2 right-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-orange-primary text-white transition-colors hover:bg-orange-secondary"
-                >
-                  <ChevronRightIcon className="size-6" />
-                </button>
-              </>
-            ) : null}
           </div>
 
           {/* The filmstrip. Every image is listed, not just the first few — once
