@@ -113,8 +113,10 @@ export default function AnnouncementPage() {
       {/* Full-bleed: the desktop design has the dome fill the whole first screen. */}
       <AnnouncementHero />
 
-      {/* Content column: phone width on mobile, wider on tablet/desktop. */}
-      <div className="mx-auto flex w-full max-w-[430px] flex-col md:max-w-3xl lg:max-w-6xl">
+      {/* Content column. The Figma desktop frame is 1920 wide with a 1522-wide
+          card (79.3%), so from `lg` up the column tracks the viewport at that
+          ratio and stops at the design's 1522px. */}
+      <div className="mx-auto flex w-full max-w-[430px] flex-col md:max-w-3xl lg:w-[79.3%] lg:max-w-[1522px]">
         <AnnouncementFilterBar
           filters={filters}
           mode={mode}

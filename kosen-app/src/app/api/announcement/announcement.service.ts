@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../_shared/errors";
 import {
+  ANNOUNCEMENT_PAGE_SIZE,
   createAnnouncement as insertAnnouncement,
   getAnnouncementById,
   listAnnouncements as queryAnnouncements,
@@ -17,7 +18,6 @@ import {
   uploadAnnouncementTitleImage,
 } from "./announcement.storage";
 
-const PAGE_SIZE = 5;
 const ALLOWED_DEPARTMENTS = [
   "Computer Engineering",
   "Mechatronics Engineering",
@@ -252,9 +252,9 @@ export async function listAnnouncements(
     ),
     pagination: {
       page,
-      pageSize: PAGE_SIZE,
+      pageSize: ANNOUNCEMENT_PAGE_SIZE,
       total,
-      totalPages: Math.ceil(total / PAGE_SIZE),
+      totalPages: Math.ceil(total / ANNOUNCEMENT_PAGE_SIZE),
     },
   };
 }

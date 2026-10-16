@@ -13,7 +13,7 @@ type AnnouncementPaginationProps = {
 };
 
 /**
- * `‹ 1 of 12 ›` page control.
+ * `‹ 1 of 2 ›` page control.
  *
  * Always rendered — even with a single page — so the control stays visible in
  * the layout. Both arrows simply disable when there is nowhere to go.
@@ -34,7 +34,7 @@ export function AnnouncementPagination({
   return (
     <nav
       aria-label="Announcement pages"
-      className="mt-4 flex items-center justify-center gap-4 py-1.5"
+      className="mt-4 flex items-center justify-center gap-3 py-1.5"
     >
       <Button
         type="button"
@@ -50,7 +50,8 @@ export function AnnouncementPagination({
 
       <span
         aria-live="polite"
-        className="min-w-16 text-center text-sm font-medium"
+        // `min-w` stops the chevrons jumping sideways as 1 -> 10 changes width.
+        className="min-w-16 text-center text-sm font-medium text-black-1"
       >
         {page} of {pages}
       </span>

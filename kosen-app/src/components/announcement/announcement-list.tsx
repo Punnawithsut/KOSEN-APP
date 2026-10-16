@@ -44,12 +44,20 @@ export function AnnouncementList({
   // 1. Loading — only reached when there is no data at all yet.
   if (isLoading) {
     return (
-      <div aria-busy className="grid gap-3 sm:grid-cols-2">
+      <div aria-busy className="flex flex-col">
         {[0, 1, 2].map((index) => (
           <div
             key={index}
-            className="h-28 animate-pulse rounded-2xl bg-white/70 ring-1 ring-black-5"
-          />
+            className="flex animate-pulse items-center gap-[clamp(0.75rem,2vw,2.5rem)] border-b border-black-5 py-3 last:border-b-0"
+          >
+            <div className="flex-1 space-y-2 py-0.5">
+              <div className="h-3.5 w-3/4 rounded bg-black-5" />
+              <div className="h-3 w-full rounded bg-black-6" />
+              <div className="h-3 w-2/3 rounded bg-black-6" />
+              <div className="h-4 w-12 rounded-full bg-orange-subtle-2" />
+            </div>
+            <div className="aspect-[4/3] w-[45%] shrink-0 rounded-[clamp(0.75rem,1vw,1.5rem)] bg-blue-subtle-2 lg:aspect-[5/3] lg:w-[41%]" />
+          </div>
         ))}
       </div>
     );
@@ -85,9 +93,9 @@ export function AnnouncementList({
     );
   }
 
-  // 4. Data
+  // 4. Data — one card per row, stacked down the page, as designed.
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="flex flex-col">
       {items.map((announcement) => (
         <AnnouncementCard key={announcement.id} announcement={announcement} />
       ))}

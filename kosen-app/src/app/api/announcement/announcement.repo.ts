@@ -6,6 +6,15 @@ import {
   announcements,
 } from "@/db/schema";
 
+/**
+ * Rows per page — the design fits up to 10 announcements on one screen.
+ *
+ * Exported so the `totalPages` maths in `announcement.service.ts` can never
+ * drift from the `limit`/`offset` used below; they used to be two separate
+ * hardcoded 5s that had to be edited in lockstep.
+ */
+export const ANNOUNCEMENT_PAGE_SIZE = 10;
+
 export type AnnouncementType =
   (typeof announcementCategoryEnum.enumValues)[number];
 
@@ -64,14 +73,14 @@ export async function listAnnouncements(
   page: number,
 ) {
   const where = buildAnnouncementWhere(filters);
-  const offset = (page - 1) * 5;
+  const offset = (page - 1) * ANNOUNCEMENT_PAGE_SIZE;
 
   const [items, [{ total }]] = await Promise.all([
     db.query.announcements.findMany({
       where,
       with: { attachments: true },
       orderBy: [desc(announcements.createdAt)],
-      limit: 5,
+      limit: ANNOUNCEMENT_PAGE_SIZE,
       offset,
     }),
     db.select({ total: count() }).from(announcements).where(where),
@@ -224,7 +233,10 @@ export async function updateAnnouncementById(
   return updated;
 }
 
-export async function softDeleteAnnouncementById(id: string, deletedBy: string) {
+export async function softDeleteAnnouncementById(
+  id: string,
+  deletedBy: string,
+) {
   const deletedAt = new Date();
   const [deleted] = await db
     .update(announcements)
