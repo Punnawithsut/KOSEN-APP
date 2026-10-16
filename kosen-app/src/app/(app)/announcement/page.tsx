@@ -117,16 +117,29 @@ export default function AnnouncementPage() {
           card (79.3%), so from `lg` up the column tracks the viewport at that
           ratio and stops at the design's 1522px. */}
       <div className="mx-auto flex w-full max-w-[430px] flex-col md:max-w-3xl lg:w-[79.3%] lg:max-w-[1522px]">
-        <AnnouncementFilterBar
-          filters={filters}
-          mode={mode}
-          searchValue={searchInput}
-          onSearchChange={handleSearchChange}
-          onFilterChange={handleFilterChange}
-          onForYou={handleForYou}
-          onAll={handleAll}
-          profilePending={profilePending}
-        />
+        {/* Locks just under the fixed navbar once the hero has scrolled past.
+            `sticky` alone gives that: the bar rides up with the page and pins at
+            `top` only once the hero is gone — no scroll listener, no state.
+
+            The parent box is this content column, so the bar stops sticking at
+            the bottom of the list, which is what we want.
+
+            `top-0` on phones because the nav is a bottom tab bar there;
+            `md:top-16` matches the desktop bar's exact h-16. The solid
+            background is required — without it the list shows through as it
+            scrolls underneath. `z-40` stays under the navbar's `z-50`. */}
+        <div className="sticky top-0 z-40 bg-bg-primary pb-2 md:top-16">
+          <AnnouncementFilterBar
+            filters={filters}
+            mode={mode}
+            searchValue={searchInput}
+            onSearchChange={handleSearchChange}
+            onFilterChange={handleFilterChange}
+            onForYou={handleForYou}
+            onAll={handleAll}
+            profilePending={profilePending}
+          />
+        </div>
 
         {toastMessage ? (
           <div className="px-4 md:px-6">
