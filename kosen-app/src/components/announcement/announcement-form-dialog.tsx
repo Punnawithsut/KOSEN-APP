@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 import { ActionDialog } from "@/components/action-dialog";
 import { AnnouncementPreviewDialog } from "@/components/announcement/announcement-preview-dialog";
@@ -81,6 +88,9 @@ export function AnnouncementFormDialog({
   const [type, setType] = useState<string>(announcement?.type ?? ALL_VALUE);
   const [titleImage, setTitleImage] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  // Separate from `error` so the message can sit under the attachments input
+  // instead of in the banner at the top of the form.
+  const [filesError, setFilesError] = useState<string | null>(null);
   const [clearFiles, setClearFiles] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -113,6 +123,7 @@ export function AnnouncementFormDialog({
     setFiles([]);
     setClearFiles(false);
     closePreview();
+    setFilesError(null);
     setError(null);
   }
 
@@ -145,6 +156,29 @@ export function AnnouncementFormDialog({
   }
 
   /**
+   * Rejects an over-limit selection outright, at the moment it is picked.
+   *
+   * There is deliberately no "keep the first ten" behaviour: quietly dropping
+   * files someone explicitly chose is worse than making them choose again. The
+   * input's own value is cleared as well, because a file input caches what was
+   * last selected and would otherwise keep reading "12 files" after we threw
+   * them all away.
+   */
+  function handleFilesChange(event: ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(event.target.files ?? []);
+
+    if (picked.length > MAX_FILES) {
+      setFiles([]);
+      setFilesError(`Maximum ${MAX_FILES} files. Please try again.`);
+      event.target.value = "";
+      return;
+    }
+
+    setFiles(picked);
+    setFilesError(null);
+  }
+
+  /**
    * ActionDialog's Cancel button only calls `onCancel` — it never closes on its
    * own — so closing has to happen here. The same handler runs when the dialog
    * is dismissed with Escape, the overlay, or the close button, where the
@@ -165,12 +199,10 @@ export function AnnouncementFormDialog({
     event.preventDefault();
     setError(null);
 
-    // Mirror the server's limits locally so the problem surfaces before the
-    // preview rather than as a 400 after publishing.
-    if (files.length > MAX_FILES) {
-      setError(`At most ${MAX_FILES} files are allowed.`);
-      return;
-    }
+    // The file-count cap is enforced at the input itself (see
+    // `handleFilesChange`), so `files` cannot exceed MAX_FILES by now. Size
+    // still has to be checked here because it spans both the banner and the
+    // attachments.
     const oversized = [titleImage, ...files].find(
       (file) => file && file.size > MAX_BYTES,
     );
@@ -433,11 +465,24 @@ export function AnnouncementFormDialog({
               id={`${fieldId}-files`}
               type="file"
               multiple
-              onChange={(event) =>
-                setFiles(Array.from(event.target.files ?? []))
+              aria-invalid={filesError !== null}
+              aria-describedby={
+                filesError ? `${fieldId}-files-error` : undefined
               }
+              onChange={handleFilesChange}
               className="block w-full text-xs text-black-3 file:mr-3 file:rounded-full file:border-0 file:bg-blue-secondary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
             />
+
+            {filesError ? (
+              <p
+                id={`${fieldId}-files-error`}
+                role="alert"
+                className="mt-1 text-[11px] font-medium text-destructive"
+              >
+                {filesError}
+              </p>
+            ) : null}
+
             <p className="mt-1 text-[11px] text-black-4">
               Images appear in the detail gallery; anything else becomes a
               downloadable chip.
