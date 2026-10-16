@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import {
   parseJsonBody,
-  withNonAdminSessionMiddleware,
+  withSessionMiddleware,
 } from "../../../_shared/middleware";
 import * as loanService from "../loan.service";
 
-export const PUT = withNonAdminSessionMiddleware(async (req, { params, user }) => {
+export const PUT = withSessionMiddleware(async (req, { params, user }) => {
   const body = await parseJsonBody<unknown>(req);
   const data = loanService.parseUpdateUserLoanData(body);
   const loan = await loanService.updateUserLoan(params.id, user.id, data);
@@ -16,7 +16,7 @@ export const PUT = withNonAdminSessionMiddleware(async (req, { params, user }) =
   });
 });
 
-export const DELETE = withNonAdminSessionMiddleware(
+export const DELETE = withSessionMiddleware(
   async (_req, { params, user }) => {
     await loanService.deleteUserLoan(params.id, user.id);
     return NextResponse.json({

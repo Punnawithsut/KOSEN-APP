@@ -2,6 +2,7 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   ilike,
   inArray,
@@ -133,7 +134,7 @@ export async function findUserLoans(
         slot: true,
         term: true,
       },
-      orderBy: [asc(loans.slotDate), asc(loans.requestedAt)],
+      orderBy: [desc(loans.slotDate), desc(loans.requestedAt)],
       limit: PAGE_SIZE,
       offset,
     }),
@@ -169,7 +170,11 @@ export async function findBookingDetails(termId: string, slotId: string) {
   return { term, slot };
 }
 
-export async function findAvailableSlots(unitId: string, slotDate: string) {
+export async function findAvailableSlots(
+  unitId: string,
+  slotDate: string,
+  excludeLoanId?: string,
+) {
   const reservation = db
     .select({ id: loans.id })
     .from(loans)
@@ -179,6 +184,7 @@ export async function findAvailableSlots(unitId: string, slotDate: string) {
         eq(loans.slotDate, slotDate),
         eq(loans.slotId, slots.id),
         inArray(loans.status, RESERVED_STATUSES),
+        excludeLoanId ? ne(loans.id, excludeLoanId) : undefined,
       ),
     );
 

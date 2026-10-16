@@ -270,9 +270,13 @@ export function parseCreateUserLoanData(raw: unknown): CreateUserLoanData {
 }
 
 export function parseAvailableSlotsQuery(searchParams: URLSearchParams) {
+  const excludeLoanId = searchParams.get("excludeLoanId");
   return {
     unitId: parseUuid(searchParams.get("unitId"), "unitId"),
     slotDate: parseSlotDate(searchParams.get("slotDate")),
+    excludeLoanId: excludeLoanId
+      ? parseUuid(excludeLoanId, "excludeLoanId")
+      : undefined,
   };
 }
 
@@ -281,7 +285,26 @@ function getScheduledStartAt(slotDate: string, startTime: string) {
   return new Date(`${slotDate}T${normalizedStartTime}+07:00`);
 }
 
-export async function getAvailableSlots(unitId: string, slotDate: string) {
+export async function getAvailableSlots(
+  userId: string,
+  unitId: string,
+  slotDate: string,
+  excludeLoanId?: string,
+) {
+  if (excludeLoanId) {
+    const loan = await loanRepo.findLoanById(excludeLoanId);
+    if (!loan) throw new NotFoundError("Loan not found");
+    if (loan.borrowerId !== userId && loan.createdBy !== userId) {
+      throw new ForbiddenError("You can only check slots for your own loan");
+    }
+    if (loan.status !== "pending") {
+      throw new BadRequestError("Only pending loan requests can be edited");
+    }
+    if (loan.unitId !== unitId) {
+      throw new BadRequestError("The selected unit does not match the loan");
+    }
+  }
+
   const unit = await unitRepo.findUnitById(unitId);
   if (!unit || unit.deletedAt) throw new NotFoundError("Unit not found");
   if (!unit.isActive || unit.status !== "available") {
@@ -298,7 +321,11 @@ export async function getAvailableSlots(unitId: string, slotDate: string) {
   }
 
   const now = new Date();
-  const slots = await loanRepo.findAvailableSlots(unitId, slotDate);
+  const slots = await loanRepo.findAvailableSlots(
+    unitId,
+    slotDate,
+    excludeLoanId,
+  );
   return slots.filter((slot) => {
     const scheduledAt = getScheduledStartAt(slotDate, slot.startTime);
     return (

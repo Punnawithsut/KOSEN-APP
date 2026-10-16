@@ -60,6 +60,14 @@ export const loansDocs = {
           required: true,
           schema: { type: "string", format: "date" },
         },
+        {
+          name: "excludeLoanId",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "uuid" },
+          description:
+            "Pending loan to exclude from reservation checks when editing that loan",
+        },
       ],
       responses: {
         200: { description: "Available slots for the selected unit and date" },
@@ -256,7 +264,7 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "Edit a pending loan request",
       description:
-        "Only the authenticated borrower or creator can edit their own pending request. Admin users cannot use this endpoint. unitId is immutable; a different unit requires deleting and recreating the request.",
+        "Any authenticated user, including admins, can edit their own pending request. unitId is immutable; a different unit requires deleting and recreating the request.",
       parameters: loanIdParameters,
       requestBody: {
         required: true,
@@ -291,7 +299,7 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "Delete a pending loan request",
       description:
-        "Only the authenticated borrower or creator can delete their own pending request. Admin users cannot use this endpoint. The request is soft-deleted and marked cancelled.",
+        "Any authenticated user, including admins, can delete their own pending request. The request is soft-deleted and marked cancelled.",
       parameters: loanIdParameters,
       responses: {
         200: { description: "Loan request deleted" },

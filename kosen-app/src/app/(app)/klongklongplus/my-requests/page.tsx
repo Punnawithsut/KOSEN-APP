@@ -7,6 +7,7 @@ import {
   type DataTableColumn,
   type PaginationState,
 } from "@/components/data-table";
+import { LoanRequestManageDialogs } from "@/components/klongklongplus/loan-request-manage-dialogs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -19,6 +20,7 @@ import type {
   LoanRecord,
   LoanStatus,
 } from "@/hooks/types/klongklongplus-types";
+import { Pencil, Trash2 } from "lucide-react";
 
 const STATUS_STYLES: Record<LoanStatus, string> = {
   pending: "bg-noti-warning-subtle text-black-2",
@@ -49,65 +51,100 @@ function formatStatus(status: LoanStatus) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-const columns: DataTableColumn<LoanRecord>[] = [
-  {
-    key: "unit",
-    header: "Unit",
-    cell: (loan) => loan.unit.code,
-    className: "font-medium",
-  },
-  {
-    key: "itemType",
-    header: "Type",
-    cell: (loan) =>
-      loan.itemType.charAt(0).toUpperCase() + loan.itemType.slice(1),
-  },
-  {
-    key: "slotDate",
-    header: "Borrow date",
-    cell: (loan) => formatSlotDate(loan.slotDate),
-  },
-  {
-    key: "slot",
-    header: "Time slot",
-    cell: (loan) =>
-      `${loan.slot.startTime.slice(0, 5)}–${loan.slot.endTime.slice(0, 5)}`,
-  },
-  {
-    key: "term",
-    header: "Term",
-    cell: (loan) => loan.term.name,
-  },
-  {
-    key: "status",
-    header: "Status",
-    cell: (loan) => (
-      <span
-        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[loan.status]}`}
-      >
-        {formatStatus(loan.status)}
-      </span>
-    ),
-  },
-  {
-    key: "requestedAt",
-    header: "Requested",
-    cell: (loan) => formatRequestedAt(loan.requestedAt),
-    className: "tabular-nums text-muted-foreground",
-  },
-];
-
 export default function MyRequestsPage() {
   const [page, setPage] = React.useState(1);
   const [filters, setFilters] = React.useState<LoanFilters>({});
+  const [editingLoan, setEditingLoan] = React.useState<LoanRecord | null>(null);
+  const [deletingLoan, setDeletingLoan] = React.useState<LoanRecord | null>(null);
   const { toast } = useToast();
   const { data, error, isLoading } = useMyLoans(page, filters);
-  const {
-    data: slotsResponse,
-    error: slotsError,
-  } = useSlots();
+  const { data: slotsResponse, error: slotsError } = useSlots();
   const pageData = data?.data;
   const slots = slotsResponse?.data.items ?? [];
+
+  const columns: DataTableColumn<LoanRecord>[] = [
+    {
+      key: "unit",
+      header: "Unit",
+      cell: (loan) => loan.unit.code,
+      className: "font-medium",
+    },
+    {
+      key: "itemType",
+      header: "Type",
+      cell: (loan) =>
+        loan.itemType.charAt(0).toUpperCase() + loan.itemType.slice(1),
+    },
+    {
+      key: "slotDate",
+      header: "Borrow date",
+      cell: (loan) => formatSlotDate(loan.slotDate),
+    },
+    {
+      key: "slot",
+      header: "Time slot",
+      cell: (loan) =>
+        `${loan.slot.startTime.slice(0, 5)}–${loan.slot.endTime.slice(0, 5)}`,
+    },
+    {
+      key: "term",
+      header: "Term",
+      cell: (loan) => loan.term.name,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (loan) => (
+        <span
+          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[loan.status]}`}
+        >
+          {formatStatus(loan.status)}
+        </span>
+      ),
+    },
+    {
+      key: "requestedAt",
+      header: "Requested",
+      cell: (loan) => formatRequestedAt(loan.requestedAt),
+      className: "tabular-nums text-muted-foreground",
+    },
+    {
+      key: "manage",
+      header: "Manage",
+      cell: (loan) => {
+        const isPending = loan.status === "pending";
+        return (
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              disabled={!isPending}
+              aria-label={`Edit request for ${loan.unit.code}`}
+              title={isPending ? "Edit request" : "Only pending requests can be edited"}
+              onClick={() => {
+                setEditingLoan(loan);
+              }}
+            >
+              <Pencil />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              disabled={!isPending}
+              aria-label={`Delete request for ${loan.unit.code}`}
+              title={isPending ? "Delete request" : "Only pending requests can be deleted"}
+              onClick={() => setDeletingLoan(loan)}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        );
+      },
+      className: "w-24",
+    },
+  ];
 
   React.useEffect(() => {
     if (error) {
@@ -266,6 +303,13 @@ export default function MyRequestsPage() {
             ? "No requests match these filters."
             : "You have not made any equipment requests yet."
         }
+      />
+
+      <LoanRequestManageDialogs
+        editingLoan={editingLoan}
+        deletingLoan={deletingLoan}
+        onCloseEdit={() => setEditingLoan(null)}
+        onCloseDelete={() => setDeletingLoan(null)}
       />
     </main>
   );

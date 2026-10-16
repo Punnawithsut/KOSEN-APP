@@ -23,10 +23,11 @@ export function useAvailableSlots(
   unitId: string | null,
   slotDate: string,
   enabled = true,
+  excludeLoanId?: string,
 ) {
   const url =
     unitId && slotDate
-      ? `/api/klongklongplus/loans/available-slots${queryString({ unitId, slotDate })}`
+      ? `/api/klongklongplus/loans/available-slots${queryString({ unitId, slotDate, excludeLoanId })}`
       : null;
   return useApi<ApiResponse<Slot[]>>(enabled ? url : null);
 }
