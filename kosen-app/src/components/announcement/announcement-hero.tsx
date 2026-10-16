@@ -12,7 +12,7 @@ import { ChevronDownIcon } from "lucide-react";
  */
 export function AnnouncementHero() {
   return (
-    <section className="relative isolate aspect-[390/330] w-full overflow-hidden bg-bg-primary text-center md:aspect-auto md:h-[calc(100vh-4rem)] md:min-h-[28rem]">
+    <section className="relative isolate aspect-[390/330] w-full overflow-hidden text-center md:aspect-auto md:h-[calc(100vh-4rem)] md:min-h-[28rem]">
       {/*
         Two artworks, because the phone and desktop designs want different
         proportions. `slice` keeps the circles circular at any size.

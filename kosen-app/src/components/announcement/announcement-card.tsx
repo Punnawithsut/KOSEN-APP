@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { Announcement, AnnouncementFile } from "@/lib/announcement/types";
+import type { Announcement } from "@/lib/announcement/types";
 
 /** Formats an ISO timestamp as dd/mm/yy, matching the design's "post on …". */
 function formatPostDate(iso: string): string {
@@ -11,17 +11,6 @@ function formatPostDate(iso: string): string {
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const yy = String(date.getFullYear()).slice(-2);
   return `${dd}/${mm}/${yy}`;
-}
-
-/**
- * The design shows exactly one thumbnail per card: the first attachment by
- * `displayOrder` that actually has a resolved URL.
- */
-function pickThumbnail(files: AnnouncementFile[]): AnnouncementFile | null {
-  const ordered = [...files].sort(
-    (a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
-  );
-  return ordered.find((file) => Boolean(file.url)) ?? null;
 }
 
 type AnnouncementCardProps = {
@@ -50,8 +39,6 @@ const THUMBNAIL_CLASS =
 
 /** Presentation only — takes data as props, holds no state. */
 export function AnnouncementCard({ announcement }: AnnouncementCardProps) {
-  const thumbnail = pickThumbnail(announcement.files);
-
   return (
     <article className="flex items-center gap-[clamp(0.75rem,2vw,2.5rem)] border-b border-black-5 py-3 last:border-b-0">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -75,13 +62,16 @@ export function AnnouncementCard({ announcement }: AnnouncementCardProps) {
         </Link>
       </div>
 
-      {thumbnail?.url ? (
+      {/* The card image comes from the announcement's TITLE image, not from
+          `files`. `files` feeds the detail screen's attachment chips and
+          gallery; the list deliberately shows the banner instead. */}
+      {announcement.titleImageUrl ? (
         // Plain <img>: these are short-lived signed Supabase URLs, so
         // next/image optimisation (and the remotePatterns config it needs)
         // is not a good fit here.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={thumbnail.url}
+          src={announcement.titleImageUrl}
           alt=""
           loading="lazy"
           className={THUMBNAIL_CLASS}

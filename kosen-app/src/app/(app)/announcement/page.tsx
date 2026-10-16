@@ -109,7 +109,7 @@ export default function AnnouncementPage() {
   const dismissToast = useCallback(() => setToastMessage(null), []);
 
   return (
-    <main className="min-h-screen bg-bg-primary pb-10">
+    <main className="min-h-screen  pb-10">
       {/* Full-bleed: the desktop design has the dome fill the whole first screen. */}
       <AnnouncementHero />
 
@@ -128,7 +128,7 @@ export default function AnnouncementPage() {
             `md:top-16` matches the desktop bar's exact h-16. The solid
             background is required — without it the list shows through as it
             scrolls underneath. `z-40` stays under the navbar's `z-50`. */}
-        <div className="sticky top-0 z-40 bg-bg-primary pb-2 md:top-16">
+        <div className="sticky top-0 z-40  pb-2 md:top-16">
           <AnnouncementFilterBar
             filters={filters}
             mode={mode}
@@ -169,7 +169,6 @@ export default function AnnouncementPage() {
           />
         </div>
       </div>
-      <a href="/test">test</a>
     </main>
   );
 }
