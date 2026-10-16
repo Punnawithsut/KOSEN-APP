@@ -33,12 +33,9 @@ export type UpdateMyProfile = {
 };
 
 export function useMyProfile() {
-  const result = useApi<ApiResponse<MyProfile>>("/api/profile");
-  return { ...result, data: result.data?.data };
+  return useApi<ApiResponse<MyProfile>>("/api/profile");
 }
 
 export function useUpdateMyProfile() {
-  return usePut<ApiResponse<MyProfile>>("/api/profile", {
-    revalidateKeys: "/api/profile",
-  });
+  return usePut<ApiResponse<MyProfile>>("/api/profile");
 }

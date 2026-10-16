@@ -60,7 +60,12 @@ export default function ProfilePage() {
   const router = useRouter();
   const snapshotRef = useRef<ProfileForm>(EMPTY_FORM);
 
-  const { data: profile, error: profileError, isLoading } = useMyProfile();
+  const {
+    data: profileResponse,
+    error: profileError,
+    isLoading,
+  } = useMyProfile();
+  const profile = profileResponse?.data;
   const { trigger: updateMyProfile, isMutating: isSaving } =
     useUpdateMyProfile();
 
@@ -298,7 +303,15 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {profileError ? (
+          {profileError && profile && (
+            <p
+              role="alert"
+              className="mb-4 text-center text-sm text-negative-primary"
+            >
+              Unable to refresh your profile: {profileError.message}
+            </p>
+          )}
+          {profileError && !profile ? (
             <p
               role="alert"
               className="py-10 text-center text-sm text-negative-primary"

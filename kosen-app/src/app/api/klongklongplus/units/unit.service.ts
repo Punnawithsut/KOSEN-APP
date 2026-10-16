@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ilike, or } from "drizzle-orm";
 import { itemTypeEnum, unitStatusEnum, units } from "@/db/schema";
 import { AppError, BadRequestError, NotFoundError } from "../../_shared/errors";
 import { parsePageQuery } from "../../_shared/pagination";
@@ -11,6 +11,7 @@ export type UnitFilters = {
   itemType?: ItemType;
   status?: UnitStatus;
   isActive?: boolean;
+  search?: string;
 };
 
 export type CreateUnitData = {
@@ -33,10 +34,16 @@ function buildUnitWhere(filters: UnitFilters) {
     filters.isActive !== undefined
       ? eq(units.isActive, filters.isActive)
       : undefined,
+    filters.search
+      ? or(
+          ilike(units.code, `%${filters.search}%`),
+          ilike(units.note, `%${filters.search}%`),
+        )
+      : undefined,
   );
 }
 
-/** Parse ?itemType=&status=&isActive=&page= from the units list query string. */
+/** Parse ?itemType=&status=&isActive=&search=&page= from the units list query string. */
 export function parseListQuery(searchParams: URLSearchParams) {
   const page = parsePageQuery(searchParams, { pageSize: unitRepo.PAGE_SIZE });
 
@@ -54,6 +61,7 @@ export function parseListQuery(searchParams: URLSearchParams) {
         ? (status as UnitStatus)
         : undefined,
     isActive: isActiveParam === null ? undefined : isActiveParam === "true",
+    search: searchParams.get("search")?.trim() || undefined,
   };
 
   return { page, filters };

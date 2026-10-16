@@ -1,200 +1,132 @@
 "use client";
 
 import * as React from "react";
-import { Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DataTable,
   type DataTableColumn,
   type PaginationState,
 } from "@/components/data-table";
+import { useMyLoans } from "@/hooks/use-loan";
+import type {
+  LoanRecord,
+  LoanStatus,
+} from "@/hooks/types/klongklongplus-types";
 
-/* ------------------------------- Mock backend ------------------------------ */
-
-type Status = "Published" | "Draft" | "Archived";
-
-interface Announcement {
-  id: number;
-  title: string;
-  author: string;
-  status: Status;
-  publishedAt: string;
-}
-
-const PAGE_SIZE = 5; // owned by the backend; never sent in requests
-
-const TITLES = [
-  "Scheduled maintenance window",
-  "New loan rates effective next month",
-  "Holiday opening hours",
-  "Mobile app version 3.2 released",
-  "Updated privacy policy",
-  "Branch relocation notice",
-  "Year-end statement availability",
-  "Security best practices reminder",
-];
-const AUTHORS = ["Napat S.", "Mali K.", "Arthit P.", "Pim R."];
-const STATUSES: Status[] = ["Published", "Draft", "Archived"];
-
-const ALL_ANNOUNCEMENTS: Announcement[] = Array.from({ length: 47 }, (_, i) => ({
-  id: i + 1,
-  title: `${TITLES[i % TITLES.length]} #${i + 1}`,
-  author: AUTHORS[i % AUTHORS.length],
-  status: STATUSES[(i * 7) % STATUSES.length],
-  publishedAt: new Date(2026, 9, 14 - i).toISOString().slice(0, 10),
-}));
-
-async function fetchAnnouncements(params: {
-  page: number; // 1-based
-  search: string;
-  status: Status | "All";
-}) {
-  await new Promise((r) => setTimeout(r, 700)); // simulate network latency
-
-  const q = params.search.trim().toLowerCase();
-  const filtered = ALL_ANNOUNCEMENTS.filter(
-    (a) =>
-      (params.status === "All" || a.status === params.status) &&
-      (!q || a.title.toLowerCase().includes(q) || a.author.toLowerCase().includes(q)),
-  );
-
-  const start = (params.page - 1) * PAGE_SIZE;
-  return {
-    items: filtered.slice(start, start + PAGE_SIZE),
-    total: filtered.length,
-    totalPages: Math.ceil(filtered.length / PAGE_SIZE),
-  };
-}
-
-/* --------------------------------- Columns -------------------------------- */
-
-const STATUS_STYLES: Record<Status, string> = {
-  Published: "bg-noti-positive-subtle text-black-2",
-  Draft: "bg-noti-warning-subtle text-black-2",
-  Archived: "bg-muted text-muted-foreground",
+const STATUS_STYLES: Record<LoanStatus, string> = {
+  pending: "bg-noti-warning-subtle text-black-2",
+  approved: "bg-noti-positive-subtle text-black-2",
+  delivered: "bg-orange-subtle-2 text-black-2",
+  returned: "bg-noti-positive-subtle text-black-2",
+  overdue: "bg-negative-subtle text-negative-primary",
+  cancelled: "bg-muted text-muted-foreground",
+  rejected: "bg-muted text-muted-foreground",
+  expired: "bg-muted text-muted-foreground",
+  no_show: "bg-muted text-muted-foreground",
 };
 
-const columns: DataTableColumn<Announcement>[] = [
-  { key: "id", header: "#", className: "w-16 tabular-nums text-muted-foreground" },
-  { key: "title", header: "Title", className: "font-medium" },
-  { key: "author", header: "Author" },
+function formatSlotDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function formatRequestedAt(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "short",
+    timeZone: "Asia/Bangkok",
+  }).format(new Date(value));
+}
+
+function formatStatus(status: LoanStatus) {
+  if (status === "no_show") return "No show";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+const columns: DataTableColumn<LoanRecord>[] = [
+  {
+    key: "unit",
+    header: "Unit",
+    cell: (loan) => loan.unit.code,
+    className: "font-medium",
+  },
+  {
+    key: "itemType",
+    header: "Type",
+    cell: (loan) =>
+      loan.itemType.charAt(0).toUpperCase() + loan.itemType.slice(1),
+  },
+  {
+    key: "slotDate",
+    header: "Borrow date",
+    cell: (loan) => formatSlotDate(loan.slotDate),
+  },
+  {
+    key: "slot",
+    header: "Time slot",
+    cell: (loan) =>
+      `${loan.slot.startTime.slice(0, 5)}–${loan.slot.endTime.slice(0, 5)}`,
+  },
+  {
+    key: "term",
+    header: "Term",
+    cell: (loan) => loan.term.name,
+  },
   {
     key: "status",
     header: "Status",
-    cell: (row) => (
+    cell: (loan) => (
       <span
-        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[row.status]}`}
+        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[loan.status]}`}
       >
-        {row.status}
+        {formatStatus(loan.status)}
       </span>
     ),
   },
-  { key: "publishedAt", header: "Date", className: "tabular-nums text-muted-foreground" },
+  {
+    key: "requestedAt",
+    header: "Requested",
+    cell: (loan) => formatRequestedAt(loan.requestedAt),
+    className: "tabular-nums text-muted-foreground",
+  },
 ];
 
-/* ---------------------------------- Page ---------------------------------- */
-
-const FILTERS: (Status | "All")[] = ["All", "Published", "Draft", "Archived"];
-
-export default function DemoPage() {
-  const [rows, setRows] = React.useState<Announcement[]>([]);
-
+export default function MyRequestsPage() {
   const [page, setPage] = React.useState(1);
-  const [searchInput, setSearchInput] = React.useState("");
-  const [search, setSearch] = React.useState(""); // debounced
-  const [status, setStatus] = React.useState<Status | "All">("All");
-
-  const [meta, setMeta] = React.useState({ total: 0, totalPages: 0 });
-  const requestKey = JSON.stringify([page, search, status]);
-  const [loadedRequestKey, setLoadedRequestKey] = React.useState<string | null>(
-    null,
-  );
-  const isLoading = loadedRequestKey !== requestKey;
-
-  // Debounce search; changing the filter always resets to page 1.
-  React.useEffect(() => {
-    const t = setTimeout(() => {
-      setSearch((prev) => {
-        if (prev !== searchInput) setPage(1);
-        return searchInput;
-      });
-    }, 350);
-    return () => clearTimeout(t);
-  }, [searchInput]);
-
-  const handleStatusChange = (next: Status | "All") => {
-    setStatus(next);
-    setPage(1);
-  };
-
-  // Fetch whenever page or filters change. The cleanup flag ignores stale responses.
-  React.useEffect(() => {
-    let cancelled = false;
-
-    fetchAnnouncements({ page, search, status }).then((res) => {
-      if (cancelled) return;
-      setRows(res.items);
-      setMeta({ total: res.total, totalPages: res.totalPages });
-      setLoadedRequestKey(requestKey);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [page, search, status, requestKey]);
+  const { data, error, isLoading } = useMyLoans(page);
+  const pageData = data?.data;
 
   const pagination: PaginationState = {
-    page,
-    pageSize: PAGE_SIZE,
-    total: meta.total,
-    totalPages: meta.totalPages,
+    page: pageData?.page ?? page,
+    pageSize: pageData?.pageSize ?? 20,
+    total: pageData?.total ?? 0,
+    totalPages: Math.ceil((pageData?.total ?? 0) / (pageData?.pageSize ?? 20)),
   };
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-10">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Announcements</h1>
-        <p className="text-sm text-muted-foreground">
-          Server-side pagination with search and status filters.
+        <h1 className="text-2xl font-semibold tracking-tight text-black-1">
+          My Requests
+        </h1>
+        <p className="text-sm text-black-3">
+          Track the status and schedule of your equipment requests.
         </p>
       </header>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search title or author"
-            className="pl-8"
-            aria-label="Search announcements"
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">
-          {FILTERS.map((f) => (
-            <Button
-              key={f}
-              size="sm"
-              variant={status === f ? "default" : "outline"}
-              onClick={() => handleStatusChange(f)}
-              aria-pressed={status === f}
-            >
-              {f}
-            </Button>
-          ))}
-        </div>
-      </div>
+      {error && (
+        <p role="alert" className="text-sm text-negative-primary">
+          Unable to load your requests: {error.message}
+        </p>
+      )}
 
       <DataTable
         columns={columns}
-        data={rows}
+        data={pageData?.items ?? []}
+        getRowKey={(loan) => loan.id}
         pagination={pagination}
         onPageChange={setPage}
         isLoading={isLoading}
-        emptyMessage="No announcements match your search. Try a different keyword or status."
+        emptyMessage="You have not made any equipment requests yet."
       />
     </main>
   );
