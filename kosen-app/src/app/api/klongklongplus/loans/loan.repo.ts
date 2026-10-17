@@ -37,6 +37,7 @@ export async function findLoans(
   where: SQL | undefined,
   page: number,
   borrowerName?: string,
+  unitSearch?: string,
 ) {
   const offset = (page - 1) * PAGE_SIZE;
   const normalizedName = borrowerName?.trim().replace(/\s+/g, " ");
@@ -58,7 +59,22 @@ export async function findLoans(
           ),
       )
     : undefined;
-  const filtersWhere = and(where, borrowerNameWhere, isNull(loans.deletedAt));
+  const normalizedUnit = unitSearch?.trim();
+  const unitWhere = normalizedUnit
+    ? inArray(
+        loans.unitId,
+        db
+          .select({ id: units.id })
+          .from(units)
+          .where(ilike(units.code, `%${normalizedUnit}%`)),
+      )
+    : undefined;
+  const filtersWhere = and(
+    where,
+    borrowerNameWhere,
+    unitWhere,
+    isNull(loans.deletedAt),
+  );
 
   const [items, [{ total }]] = await Promise.all([
     db.query.loans.findMany({

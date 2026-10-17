@@ -129,6 +129,11 @@ export type LoanRecord = {
   unit: Unit;
   slot: Slot;
   term: Term;
+  approver?: {
+    userId: string;
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
   borrower?: {
     userId: string;
     studentId: string | null;

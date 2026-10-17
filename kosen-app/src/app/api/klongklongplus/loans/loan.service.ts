@@ -87,6 +87,7 @@ export function parseListQuery(searchParams: URLSearchParams) {
     borrowerId: searchParams.has("borrowerId")
       ? parseUuid(searchParams.get("borrowerId"), "borrowerId")
       : undefined,
+    unitSearch: searchParams.get("unitSearch")?.trim() || undefined,
     searchName: searchParams
       .get("searchName")
       ?.trim()
@@ -108,6 +109,7 @@ export async function listLoans(
     where,
     page,
     filters.searchName,
+    filters.unitSearch,
   );
   return {
     items: items.map((item) => ({
