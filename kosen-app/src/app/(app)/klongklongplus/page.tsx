@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EquipmentCard } from "@/components/equipmentCard";
+import { isAdmin } from "@/lib/auth/role";
 
-export default function ModulesExamplePage() {
+export default async function ModulesExamplePage() {
+  const admin = await isAdmin();
+
   return (
     <div className="relative mx-auto max-w-2xl px-4 py-10 sm:px-6">
       <h1 className="mb-6 text-2xl font-semibold text-black-1">Equipments</h1>
@@ -32,15 +35,28 @@ export default function ModulesExamplePage() {
       </div>
 
       {/* floating action button */}
-      <Button
-        asChild
-        className="fixed bottom-24 right-6 z-40 h-12 gap-2 rounded-full bg-orange-secondary px-5 text-sm font-semibold text-white shadow-lg hover:brightness-90 md:bottom-6"
-      >
-        <Link href="/klongklongplus/my-requests">
-          <ClipboardList className="size-5" />
-          My Request
-        </Link>
-      </Button>
+      <div className="fixed bottom-24 right-6 z-40 flex flex-col items-end gap-3 md:bottom-6">
+        {admin && (
+          <Button
+            asChild
+            className="h-12 gap-2 rounded-full bg-orange-secondary px-5 text-sm font-semibold text-white shadow-lg hover:brightness-90 md:bottom-6"
+          >
+            <Link href="/klongklongplus/admin">
+              <Lock className="size-5" />
+              Admin
+            </Link>
+          </Button>
+        )}
+        <Button
+          asChild
+          className="h-12 gap-2 rounded-full bg-orange-secondary px-5 text-sm font-semibold text-white shadow-lg hover:brightness-90 md:bottom-6"
+        >
+          <Link href="/klongklongplus/my-requests">
+            <ClipboardList className="size-5" />
+            My Request
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }
