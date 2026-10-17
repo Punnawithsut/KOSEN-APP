@@ -1,15 +1,46 @@
-export default function KlongklongplusPage() {
+import Link from "next/link";
+import { ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EquipmentCard } from "@/components/equipmentCard";
+
+export default function ModulesExamplePage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-4 p-6 text-slate-900">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-600">
-          Klongklongplus
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold">Klongklongplus module</h1>
-        <p className="mt-3 text-sm text-slate-600">
-          This is the dedicated Klongklongplus section.
-        </p>
+    <div className="relative mx-auto max-w-2xl px-4 py-10 sm:px-6">
+      <h1 className="mb-6 text-2xl font-semibold text-black-1">Equipments</h1>
+
+      <div className="flex flex-col gap-4">
+        <EquipmentCard
+          width={200}
+          height={100}
+          titleText="Calculator"
+          image="/images/calculator-thumb.jpg"
+          destination="/klongklongplus/calculators"
+          description="Scientific calculators for exams and classwork"
+          extendedInfo="Borrow a scientific calculator for class or an exam. Please return it the same day you borrow it, since demand is highest during exam weeks."
+        />
+
+        <EquipmentCard
+          width={200}
+          height={100}
+          titleText="Charger"
+          image="/images/charger-thumb.jpg"
+          destination="/klongklongplus/chargers"
+          description="Phone and laptop charging cables"
+          extendedInfo="A selection of USB-C, Lightning, and laptop charging cables are available. Check availability before heading over — popular cables run out fast."
+          badgeText="Popular"
+        />
       </div>
-    </main>
+
+      {/* floating action button */}
+      <Button
+        asChild
+        className="fixed bottom-24 right-6 z-40 h-12 gap-2 rounded-full bg-orange-secondary px-5 text-sm font-semibold text-white shadow-lg hover:brightness-90 md:bottom-6"
+      >
+        <Link href="/klongklongplus/my-requests">
+          <ClipboardList className="size-5" />
+          My Request
+        </Link>
+      </Button>
+    </div>
   );
 }

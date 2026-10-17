@@ -1,11 +1,34 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ToastProvider } from "@/hooks/use-toast";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Must be `--font-inter`, NOT `--font-sans`.
+//
+// `globals.css` declares `--font-sans: var(--font-inter)` inside `@theme inline`,
+// so every `font-sans` utility compiles to `font-family: var(--font-inter)`.
+// Loading Inter under the name `--font-sans` left `--font-inter` undefined, the
+// declaration was invalid at computed-value time, and the entire app — navbar,
+// headings, cards — silently fell back to the browser's default serif.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// Display serif used by the announcement hero headline ("What's new?").
+// Instrument Serif ships a single weight (400).
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-serif-display",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -30,9 +53,19 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", "font-sans", inter.variable)}
+      className={cn(
+        "h-full",
+        "antialiased",
+        geistSans.variable,
+        geistMono.variable,
+        "font-sans",
+        inter.variable,
+        instrumentSerif.variable,
+      )}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

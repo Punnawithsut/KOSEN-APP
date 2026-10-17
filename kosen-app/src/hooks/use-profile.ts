@@ -8,6 +8,9 @@ type ApiResponse<T> = {
 export type MyProfile = {
   userId: string;
   studentId: string | null;
+  // Mirrors the `user_role` pgEnum in `src/db/schema.ts`. `getUserById` selects
+  // the whole row, so this is already on the wire — it was just missing here.
+  role: "user" | "counselor" | "admin";
   firstName: string | null;
   lastName: string | null;
   email: string;
@@ -17,6 +20,8 @@ export type MyProfile = {
   dormBuilding: string | null;
   dormRoom: string | null;
   avatarUrl: string | null;
+  createdBy: string | null;
+  updatedBy: string | null;
 };
 
 export type UpdateMyProfile = {
@@ -31,12 +36,9 @@ export type UpdateMyProfile = {
 };
 
 export function useMyProfile() {
-  const result = useApi<ApiResponse<MyProfile>>("/api/profile");
-  return { ...result, data: result.data?.data };
+  return useApi<ApiResponse<MyProfile>>("/api/profile");
 }
 
 export function useUpdateMyProfile() {
-  return usePut<ApiResponse<MyProfile>>("/api/profile", {
-    revalidateKeys: "/api/profile",
-  });
+  return usePut<ApiResponse<MyProfile>>("/api/profile");
 }

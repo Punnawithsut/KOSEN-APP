@@ -39,7 +39,13 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        // No `backdrop-blur` here on purpose. A backdrop-filter has to
+        // rasterise everything behind it, and because this element fades for
+        // `duration-100` the browser recomposites that blurred layer every
+        // frame of the open and close animation — on a list full of images
+        // that is the single most expensive thing in a modal. A flat scrim
+        // composites for free.
+        "fixed inset-0 isolate z-50 bg-black/10 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}

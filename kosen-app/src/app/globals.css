@@ -8,6 +8,8 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-inter);
   --font-heading: var(--font-inter);
+  /* Announcement hero headline ("What's new?") -> `font-display` utility. */
+  --font-display: var(--font-serif-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -54,6 +56,8 @@
   --color-blue-primary: #6b9bc9;
   --color-blue-subtle-1: #aed2ec;
   --color-blue-subtle-2: #dcebf5;
+  /* Announcement card surface (design's light blue-gray tint). */
+  --color-blue-subtle-3: #eef2f7;
   --color-warning-primary: #f2c94c;
   --color-warning-subtle: #fbe8a6;
   --color-noti-warning-subtle: #fdf3d0;
@@ -116,5 +120,62 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ── Announcement hero — type proportional to the “sunrise” dome ─────────────
+   Both hero artworks are SVGs with `preserveAspectRatio="… slice"`, so the dome
+   is only as deep as the smaller of the two axes allows. Fixed `px` type
+   therefore drifts out of the orange whenever the viewport is wide relative to
+   its height — at 1035x608 the inner orange ended at 302px while the old fixed
+   text block reached 300px, i.e. a 2px margin.
+
+   So every size is derived from the artwork's own scale factor.
+
+   Phone — viewBox 390x330 on an `aspect-[390/330]` box, a fixed ratio, so width
+   alone drives it. Design sizes are 48px headline / 14px lede / 20px gap.
+
+   Desktop — viewBox 1920x1016 on a `100vh - 4rem` box, so the scale is
+   `max(W / 1920, H / 1016)` and it flips between width- and height-driven
+   depending on the window. That is why both terms sit inside `max()`. The
+   vertical term subtracts the 4rem navbar, which `100vh` counts but the section
+   does not.
+
+   Desktop sizes are 96px / 24px / 26px. The Figma frame says 72px / 18px / 20px,
+   but at that size the desktop block only filled 72% of the dome's depth while
+   the phone fills 78.5% - the desktop type was proportionally smaller than the
+   phone's. 96px spends that slack and brings the two breakpoints into line
+   without touching the phone, which is already at its design proportion.
+   Measured worst-case clearance is still ~97px at 1920x1080 and ~43px at the
+   tightest width-driven window, so there is headroom left, but do not raise
+   these further without re-measuring.
+
+   Every `clamp()` ceiling equals its design size, so nothing ever renders larger
+   than the Figma frame — only windows narrower than it scale down.
+   -------------------------------------------------------------------------- */
+.hero-display {
+  font-size: clamp(1.75rem, 12.3vw, 3rem);
+}
+
+.hero-lede {
+  font-size: clamp(0.6875rem, 3.6vw, 0.875rem);
+  margin-top: clamp(0.75rem, 5vw, 1.25rem);
+}
+
+@media (min-width: 48rem) {
+  .hero-display {
+    font-size: clamp(2rem, max(5vw, calc(9.449vh - 6.05px)), 6rem);
+  }
+
+  .hero-lede {
+    font-size: clamp(0.8125rem, max(1.25vw, calc(2.362vh - 1.51px)), 1.5rem);
+    /*
+     * In `em`, NOT px. A fixed measure would keep its width while the type grew,
+     * so the lede would wrap onto an extra line and eat the clearance this whole
+     * exercise depends on. `em` pins the measure to the type, which keeps the
+     * character-per-line count — and therefore the line count — constant.
+     */
+    max-width: 21.5em;
+    margin-top: clamp(0.75rem, max(1.354vw, calc(2.559vh - 1.64px)), 1.625rem);
   }
 }

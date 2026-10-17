@@ -15,6 +15,27 @@
       "when": 1791794161916,
       "tag": "0001_overjoyed_daredevil",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791883788666,
+      "tag": "0002_chilly_phil_sheldon",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792125963791,
+      "tag": "0003_flimsy_maria_hill",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792140000000,
+      "tag": "0004_term_exam_periods",
+      "breakpoints": true
     }
   ]
 }

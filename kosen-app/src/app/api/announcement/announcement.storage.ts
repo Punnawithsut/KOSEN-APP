@@ -100,6 +100,34 @@ export async function getAnnouncementFileUrl(storagePath: string) {
   return data.signedUrl;
 }
 
+/**
+ * Pulls an object back out of the private bucket.
+ *
+ * Used by the title-image route, which has to read the original before it can
+ * resize it. Returns the bytes and the stored content type, because the caller
+ * decides whether the format is one it can re-encode.
+ */
+export async function downloadAnnouncementFile(storagePath: string) {
+  const { data, error } = await (
+    await createClient()
+  ).storage
+    .from(BUCKET_NAME)
+    .download(storagePath);
+
+  if (error || !data) {
+    console.error("Supabase announcement file download failed:", error);
+    throw new AppError(
+      "Failed to download the announcement file from Supabase Storage.",
+      502,
+    );
+  }
+
+  return {
+    data: Buffer.from(await data.arrayBuffer()),
+    contentType: data.type || "application/octet-stream",
+  };
+}
+
 export async function removeAnnouncementFiles(storagePaths: string[]) {
   if (storagePaths.length === 0) return;
 

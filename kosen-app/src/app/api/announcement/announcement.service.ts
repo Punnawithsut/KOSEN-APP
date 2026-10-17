@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../_shared/errors";
+import { parsePageQuery } from "../_shared/pagination";
 import {
   createAnnouncement as insertAnnouncement,
   getAnnouncementById,
@@ -9,6 +10,7 @@ import {
   type AnnouncementFilters,
   type AnnouncementType,
   type AnnouncementUpdateData,
+  PAGE_SIZE,
 } from "./announcement.repo";
 import {
   getAnnouncementFileUrl,
@@ -17,10 +19,9 @@ import {
   uploadAnnouncementTitleImage,
 } from "./announcement.storage";
 
-const PAGE_SIZE = 5;
 const ALLOWED_DEPARTMENTS = [
   "Computer Engineering",
-  "Mechanical Engineering",
+  "Mechatronics Engineering",
   "Electrical and Electronics Engineering",
 ] as const;
 const ALLOWED_TYPES = [
@@ -48,7 +49,20 @@ export async function parseAnnouncementFormData(request: Request) {
   let formData: FormData;
   try {
     formData = await request.formData();
-  } catch {
+  } catch (error) {
+    // This used to discard the underlying parse error, so a generic 400 was the
+    // only clue anyone ever got. The header dump is what separates "the body
+    // never arrived" from "the body arrived malformed" — they look identical
+    // from the outside but have completely different causes.
+    console.error(
+      "[announcement] multipart parse failed",
+      {
+        contentType: request.headers.get("content-type"),
+        contentLength: request.headers.get("content-length"),
+        contentEncoding: request.headers.get("content-encoding"),
+      },
+      error,
+    );
     throw new BadRequestError("Request must contain multipart form data.");
   }
 
@@ -210,13 +224,10 @@ function parseRequiredText(value: unknown, field: string): string {
 }
 
 export function parseListQuery(searchParams: URLSearchParams) {
-  const pageValue = searchParams.get("page");
-  const page = pageValue === null ? NaN : Number(pageValue);
-  if (!Number.isInteger(page) || page < 1) {
-    throw new BadRequestError(
-      "A positive integer page query parameter is required.",
-    );
-  }
+  const page = parsePageQuery(searchParams, {
+    pageSize: PAGE_SIZE,
+    required: true,
+  });
 
   const filters: AnnouncementFilters = {};
   const searchName = searchParams.get("searchName")?.trim();

@@ -62,10 +62,17 @@ async function seedAdmin() {
         firstName,
         lastName,
         role: "admin",
+        createdBy: authUser.id,
       })
       .onConflictDoUpdate({
         target: users.userId,
-        set: { role: "admin", firstName, lastName, updatedAt: new Date() },
+        set: {
+          role: "admin",
+          firstName,
+          lastName,
+          updatedBy: authUser.id,
+          updatedAt: new Date(),
+        },
       });
 
     console.info(`Admin role assigned to: ${authUser.email ?? adminEmail}`);

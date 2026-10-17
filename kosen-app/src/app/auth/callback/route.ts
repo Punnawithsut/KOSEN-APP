@@ -80,6 +80,7 @@ export async function GET(request: Request) {
             firstName: firstName ?? existingUser.firstName,
             lastName: lastName ?? existingUser.lastName,
             avatarUrl: avatarUrl ?? existingUser.avatarUrl,
+            updatedBy: data.user.id,
             updatedAt: new Date(),
           })
           .where(eq(users.userId, data.user.id));
@@ -90,6 +91,7 @@ export async function GET(request: Request) {
           firstName,
           lastName,
           avatarUrl,
+          createdBy: data.user.id,
         });
       }
 

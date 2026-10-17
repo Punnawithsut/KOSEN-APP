@@ -7,7 +7,7 @@ import { NotFoundError, BadRequestError } from "../_shared/errors";
 
 const ALLOWED_DEPARTMENTS = [
   "Computer Engineering",
-  "Mechanical Engineering",
+  "Mechatronics Engineering",
   "Electrical and Electronics Engineering",
 ] as const;
 
@@ -79,7 +79,7 @@ export async function modifyUserProfile(
     );
   }
 
-  const updatedUser = await updateUserById(userId, data);
+  const updatedUser = await updateUserById(userId, data, userId);
 
   if (!updatedUser) {
     throw new NotFoundError("Failed to update: User profile not found.");
