@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 export default function TestIndexPage() {
+  if (process.env.NODE_ENV !== "development") {
+    notFound();
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 bg-slate-50 p-6 text-slate-900">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

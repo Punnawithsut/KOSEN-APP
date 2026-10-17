@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { openApiSpec } from "@/app/api/_shared/openapi";
 
 export async function GET() {
-  // Hide in production
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV !== "development") {
     notFound();
   }
 

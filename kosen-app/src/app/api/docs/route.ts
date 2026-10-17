@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { notFound } from "next/navigation";
 
 export async function GET() {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV !== "development") {
     notFound();
   }
 
