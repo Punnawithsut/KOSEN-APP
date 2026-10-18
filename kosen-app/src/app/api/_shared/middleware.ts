@@ -9,6 +9,7 @@ import {
   BadRequestError,
   handleApiError,
 } from "./errors";
+import { enforceApiRateLimit } from "./rate_limits";
 import type { User } from "@supabase/supabase-js";
 
 export type SessionContext<T = Record<string, string>> = {
@@ -41,6 +42,9 @@ export function withSessionMiddleware<T = Record<string, string>>(
           "You must be logged in to access this route",
         );
       }
+
+      const rateLimitResponse = await enforceApiRateLimit(req);
+      if (rateLimitResponse) return rateLimitResponse;
 
       const params = await props.params;
 
@@ -80,6 +84,9 @@ export function useAdminMiddleware<T = Record<string, string>>(
       if (!dbUser || dbUser.role !== "admin") {
         throw new ForbiddenError("Forbidden: Admin privileges required");
       }
+
+      const rateLimitResponse = await enforceApiRateLimit(req);
+      if (rateLimitResponse) return rateLimitResponse;
 
       const params = await props.params;
 

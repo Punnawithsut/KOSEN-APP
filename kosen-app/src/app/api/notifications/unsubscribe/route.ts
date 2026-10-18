@@ -1,24 +1,26 @@
-import { deleteSubscription } from "@/lib/notifications/subscriptions";
+import { deleteSubscriptionForUser } from "@/lib/notifications/subscriptions";
+import { withSessionMiddleware } from "@/app/api/_shared/middleware";
+import { NextResponse } from "next/server";
 
-export async function DELETE(request: Request) {
+export const DELETE = withSessionMiddleware(async (request, { user }) => {
   try {
     const { endpoint } = await request.json();
 
     if (!endpoint) {
-      return Response.json(
+      return NextResponse.json(
         { error: "Missing endpoint." },
         { status: 400 },
       );
     }
 
-    await deleteSubscription(endpoint);
+    await deleteSubscriptionForUser(user.id, endpoint);
 
-    return Response.json({ ok: true });
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Unsubscribe failed:", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "Unable to process unsubscribe." },
       { status: 500 },
     );
   }
-}
+});

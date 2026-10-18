@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/db/client";
 import { pushSubscriptions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export type PushSubscriptionPayload = {
   endpoint: string;
@@ -68,6 +68,20 @@ export async function deleteSubscription(endpoint: string) {
   await db
     .delete(pushSubscriptions)
     .where(eq(pushSubscriptions.endpoint, endpoint));
+}
+
+export async function deleteSubscriptionForUser(
+  userId: string,
+  endpoint: string,
+) {
+  await db
+    .delete(pushSubscriptions)
+    .where(
+      and(
+        eq(pushSubscriptions.userId, userId),
+        eq(pushSubscriptions.endpoint, endpoint),
+      ),
+    );
 }
 
 export async function deleteUserSubscriptions(userId: string) {

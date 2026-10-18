@@ -36,6 +36,13 @@
       "when": 1792140000000,
       "tag": "0004_term_exam_periods",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792309439153,
+      "tag": "0005_ambitious_vermin",
+      "breakpoints": true
     }
   ]
 }

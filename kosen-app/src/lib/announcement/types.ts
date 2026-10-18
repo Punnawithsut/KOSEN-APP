@@ -1,8 +1,10 @@
 /**
  * Client-side types for the announcement feature.
  *
- * These mirror the API contract in `src/app/api/announcement/announcement.service.ts`
- * (`serializeAnnouncement`). Note the API renames fields relative to the DB:
+ * `Announcement` mirrors the detail API contract in
+ * `src/app/api/announcement/announcement.service.ts` (`serializeAnnouncement`).
+ * List responses use the narrower `AnnouncementListItem` below. Note the API
+ * renames fields relative to the DB:
  *   title -> name | content -> description | targetYear -> year
  *   targetDepartment -> department | category -> type
  *
@@ -17,7 +19,7 @@ export type AnnouncementFile = {
   displayOrder: number | null;
 };
 
-/** One announcement as returned by the API. */
+/** Full announcement detail as returned by GET /api/announcement/[id]. */
 export type Announcement = {
   id: string;
   name: string;
@@ -38,6 +40,15 @@ export type Announcement = {
   authorId: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Minimal fields needed to render one row in GET /api/announcement. */
+export type AnnouncementListItem = {
+  id: string;
+  name: string;
+  description: string;
+  hasTitleImage: boolean;
+  createdAt: string;
 };
 
 /** The `data` payload of `GET /api/announcement/[id]`. */
@@ -83,7 +94,7 @@ export type Pagination = {
 
 /** The `data` payload of `GET /api/announcement`. */
 export type AnnouncementListData = {
-  items: Announcement[];
+  items: AnnouncementListItem[];
   pagination: Pagination;
 };
 

@@ -1,24 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { sendNotificationToUser } from "@/lib/notifications/push-server";
+import { withSessionMiddleware } from "@/app/api/_shared/middleware";
 
-export async function POST(request: Request) {
+export const POST = withSessionMiddleware(async (request) => {
   try {
-    // 1. Verify user authentication
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized request" },
-        { status: 401 },
-      );
-    }
-
-    // 2. Parse request payload
+    // Parse request payload.
     const bodyPayload = await request.json();
     const { targetUserId, title, body, data } = bodyPayload;
 
@@ -32,7 +18,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Normalize single string or array into string[]
+    // Normalize a single string or array into string[].
     const recipientIds: string[] = Array.isArray(targetUserId)
       ? targetUserId
       : [targetUserId];
@@ -43,8 +29,14 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    if (recipientIds.length > 100) {
+      return NextResponse.json(
+        { ok: false, error: "A maximum of 100 recipients is allowed." },
+        { status: 400 },
+      );
+    }
 
-    // 4. Dispatch push notifications to all targeted users in parallel
+    // Dispatch push notifications to all targeted users in parallel.
     const results = await Promise.allSettled(
       recipientIds.map((userId) =>
         sendNotificationToUser(userId, {
@@ -55,7 +47,7 @@ export async function POST(request: Request) {
       ),
     );
 
-    // 5. Aggregate success/failure metrics
+    // Aggregate success/failure metrics.
     let successfulUsersCount = 0;
     let totalSentDevices = 0;
     let totalFailedDevices = 0;
@@ -68,7 +60,7 @@ export async function POST(request: Request) {
       }
     });
 
-    // If none of the targeted users received the push notification
+    // If none of the targeted users received the push notification.
     if (successfulUsersCount === 0) {
       return NextResponse.json(
         {
@@ -94,4 +86,4 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-}
+});

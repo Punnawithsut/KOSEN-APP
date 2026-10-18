@@ -14,9 +14,13 @@ import { Button } from "@/components/ui/button";
 import { useAnnouncements } from "@/hooks/use-announcements";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useMyProfile } from "@/hooks/use-profile";
+import { apiFetcher } from "@/lib/api/fetcher";
 import type {
   Announcement,
+  AnnouncementDetailData,
   AnnouncementFilters,
+  AnnouncementListItem,
+  ApiResponse,
   FilterMode,
 } from "@/lib/announcement/types";
 
@@ -55,14 +59,39 @@ export default function AnnouncementPage() {
   const [searchInput, setSearchInput] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   // The form dialog serves both modes: creating is tracked by `isFormOpen`,
   // editing by this. Closing them through one handler keeps them from drifting.
   const [editing, setEditing] = useState<Announcement | null>(null);
-  const [deleting, setDeleting] = useState<Announcement | null>(null);
+  const [deleting, setDeleting] = useState<AnnouncementListItem | null>(null);
 
   function closeForm() {
     setIsFormOpen(false);
     setEditing(null);
+  }
+
+  async function handleEdit(announcement: AnnouncementListItem) {
+    if (editingId) return;
+
+    setEditingId(announcement.id);
+    setToastMessage(null);
+    try {
+      const response = await apiFetcher<ApiResponse<AnnouncementDetailData>>(
+        `/api/announcement/${announcement.id}`,
+      );
+      if (!response.data) {
+        throw new Error("The announcement details were missing from the response.");
+      }
+      setEditing(response.data);
+    } catch (error) {
+      setToastMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load announcement details.",
+      );
+    } finally {
+      setEditingId(null);
+    }
   }
 
   // Only the settled search term should hit the network.
@@ -173,7 +202,11 @@ export default function AnnouncementPage() {
             <AnnouncementToast
               message={toastMessage}
               onDismiss={dismissToast}
-              actionHref="/profile"
+              actionHref={
+                toastMessage === PROFILE_INCOMPLETE_MESSAGE
+                  ? "/profile"
+                  : undefined
+              }
             />
           </div>
         ) : null}
@@ -183,8 +216,9 @@ export default function AnnouncementPage() {
             items={items}
             isLoading={isLoading}
             error={error}
-            onEdit={isAdmin ? setEditing : undefined}
+            onEdit={isAdmin ? handleEdit : undefined}
             onDelete={isAdmin ? setDeleting : undefined}
+            editingId={editingId}
             onRetry={() => {
               void refetch();
             }}
