@@ -319,6 +319,12 @@ export const loans = pgTable(
   }),
 ); // loans
 
+export const rateLimitsTable = pgTable('rate_limits', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull().default(1),
+  windowStart: timestamp('window_start', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ---------- Relations ----------
 
 export const usersRelations = relations(users, ({ many }) => ({
