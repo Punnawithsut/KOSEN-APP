@@ -2,18 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 import { describeAnnouncementError } from "@/lib/announcement/errors";
-import type { Announcement } from "@/lib/announcement/types";
+import type { AnnouncementListItem } from "@/lib/announcement/types";
 
 import { AnnouncementCard } from "./announcement-card";
 
 type AnnouncementListProps = {
-  items: Announcement[];
+  items: AnnouncementListItem[];
   isLoading: boolean;
   error: unknown;
   onRetry: () => void;
   /** Admin-only. Leave both out for the plain student list. */
-  onEdit?: (announcement: Announcement) => void;
-  onDelete?: (announcement: Announcement) => void;
+  onEdit?: (announcement: AnnouncementListItem) => void;
+  onDelete?: (announcement: AnnouncementListItem) => void;
+  editingId?: string | null;
 };
 
 /** Renders the four possible states: loading, error, empty, data. */
@@ -24,6 +25,7 @@ export function AnnouncementList({
   onRetry,
   onEdit,
   onDelete,
+  editingId,
 }: AnnouncementListProps) {
   // 1. Loading — only reached when there is no data at all yet.
   if (isLoading) {
@@ -86,6 +88,7 @@ export function AnnouncementList({
           announcement={announcement}
           onEdit={onEdit}
           onDelete={onDelete}
+          isEditing={editingId === announcement.id}
         />
       ))}
     </div>

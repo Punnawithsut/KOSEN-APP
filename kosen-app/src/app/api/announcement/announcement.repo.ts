@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   announcementAttachments,
@@ -77,13 +77,19 @@ export async function listAnnouncements(
   const offset = (page - 1) * PAGE_SIZE;
 
   const [items, [{ total }]] = await Promise.all([
-    db.query.announcements.findMany({
-      where,
-      with: { attachments: true },
-      orderBy: [desc(announcements.createdAt)],
-      limit: PAGE_SIZE,
-      offset,
-    }),
+    db
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        content: announcements.content,
+        createdAt: announcements.createdAt,
+        hasTitleImage: sql<boolean>`${announcements.titleImageUrl} IS NOT NULL`,
+      })
+      .from(announcements)
+      .where(where)
+      .orderBy(desc(announcements.createdAt))
+      .limit(PAGE_SIZE)
+      .offset(offset),
     db.select({ total: count() }).from(announcements).where(where),
   ]);
 

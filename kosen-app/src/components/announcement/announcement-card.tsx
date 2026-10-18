@@ -6,7 +6,7 @@ import {
   titleImageSrc,
   titleImageSrcSet,
 } from "@/lib/announcement/title-image";
-import type { Announcement } from "@/lib/announcement/types";
+import type { AnnouncementListItem } from "@/lib/announcement/types";
 
 /** Formats an ISO timestamp as dd/mm/yy, matching the design's "post on …". */
 function formatPostDate(iso: string): string {
@@ -20,10 +20,11 @@ function formatPostDate(iso: string): string {
 }
 
 type AnnouncementCardProps = {
-  announcement: Announcement;
+  announcement: AnnouncementListItem;
   /** Admin-only. Leave both out and the plain student card renders. */
-  onEdit?: (announcement: Announcement) => void;
-  onDelete?: (announcement: Announcement) => void;
+  onEdit?: (announcement: AnnouncementListItem) => void;
+  onDelete?: (announcement: AnnouncementListItem) => void;
+  isEditing?: boolean;
 };
 
 /**
@@ -66,6 +67,7 @@ export const AnnouncementCard = memo(function AnnouncementCard({
   announcement,
   onEdit,
   onDelete,
+  isEditing = false,
 }: AnnouncementCardProps) {
   return (
     <article className="flex items-center gap-[clamp(0.75rem,2vw,2.5rem)] border-b border-black-5 py-3 last:border-b-0">
@@ -95,9 +97,17 @@ export const AnnouncementCard = memo(function AnnouncementCard({
               type="button"
               aria-label={`Edit ${announcement.name}`}
               onClick={() => onEdit(announcement)}
-              className={`${ICON_BUTTON_CLASS} text-black-3 hover:bg-black-6 hover:text-black-1`}
+              disabled={isEditing}
+              className={`${ICON_BUTTON_CLASS} text-black-3 hover:bg-black-6 hover:text-black-1 disabled:cursor-wait disabled:opacity-50`}
             >
-              <Pencil className={ICON_CLASS} />
+              {isEditing ? (
+                <span
+                  aria-hidden
+                  className="size-[clamp(0.875rem,1.04vw,1.25rem)] animate-spin rounded-full border-2 border-current border-r-transparent"
+                />
+              ) : (
+                <Pencil className={ICON_CLASS} />
+              )}
             </button>
           ) : null}
 
@@ -121,7 +131,7 @@ export const AnnouncementCard = memo(function AnnouncementCard({
           Plain <img> with a hand-written srcset rather than next/image: the
           route behind this URL already resizes, so the optimiser would only
           fetch our WebP and re-encode it a second time. */}
-      {announcement.titleImageUrl ? (
+      {announcement.hasTitleImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={titleImageSrc(announcement.id, 800)}

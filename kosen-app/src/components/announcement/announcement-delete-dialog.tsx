@@ -4,11 +4,11 @@ import { useState } from "react";
 
 import { ActionDialog } from "@/components/action-dialog";
 import { apiErrorFromResponse } from "@/lib/api/fetcher";
-import type { Announcement } from "@/lib/announcement/types";
+import type { AnnouncementListItem } from "@/lib/announcement/types";
 
 type AnnouncementDeleteDialogProps = {
   /** The announcement to delete, or `null` to keep the dialog closed. */
-  announcement: Announcement | null;
+  announcement: AnnouncementListItem | null;
   onOpenChange: (open: boolean) => void;
   /** Fired after the server confirms the delete, so the list can refetch. */
   onDeleted: () => void;

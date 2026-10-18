@@ -258,9 +258,13 @@ export async function listAnnouncements(
 ) {
   const { items, total } = await queryAnnouncements(filters, page);
   return {
-    items: await Promise.all(
-      items.map((item) => serializeAnnouncement(item as AnnouncementRecord)),
-    ),
+    items: items.map((item) => ({
+      id: item.id,
+      name: item.title,
+      description: item.content,
+      hasTitleImage: item.hasTitleImage,
+      createdAt: item.createdAt,
+    })),
     pagination: {
       page,
       pageSize: PAGE_SIZE,
