@@ -1,11 +1,13 @@
 import { saveSubscription } from "@/lib/notifications/subscriptions";
+import { withSessionMiddleware } from "@/app/api/_shared/middleware";
+import { NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+export const POST = withSessionMiddleware(async (request, { user }) => {
   try {
     const payload = await request.json();
 
     if (!payload?.endpoint || !payload?.keys?.p256dh || !payload?.keys?.auth) {
-      return Response.json(
+      return NextResponse.json(
         {
           error: "Invalid push subscription payload. Missing endpoint or keys.",
         },
@@ -13,16 +15,14 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!payload?.userId) {
-      return Response.json(
-        { error: "Missing userId. A valid user ID is required." },
-        { status: 400 },
+    if (payload?.userId && payload.userId !== user.id) {
+      return NextResponse.json(
+        { error: "You may only subscribe your own user account." },
+        { status: 403 },
       );
     }
 
-    const userId = String(payload.userId);
-
-    await saveSubscription(userId, {
+    await saveSubscription(user.id, {
       endpoint: payload.endpoint,
       keys: {
         p256dh: payload.keys.p256dh,
@@ -30,16 +30,16 @@ export async function POST(request: Request) {
       },
     });
 
-    return Response.json({
+    return NextResponse.json({
       ok: true,
       message: "Push subscription received.",
-      userId,
+      userId: user.id,
     });
   } catch (error) {
     console.error("Push subscription failed:", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "Unable to process push subscription." },
       { status: 500 },
     );
   }
-}
+});
