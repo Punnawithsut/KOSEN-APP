@@ -12,6 +12,7 @@ import {
 import { ActionDialog } from "@/components/action-dialog";
 import { AnnouncementPreviewDialog } from "@/components/announcement/announcement-preview-dialog";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import {
   ALL_VALUE,
   DEPARTMENTS,
@@ -95,6 +96,7 @@ export function AnnouncementFormDialog({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Blob URLs for the preview live in a ref, so they are not part of the render
   // dependency graph. Only `previewSrc` — what to actually show — is state.
@@ -258,14 +260,23 @@ export function AnnouncementFormDialog({
       resetForm();
       onOpenChange(false);
       onSaved();
+      toast({
+        title: isEdit ? "Announcement updated" : "Announcement published",
+        variant: "success",
+      });
     } catch (submitError) {
       // Stay in the preview on failure, so a rejected publish does not cost the
       // admin the text they typed or the files they picked.
-      setError(
+      const message =
         submitError instanceof Error
           ? submitError.message
-          : `Could not ${isEdit ? "update" : "create"} the announcement.`,
-      );
+          : `Could not ${isEdit ? "update" : "create"} the announcement.`;
+      setError(message);
+      toast({
+        title: `Could not ${isEdit ? "update" : "publish"} announcement`,
+        description: message,
+        variant: "error",
+      });
     } finally {
       setSubmitting(false);
     }

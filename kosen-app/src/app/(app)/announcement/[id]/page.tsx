@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useEffect } from "react";
 import { ArrowLeftIcon } from "lucide-react";
 
 import { AnnouncementDetailView } from "@/components/announcement/announcement-detail-view";
 import { Button } from "@/components/ui/button";
 import { useAnnouncement } from "@/hooks/use-announcement";
+import { useToast } from "@/hooks/use-toast";
 import { describeAnnouncementError } from "@/lib/announcement/errors";
 import {
   titleImageSrc,
@@ -19,6 +21,17 @@ export default function AnnouncementDetailPage() {
   const params = useParams<{ id: string }>();
   const id = typeof params?.id === "string" ? params.id : null;
   const { announcement, isLoading, error, refetch } = useAnnouncement(id);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Could not load announcement",
+        description: describeAnnouncementError(error),
+        variant: "error",
+      });
+    }
+  }, [error, toast]);
 
   const backButton = (
     <Link

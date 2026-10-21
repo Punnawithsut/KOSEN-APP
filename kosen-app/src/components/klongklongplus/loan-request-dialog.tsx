@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,7 @@ import { useAvailableSlots } from "@/hooks/use-slot";
 import { useCreateLoan } from "@/hooks/use-loan";
 import type { Unit } from "@/hooks/use-unit";
 import { useCurrentTerm } from "@/hooks/use-term";
+import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api/fetcher";
 
 type LoanRequestDialogProps = {
@@ -65,6 +66,7 @@ export function LoanRequestDialog({
     open && !!termResponse?.data,
   );
   const { trigger: createLoan, isMutating } = useCreateLoan();
+  const { toast } = useToast();
 
   const term = termResponse?.data;
   const slots = slotsResponse?.data ?? [];
@@ -74,6 +76,16 @@ export function LoanRequestDialog({
   const isLoadingBookingOptions =
     isTermLoading || (!!slotDate && areSlotsLoading);
   const bookingOptionsError = termError ?? slotsError;
+
+  useEffect(() => {
+    if (bookingOptionsError) {
+      toast({
+        title: "Unable to load booking options",
+        description: bookingOptionsError.message,
+        variant: "error",
+      });
+    }
+  }, [bookingOptionsError, toast]);
 
   function handleOpenChange(nextOpen: boolean) {
     if (isMutating) return;
@@ -87,7 +99,7 @@ export function LoanRequestDialog({
     onOpenChange(nextOpen);
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
 
@@ -115,16 +127,22 @@ export function LoanRequestDialog({
       setBorrowingRulesAccepted(false);
       setResponsibilityAgreementAccepted(false);
       onOpenChange(false);
+      toast({ title: "Loan request submitted", variant: "success" });
     } catch (error) {
-      setSubmitError(
+      const message =
         error instanceof ApiError && error.status === 409
           ? error.message
           : error instanceof ApiError && error.status >= 500
             ? "Unable to create the loan request right now. Please try again later."
             : error instanceof Error
               ? error.message
-              : "Unable to submit your request.",
-      );
+              : "Unable to submit your request.";
+      setSubmitError(message);
+      toast({
+        title: "Unable to submit request",
+        description: message,
+        variant: "error",
+      });
       if (error instanceof ApiError && error.status === 409) {
         await refreshAvailableSlots();
       }

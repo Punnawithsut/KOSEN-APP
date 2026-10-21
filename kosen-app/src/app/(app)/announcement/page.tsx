@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PlusIcon } from "lucide-react";
 
 import { AnnouncementDeleteDialog } from "@/components/announcement/announcement-delete-dialog";
@@ -9,8 +9,8 @@ import { AnnouncementFormDialog } from "@/components/announcement/announcement-f
 import { AnnouncementHero } from "@/components/announcement/announcement-hero";
 import { AnnouncementList } from "@/components/announcement/announcement-list";
 import { AnnouncementPagination } from "@/components/announcement/announcement-pagination";
-import { AnnouncementToast } from "@/components/announcement/announcement-toast";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { useAnnouncements } from "@/hooks/use-announcements";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useMyProfile } from "@/hooks/use-profile";
@@ -57,13 +57,13 @@ export default function AnnouncementPage() {
   );
   const [mode, setMode] = useState<FilterMode>("all");
   const [searchInput, setSearchInput] = useState("");
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   // The form dialog serves both modes: creating is tracked by `isFormOpen`,
   // editing by this. Closing them through one handler keeps them from drifting.
   const [editing, setEditing] = useState<Announcement | null>(null);
   const [deleting, setDeleting] = useState<AnnouncementListItem | null>(null);
+  const { toast } = useToast();
 
   function closeForm() {
     setIsFormOpen(false);
@@ -74,7 +74,6 @@ export default function AnnouncementPage() {
     if (editingId) return;
 
     setEditingId(announcement.id);
-    setToastMessage(null);
     try {
       const response = await apiFetcher<ApiResponse<AnnouncementDetailData>>(
         `/api/announcement/${announcement.id}`,
@@ -84,11 +83,14 @@ export default function AnnouncementPage() {
       }
       setEditing(response.data);
     } catch (error) {
-      setToastMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not load announcement details.",
-      );
+      toast({
+        title: "Could not load announcement",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again.",
+        variant: "error",
+      });
     } finally {
       setEditingId(null);
     }
@@ -107,6 +109,17 @@ export default function AnnouncementPage() {
   const { items, pagination, isLoading, isValidating, error, refetch } =
     useAnnouncements({ page, filters });
 
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Could not load announcements",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        variant: "error",
+      });
+    }
+  }, [error, toast]);
+
   // `useMyProfile` hands back the raw `{ data }` envelope, same as the profile
   // screen does. Unwrapping it once here keeps every read below on the profile
   // itself rather than on an envelope.
@@ -121,7 +134,6 @@ export default function AnnouncementPage() {
   // component free of state-syncing effects.
   const handleFilterChange = useCallback((patch: Partial<DropdownFilters>) => {
     setMode("custom");
-    setToastMessage(null);
     setPage(1);
     setDropdownFilters((previous) => ({ ...previous, ...patch }));
   }, []);
@@ -135,7 +147,6 @@ export default function AnnouncementPage() {
 
   const handleAll = useCallback(() => {
     setMode("all");
-    setToastMessage(null);
     setSearchInput("");
     setPage(1);
     setDropdownFilters(EMPTY_DROPDOWN_FILTERS);
@@ -147,12 +158,17 @@ export default function AnnouncementPage() {
     const year = profile?.year;
 
     if (!department || !year) {
-      setToastMessage(PROFILE_INCOMPLETE_MESSAGE);
+      toast({
+        title: "Profile incomplete",
+        description: PROFILE_INCOMPLETE_MESSAGE,
+        variant: "error",
+        actionHref: "/profile",
+        actionLabel: "Configure",
+      });
       return;
     }
 
     setMode("for-you");
-    setToastMessage(null);
     setSearchInput("");
     setPage(1);
     setDropdownFilters((previous) => ({
@@ -160,9 +176,7 @@ export default function AnnouncementPage() {
       searchYear: year,
       searchDepartment: department,
     }));
-  }, [profile]);
-
-  const dismissToast = useCallback(() => setToastMessage(null), []);
+  }, [profile, toast]);
 
   return (
     <main className="min-h-screen  pb-10">
@@ -196,20 +210,6 @@ export default function AnnouncementPage() {
             profilePending={profilePending}
           />
         </div>
-
-        {toastMessage ? (
-          <div className="px-4 md:px-6">
-            <AnnouncementToast
-              message={toastMessage}
-              onDismiss={dismissToast}
-              actionHref={
-                toastMessage === PROFILE_INCOMPLETE_MESSAGE
-                  ? "/profile"
-                  : undefined
-              }
-            />
-          </div>
-        ) : null}
 
         <div className="px-4 pt-4 md:px-6">
           <AnnouncementList
@@ -277,6 +277,10 @@ export default function AnnouncementPage() {
           }}
           onDeleted={() => {
             void refetch();
+            toast({
+              title: "Announcement deleted",
+              variant: "success",
+            });
           }}
         />
       ) : null}

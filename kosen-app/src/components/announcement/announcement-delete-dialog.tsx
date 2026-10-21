@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ActionDialog } from "@/components/action-dialog";
+import { useToast } from "@/hooks/use-toast";
 import { apiErrorFromResponse } from "@/lib/api/fetcher";
 import type { AnnouncementListItem } from "@/lib/announcement/types";
 
@@ -28,6 +29,7 @@ export function AnnouncementDeleteDialog({
 }: AnnouncementDeleteDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   function handleClose() {
     setError(null);
@@ -53,11 +55,16 @@ export function AnnouncementDeleteDialog({
       onOpenChange(false);
       onDeleted();
     } catch (deleteError) {
-      setError(
+      const message =
         deleteError instanceof Error
           ? deleteError.message
-          : "Could not delete the announcement.",
-      );
+          : "Could not delete the announcement.";
+      setError(message);
+      toast({
+        title: "Could not delete announcement",
+        description: message,
+        variant: "error",
+      });
     } finally {
       setIsDeleting(false);
     }

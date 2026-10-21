@@ -35,6 +35,20 @@ export const PAGE_SIZE = 20;
 
 const RESERVED_STATUSES = ["pending", "approved", "delivered", "overdue"] as const;
 
+function quotaConsumedPredicate() {
+  return or(
+    isNotNull(loans.quotaConsumedAt),
+    inArray(loans.status, [
+      "approved",
+      "delivered",
+      "returned",
+      "overdue",
+      "no_show",
+    ]),
+    and(eq(loans.status, "cancelled"), isNotNull(loans.approvedAt)),
+  );
+}
+
 export async function findLoans(
   where: SQL | undefined,
   page: number,
@@ -202,10 +216,7 @@ export async function countTermLoanQuotaSlotsInUse(
         eq(loans.borrowerId, borrowerId),
         eq(loans.termId, termId),
         isNull(loans.deletedAt),
-        or(
-          isNotNull(loans.quotaConsumedAt),
-          eq(loans.status, "pending"),
-        ),
+        or(quotaConsumedPredicate(), eq(loans.status, "pending")),
         excludeLoanId ? ne(loans.id, excludeLoanId) : undefined,
       ),
     );
@@ -268,10 +279,7 @@ export async function createUserLoan(data: {
           eq(loans.borrowerId, data.borrowerId),
           eq(loans.termId, data.termId),
           isNull(loans.deletedAt),
-          or(
-            isNotNull(loans.quotaConsumedAt),
-            eq(loans.status, "pending"),
-          ),
+          or(quotaConsumedPredicate(), eq(loans.status, "pending")),
         ),
       );
 
@@ -372,10 +380,7 @@ export async function updateUserLoan(
           eq(loans.borrowerId, loan.borrowerId),
           eq(loans.termId, termId),
           isNull(loans.deletedAt),
-          or(
-            isNotNull(loans.quotaConsumedAt),
-            eq(loans.status, "pending"),
-          ),
+          or(quotaConsumedPredicate(), eq(loans.status, "pending")),
           ne(loans.id, id),
         ),
       );
@@ -518,7 +523,7 @@ export async function approveLoanWithinQuota(
         and(
           eq(loans.borrowerId, loan.borrowerId),
           eq(loans.termId, loan.termId),
-          isNotNull(loans.quotaConsumedAt),
+          quotaConsumedPredicate(),
         ),
       );
 
