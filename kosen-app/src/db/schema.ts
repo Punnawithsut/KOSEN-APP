@@ -257,6 +257,7 @@ export const loans = pgTable(
       onDelete: "set null",
     }),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
+    quotaConsumedAt: timestamp("quota_consumed_at", { withTimezone: true }),
     rejectReason: text("reject_reason"),
     cancelReason: text("cancel_reason"), // when admin cancel
 
@@ -283,12 +284,11 @@ export const loans = pgTable(
     deletedBy: uuid("deleted_by").references(() => users.userId),
   },
   (table) => ({
-    // quota of calculator per term
+    // Approved equipment-loan quota per borrower and term
     quotaIdx: index("loans_quota_idx").on(
       table.borrowerId,
       table.termId,
-      table.itemType,
-      table.status,
+      table.quotaConsumedAt,
     ),
     // Check calculator loan status once a day
     borrowerDayIdx: index("loans_borrower_item_date_idx").on(

@@ -157,10 +157,13 @@ export function LoanAgreementAcknowledgements({
                     3. Limits and late returns
                   </h3>
                   <p className="pl-4">
-                    Each person may borrow equipment for a maximum of 3 days per
-                    semester. Returning an item after the specified time may
-                    result in the loss of borrowing privileges for your next
-                    request.
+                    Each person may have a maximum of 3 approved equipment
+                    loans per term. Pending requests temporarily reserve an
+                    available use; rejected requests free that use. Once
+                    approved, a loan counts even if it is later cancelled or
+                    marked as a no-show. Returning an item after the specified
+                    time may result in the loss of borrowing privileges for
+                    your next request.
                   </p>
                 </section>
 

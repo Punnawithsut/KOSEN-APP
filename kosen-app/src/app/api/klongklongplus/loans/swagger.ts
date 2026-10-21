@@ -83,7 +83,7 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "Create a loan request",
       description:
-        "Creates a pending request for the authenticated user, including admins. The unit type is determined from the selected unit; optional itemType must match that unit.",
+        "Creates a pending request for the authenticated user, including admins. Pending requests reserve an available term quota use. The unit type is determined from the selected unit; optional itemType must match that unit.",
       requestBody: {
         required: true,
         content: {
@@ -108,7 +108,10 @@ export const loansDocs = {
         400: { description: "Invalid or past booking details" },
         401: { description: "Unauthorized" },
         404: { description: "Unit, term, or slot not found" },
-        409: { description: "Unit is unavailable or already reserved" },
+        409: {
+          description:
+            "Unit is unavailable, already reserved, or the borrower has three approved or pending requests for this term",
+        },
       },
     },
     get: {
@@ -264,7 +267,7 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "Edit a pending loan request",
       description:
-        "Any authenticated user, including admins, can edit their own pending request. unitId is immutable; a different unit requires deleting and recreating the request.",
+        "Any authenticated user, including admins, can edit their own pending request. Pending requests reserve an available term quota use. unitId is immutable; a different unit requires deleting and recreating the request.",
       parameters: loanIdParameters,
       requestBody: {
         required: true,
@@ -292,7 +295,10 @@ export const loansDocs = {
             "Loan request belongs to another user or caller is an admin",
         },
         404: { description: "Loan, term, or slot not found" },
-        409: { description: "Unit is unavailable or already reserved" },
+        409: {
+          description:
+            "Unit is unavailable, already reserved, or the borrower has three approved or pending requests for this term",
+        },
       },
     },
     delete: {
@@ -318,14 +324,17 @@ export const loansDocs = {
       tags: ["Loans"],
       summary: "Approve a pending loan",
       description:
-        "The first admin to approve a pending loan becomes its responsible admin.",
+        "Approving consumes one of the borrower's three equipment-loan uses for the term. The first admin to approve a pending loan becomes its responsible admin.",
       parameters: loanIdParameters,
       responses: {
         200: { description: "Loan approved" },
         401: { description: "Unauthorized" },
         403: { description: "Admin privileges required" },
         404: { description: "Loan not found" },
-        409: { description: "Loan is not pending" },
+        409: {
+          description:
+            "Loan is not pending or the borrower has reached the equipment-loan quota for this term",
+        },
       },
     },
   },
