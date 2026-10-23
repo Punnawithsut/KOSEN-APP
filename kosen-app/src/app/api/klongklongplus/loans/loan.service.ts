@@ -7,6 +7,7 @@ import {
   NotFoundError,
 } from "../../_shared/errors";
 import { parsePageQuery } from "../../_shared/pagination";
+import { MAX_APPROVED_LOANS_PER_TERM } from "./loan-quota";
 import * as loanRepo from "./loan.repo";
 import * as unitRepo from "../units/unit.repo";
 import * as termRepo from "../terms/term.repo";
@@ -492,12 +493,31 @@ async function validateBookingDateAndReferences(
   }
 }
 
+async function validateTermLoanQuota(
+  borrowerId: string,
+  termId: string,
+  excludeLoanId?: string,
+) {
+  const inUse = await loanRepo.countTermLoanQuotaSlotsInUse(
+    borrowerId,
+    termId,
+    excludeLoanId,
+  );
+  if (inUse >= MAX_APPROVED_LOANS_PER_TERM) {
+    throw new AppError(
+      `You already have ${MAX_APPROVED_LOANS_PER_TERM} approved or pending equipment loan requests for this term`,
+      409,
+    );
+  }
+}
+
 export async function createUserLoan(
   userId: string,
   data: CreateUserLoanData,
 ) {
   await requireCompleteProfile(userId);
   await validateBookingDateAndReferences(data.termId, data.slotId, data.slotDate);
+  await validateTermLoanQuota(userId, data.termId);
 
   try {
     const result = await loanRepo.createUserLoan({
@@ -511,6 +531,12 @@ export async function createUserLoan(
     if (result.kind === "unit_unavailable") {
       throw new AppError(
         "This unit is unavailable or already reserved for the requested date and time slot",
+        409,
+      );
+    }
+    if (result.kind === "quota_exceeded") {
+      throw new AppError(
+        `You already have ${MAX_APPROVED_LOANS_PER_TERM} approved or pending equipment loan requests for this term`,
         409,
       );
     }
@@ -543,6 +569,7 @@ export async function updateUserLoan(
   const slotId = data.slotId ?? existing.slotId;
   const slotDate = data.slotDate ?? existing.slotDate;
   await validateBookingDateAndReferences(termId, slotId, slotDate);
+  await validateTermLoanQuota(existing.borrowerId, termId, id);
 
   try {
     const result = await loanRepo.updateUserLoan(id, userId, data);
@@ -554,6 +581,12 @@ export async function updateUserLoan(
       throw new BadRequestError("Only pending loan requests can be edited");
     }
     if (result.kind === "unit_not_found") throw new NotFoundError("Unit not found");
+    if (result.kind === "quota_exceeded") {
+      throw new AppError(
+        `You already have ${MAX_APPROVED_LOANS_PER_TERM} approved or pending equipment loan requests for this term`,
+        409,
+      );
+    }
     if (result.kind === "unit_unavailable") {
       throw new AppError(
         "This unit is unavailable or already reserved for the requested date and time slot",
@@ -602,30 +635,31 @@ async function releaseUnit(unitId: string) {
 }
 
 /**
- * pending -> approved. First admin to click wins (conditional update on
- * status = 'pending'); the approving admin becomes the loan's sole
- * responsible admin for the rest of its lifecycle (requirements §3.5).
+ * pending -> approved. Approval consumes one quota use for the borrower and
+ * term; the approving admin becomes the loan's responsible admin.
  */
 export async function approveLoan(loanId: string, adminId: string) {
-  const updated = await loanRepo.updateLoanWhere(
-    and(eq(loans.id, loanId), eq(loans.status, "pending")),
-    {
-      status: "approved",
-      approvedBy: adminId,
-      approvedAt: new Date(),
-      updatedAt: new Date(),
-    },
+  const approvedAt = new Date();
+  const result = await loanRepo.approveLoanWithinQuota(
+    loanId,
+    adminId,
+    approvedAt,
   );
 
-  if (!updated) {
-    const existing = await requireLoan(loanId);
+  if (result.kind === "approved") return result.loan;
+  if (result.kind === "quota_exceeded") {
     throw new AppError(
-      `Cannot approve a loan with status "${existing.status}" (already handled, or not pending)`,
+      `The borrower has reached the maximum of ${MAX_APPROVED_LOANS_PER_TERM} approved equipment loans for this term`,
       409,
     );
   }
+  if (result.kind === "not_found") throw new NotFoundError("Loan not found");
 
-  return updated;
+  const existing = await requireLoan(loanId);
+  throw new AppError(
+    `Cannot approve a loan with status "${existing.status}" (already handled, or not pending)`,
+    409,
+  );
 }
 
 /** pending -> rejected. Requires a reason. The unit was never marked `out`, so nothing to release. */

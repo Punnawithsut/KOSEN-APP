@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { ActionDialog } from "@/components/action-dialog";
+import { LoanAgreementAcknowledgements } from "@/components/klongklongplus/loan-agreement-acknowledgements";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useDeleteLoan, useUpdateLoan } from "@/hooks/use-loan";
@@ -49,7 +50,8 @@ export function LoanRequestManageDialogs({
     } catch (error) {
       toast({
         title: "Unable to delete request",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
         variant: "error",
       });
     }
@@ -96,20 +98,33 @@ function EditLoanDialog({
 }) {
   const [editDate, setEditDate] = React.useState(loan.slotDate);
   const [editSlotId, setEditSlotId] = React.useState(loan.slotId);
+  const [borrowingRulesAccepted, setBorrowingRulesAccepted] =
+    React.useState(false);
+  const [responsibilityAgreementAccepted, setResponsibilityAgreementAccepted] =
+    React.useState(false);
   const { toast } = useToast();
   const {
     data: availableSlotsResponse,
     error: availableSlotsError,
     isLoading: areAvailableSlotsLoading,
   } = useAvailableSlots(loan.unitId, editDate, !!editDate, loan.id);
-  const { trigger: updateLoan, isMutating: isUpdating } = useUpdateLoan(loan.id);
+  const { trigger: updateLoan, isMutating: isUpdating } = useUpdateLoan(
+    loan.id,
+  );
   const availableSlots = availableSlotsResponse?.data ?? [];
   const today = getBangkokDate();
   const minDate = loan.term.startDate > today ? loan.term.startDate : today;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (loan.status !== "pending" || !editDate || !editSlotId) return;
+    if (
+      loan.status !== "pending" ||
+      !editDate ||
+      !editSlotId ||
+      !borrowingRulesAccepted ||
+      !responsibilityAgreementAccepted
+    )
+      return;
     if (!availableSlots.some((slot) => slot.id === editSlotId)) {
       toast({
         title: "Choose an available time slot",
@@ -126,7 +141,8 @@ function EditLoanDialog({
     } catch (error) {
       toast({
         title: "Unable to update request",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
         variant: "error",
       });
     }
@@ -149,7 +165,9 @@ function EditLoanDialog({
       isActionDisabled={
         areAvailableSlotsLoading ||
         !!availableSlotsError ||
-        !availableSlots.some((slot) => slot.id === editSlotId)
+        !availableSlots.some((slot) => slot.id === editSlotId) ||
+        !borrowingRulesAccepted ||
+        !responsibilityAgreementAccepted
       }
     >
       <form id="edit-loan-request-form" onSubmit={handleSubmit}>
@@ -209,6 +227,14 @@ function EditLoanDialog({
               ))}
             </Select>
           </label>
+
+          <LoanAgreementAcknowledgements
+            borrowingRulesAccepted={borrowingRulesAccepted}
+            responsibilityAgreementAccepted={responsibilityAgreementAccepted}
+            disabled={isUpdating}
+            onBorrowingRulesChange={setBorrowingRulesAccepted}
+            onResponsibilityAgreementChange={setResponsibilityAgreementAccepted}
+          />
         </div>
       </form>
     </ActionDialog>

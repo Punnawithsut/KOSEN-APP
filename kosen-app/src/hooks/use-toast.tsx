@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 
 type ToastVariant = "default" | "error" | "success";
 
@@ -8,6 +9,8 @@ type ToastInput = {
   title: string;
   description?: string;
   variant?: ToastVariant;
+  actionHref?: string;
+  actionLabel?: string;
 };
 
 type ToastItem = ToastInput & { id: number };
@@ -64,6 +67,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 <p className="text-sm font-semibold">{item.title}</p>
                 {item.description && (
                   <p className="text-sm opacity-90">{item.description}</p>
+                )}
+                {item.actionHref && item.actionLabel && (
+                  <Link
+                    href={item.actionHref}
+                    className="inline-block text-sm font-medium underline underline-offset-2"
+                  >
+                    {item.actionLabel}
+                  </Link>
                 )}
               </div>
               <button

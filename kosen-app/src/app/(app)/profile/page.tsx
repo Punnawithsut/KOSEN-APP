@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import {
   useMyProfile,
@@ -58,6 +59,7 @@ export default function ProfilePage() {
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
   const snapshotRef = useRef<ProfileForm>(EMPTY_FORM);
 
   const {
@@ -71,6 +73,16 @@ export default function ProfilePage() {
 
   const displayedForm = !isEditing && profile ? toProfileForm(profile) : form;
   const avatarSrc = displayedForm.avatarUrl ? "/api/profile/avatar" : null;
+
+  useEffect(() => {
+    if (profileError) {
+      toast({
+        title: "Unable to load profile",
+        description: profileError.message,
+        variant: "error",
+      });
+    }
+  }, [profileError, toast]);
 
   useEffect(() => {
     let active = true;
@@ -145,24 +157,38 @@ export default function ProfilePage() {
       setForm(updatedForm);
       snapshotRef.current = updatedForm;
       setIsEditing(false);
+      toast({ title: "Profile saved", variant: "success" });
     } catch (error) {
-      setSaveError(
-        error instanceof Error ? error.message : "Unable to save your profile.",
-      );
+      const message =
+        error instanceof Error ? error.message : "Unable to save your profile.";
+      setSaveError(message);
+      toast({
+        title: "Could not save profile",
+        description: message,
+        variant: "error",
+      });
     }
   }
 
   async function handleNotificationToggle(next: boolean) {
-    console.log("Button Press");
     const targetUserId = profile?.userId;
-    console.log(targetUserId);
-    if (!targetUserId) return;
+    if (!targetUserId) {
+      toast({
+        title: "Could not update notifications",
+        description: "Your profile is not available yet. Please try again.",
+        variant: "error",
+      });
+      return;
+    }
 
     if (next && typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "denied") {
-        alert(
-          "Notifications are blocked in your browser settings. Please enable them in site settings.",
-        );
+        toast({
+          title: "Notifications are blocked",
+          description:
+            "Enable notifications in your browser's site settings, then try again.",
+          variant: "error",
+        });
         setNotificationsEnabled(false);
         return;
       }
@@ -188,9 +214,18 @@ export default function ProfilePage() {
           await subscription.unsubscribe();
         }
       }
+      toast({
+        title: next ? "Notifications enabled" : "Notifications disabled",
+        variant: "success",
+      });
     } catch (error) {
-      console.log(error);
       setNotificationsEnabled(!next);
+      toast({
+        title: "Could not update notifications",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        variant: "error",
+      });
     }
   }
 
@@ -201,16 +236,26 @@ export default function ProfilePage() {
       const { error } = await createClient().auth.signOut();
       if (error) {
         setLogoutError(error.message);
+        toast({
+          title: "Could not sign out",
+          description: error.message,
+          variant: "error",
+        });
         setIsLoggingOut(false);
         return;
       }
       router.replace("/login");
     } catch (error) {
-      setLogoutError(
+      const message =
         error instanceof Error
           ? error.message
-          : "An unexpected error occurred.",
-      );
+          : "An unexpected error occurred.";
+      setLogoutError(message);
+      toast({
+        title: "Could not sign out",
+        description: message,
+        variant: "error",
+      });
       setIsLoggingOut(false);
     }
   }

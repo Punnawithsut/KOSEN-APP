@@ -10,6 +10,7 @@ import {
 } from "@/components/data-table-user";
 import { LoanRequestDialog } from "@/components/klongklongplus/loan-request-dialog";
 import { useUnits } from "@/hooks/use-unit";
+import { useToast } from "@/hooks/use-toast";
 import type { Unit } from "@/hooks/use-unit";
 
 const UNIT_STATUS_STYLES = {
@@ -29,6 +30,7 @@ export default function CalculatorsPage() {
   const [search, setSearch] = React.useState("");
   const [selectedUnit, setSelectedUnit] = React.useState<Unit | null>(null);
   const [isRequestDialogOpen, setIsRequestDialogOpen] = React.useState(false);
+  const { toast } = useToast();
 
   React.useEffect(() => {
     const timeout = setTimeout(() => {
@@ -44,6 +46,15 @@ export default function CalculatorsPage() {
     page,
     search: search || undefined,
   });
+  React.useEffect(() => {
+    if (error) {
+      toast({
+        title: "Unable to load calculators",
+        description: error.message,
+        variant: "error",
+      });
+    }
+  }, [error, toast]);
   const pageData = data?.data;
   const pagination: PaginationState = {
     page: pageData?.page ?? page,
