@@ -12,6 +12,10 @@ import {
 
 import { ActionDialog } from "@/components/action-dialog";
 import {
+  SendNotificationButton,
+  type SendNotificationHandle,
+} from "@/components/send-notification-button";
+import {
   DataTable,
   type DataTableColumn,
   type PaginationState,
@@ -267,6 +271,9 @@ function LoanActions({
 }) {
   const [activeAction, setActiveAction] = React.useState<LoanAction | null>(null);
   const [detail, setDetail] = React.useState("");
+  const [isSendingDecisionNotification, setIsSendingDecisionNotification] =
+    React.useState(false);
+  const notificationRef = React.useRef<SendNotificationHandle>(null);
   const { toast } = useToast();
   const { trigger: accept, isMutating: isAccepting } = useAcceptLoan(loan.id);
   const { trigger: reject, isMutating: isRejecting } = useRejectLoan(loan.id);
@@ -281,7 +288,8 @@ function LoanActions({
     isDelivering ||
     isReturning ||
     isMarkingNoShow ||
-    isCancelling;
+    isCancelling ||
+    isSendingDecisionNotification;
   const isResponsibleAdmin = loan.approver?.userId === adminId;
 
   const openAction = (action: LoanAction) => {
@@ -319,6 +327,41 @@ function LoanActions({
         case "cancel":
           await cancel({ reason: detail.trim() });
           break;
+      }
+      if (activeAction === "approve" || activeAction === "reject") {
+        setIsSendingDecisionNotification(true);
+        try {
+          const notification =
+            await notificationRef.current?.sendIfEnabled();
+          if (notification && !notification.skipped) {
+            toast(
+              notification.error
+                ? {
+                    title: "Loan updated; notification not fully sent",
+                    description: notification.error,
+                    variant: "error",
+                  }
+                : {
+                    title: "Borrower notified",
+                    description: `Sent to ${notification.sentCount} user(s).`,
+                    variant: "success",
+                  },
+            );
+          }
+        } catch (notificationError) {
+          toast(
+            {
+              title: "Loan updated; notification could not be sent",
+              description:
+                notificationError instanceof Error
+                  ? notificationError.message
+                  : "Please try again.",
+              variant: "error",
+            },
+          );
+        } finally {
+          setIsSendingDecisionNotification(false);
+        }
       }
       toast({ title: "Loan status updated", variant: "success" });
       setActiveAction(null);
@@ -364,6 +407,8 @@ function LoanActions({
           isLoading={isLoading}
           onClose={() => setActiveAction(null)}
           onSubmit={handleAction}
+          notificationRef={notificationRef}
+          borrowerId={loan.borrowerId}
         />
       </>
     );
@@ -411,6 +456,8 @@ function LoanActions({
           isLoading={isLoading}
           onClose={() => setActiveAction(null)}
           onSubmit={handleAction}
+          notificationRef={notificationRef}
+          borrowerId={loan.borrowerId}
         />
       </>
     );
@@ -439,6 +486,8 @@ function LoanActions({
           isLoading={isLoading}
           onClose={() => setActiveAction(null)}
           onSubmit={handleAction}
+          notificationRef={notificationRef}
+          borrowerId={loan.borrowerId}
         />
       </>
     );
@@ -469,6 +518,8 @@ function LoanActionDialog({
   isLoading,
   onClose,
   onSubmit,
+  notificationRef,
+  borrowerId,
 }: {
   action: LoanAction | null;
   detail: string;
@@ -476,6 +527,8 @@ function LoanActionDialog({
   isLoading: boolean;
   onClose: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  notificationRef: React.Ref<SendNotificationHandle>;
+  borrowerId: string;
 }) {
   const actionLabels: Record<LoanAction, string> = {
     approve: "Approve loan",
@@ -534,6 +587,24 @@ function LoanActionDialog({
               maxLength={500}
             />
           </label>
+        )}
+        {(action === "approve" || action === "reject") && (
+          <SendNotificationButton
+            ref={notificationRef}
+            isUseInModal
+            inModalText="Notify the borrower about this decision"
+            notificationTitle={
+              action === "approve"
+                ? "Your loan has been accepted"
+                : "Your loan has been rejected"
+            }
+            notificationBody={
+              action === "approve"
+                ? "Your loan request was accepted. Open the app to view details."
+                : "Your loan request was rejected. Open the app to view details."
+            }
+            targetUserIds={[borrowerId]}
+          />
         )}
       </form>
     </ActionDialog>
