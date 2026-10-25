@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 
@@ -15,7 +15,7 @@ export type UpdateProfileData = {
 
 export async function getUserById(userId: string) {
   return await db.query.users.findFirst({
-    where: eq(users.userId, userId),
+    where: and(eq(users.userId, userId), isNull(users.deletedAt)),
   });
 }
 
@@ -31,7 +31,7 @@ export async function updateUserById(
       updatedBy,
       updatedAt: new Date(),
     })
-    .where(eq(users.userId, userId))
+    .where(and(eq(users.userId, userId), isNull(users.deletedAt)))
     .returning();
 
   return updatedUser;

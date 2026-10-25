@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/db/client";
 import { pushSubscriptions } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 export type PushSubscriptionPayload = {
   endpoint: string;
@@ -23,6 +23,8 @@ export async function saveSubscription(
       p256dh: payload.keys.p256dh,
       auth: payload.keys.auth,
       updatedAt: new Date(),
+      deletedAt: null,
+      deletedBy: null,
     })
     .onConflictDoUpdate({
       target: pushSubscriptions.endpoint,
@@ -31,6 +33,8 @@ export async function saveSubscription(
         p256dh: payload.keys.p256dh,
         auth: payload.keys.auth,
         updatedAt: new Date(),
+        deletedAt: null,
+        deletedBy: null,
       },
     });
 }
@@ -41,7 +45,12 @@ export async function getSubscriptionForUser(
   const records = await db
     .select()
     .from(pushSubscriptions)
-    .where(eq(pushSubscriptions.userId, userId));
+    .where(
+      and(
+        eq(pushSubscriptions.userId, userId),
+        isNull(pushSubscriptions.deletedAt),
+      ),
+    );
 
   return records.map((record) => ({
     endpoint: record.endpoint,
@@ -53,7 +62,10 @@ export async function getSubscriptionForUser(
 }
 
 export async function getAllSubscriptions(): Promise<PushSubscriptionPayload[]> {
-  const records = await db.select().from(pushSubscriptions);
+  const records = await db
+    .select()
+    .from(pushSubscriptions)
+    .where(isNull(pushSubscriptions.deletedAt));
 
   return records.map((record) => ({
     endpoint: record.endpoint,
@@ -65,27 +77,44 @@ export async function getAllSubscriptions(): Promise<PushSubscriptionPayload[]> 
 }
 
 export async function deleteSubscription(endpoint: string) {
+  const deletedAt = new Date();
   await db
-    .delete(pushSubscriptions)
-    .where(eq(pushSubscriptions.endpoint, endpoint));
+    .update(pushSubscriptions)
+    .set({ deletedAt, updatedAt: deletedAt })
+    .where(
+      and(
+        eq(pushSubscriptions.endpoint, endpoint),
+        isNull(pushSubscriptions.deletedAt),
+      ),
+    );
 }
 
 export async function deleteSubscriptionForUser(
   userId: string,
   endpoint: string,
 ) {
+  const deletedAt = new Date();
   await db
-    .delete(pushSubscriptions)
+    .update(pushSubscriptions)
+    .set({ deletedAt, updatedAt: deletedAt })
     .where(
       and(
         eq(pushSubscriptions.userId, userId),
         eq(pushSubscriptions.endpoint, endpoint),
+        isNull(pushSubscriptions.deletedAt),
       ),
     );
 }
 
 export async function deleteUserSubscriptions(userId: string) {
+  const deletedAt = new Date();
   await db
-    .delete(pushSubscriptions)
-    .where(eq(pushSubscriptions.userId, userId));
+    .update(pushSubscriptions)
+    .set({ deletedAt, updatedAt: deletedAt })
+    .where(
+      and(
+        eq(pushSubscriptions.userId, userId),
+        isNull(pushSubscriptions.deletedAt),
+      ),
+    );
 }

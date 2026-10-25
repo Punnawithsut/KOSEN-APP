@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 export async function getCurrentUser() {
@@ -13,7 +13,7 @@ export async function getCurrentUser() {
   const [row] = await db
     .select()
     .from(users)
-    .where(eq(users.userId, data.user.id))
+    .where(and(eq(users.userId, data.user.id), isNull(users.deletedAt)))
     .limit(1);
 
   return row ?? null;

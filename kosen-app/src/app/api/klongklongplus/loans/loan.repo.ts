@@ -35,6 +35,28 @@ export const PAGE_SIZE = 20;
 
 const RESERVED_STATUSES = ["pending", "approved", "delivered", "overdue"] as const;
 
+function hideDeletedRelatedRecords<T extends {
+  borrower: { deletedAt: Date | null } | null;
+  approver?: { deletedAt: Date | null } | null;
+  unit: { deletedAt: Date | null } | null;
+  slot: { deletedAt: Date | null } | null;
+  term: { deletedAt: Date | null } | null;
+}>(loan: T) {
+  return {
+    ...loan,
+    borrower: loan.borrower?.deletedAt === null ? loan.borrower : null,
+    ...("approver" in loan
+      ? {
+          approver:
+            loan.approver?.deletedAt === null ? loan.approver : null,
+        }
+      : {}),
+    unit: loan.unit?.deletedAt === null ? loan.unit : null,
+    slot: loan.slot?.deletedAt === null ? loan.slot : null,
+    term: loan.term?.deletedAt === null ? loan.term : null,
+  };
+}
+
 function quotaConsumedPredicate() {
   return or(
     isNotNull(loans.quotaConsumedAt),
@@ -64,12 +86,15 @@ export async function findLoans(
           .select({ userId: users.userId })
           .from(users)
           .where(
-            or(
-              ilike(users.firstName, `%${normalizedName}%`),
-              ilike(users.lastName, `%${normalizedName}%`),
-              ilike(
-                sql`concat_ws(' ', ${users.firstName}, ${users.lastName})`,
-                `%${normalizedName}%`,
+            and(
+              isNull(users.deletedAt),
+              or(
+                ilike(users.firstName, `%${normalizedName}%`),
+                ilike(users.lastName, `%${normalizedName}%`),
+                ilike(
+                  sql`concat_ws(' ', ${users.firstName}, ${users.lastName})`,
+                  `%${normalizedName}%`,
+                ),
               ),
             ),
           ),
@@ -82,7 +107,12 @@ export async function findLoans(
         db
           .select({ id: units.id })
           .from(units)
-          .where(ilike(units.code, `%${normalizedUnit}%`)),
+          .where(
+            and(
+              ilike(units.code, `%${normalizedUnit}%`),
+              isNull(units.deletedAt),
+            ),
+          ),
       )
     : undefined;
   const filtersWhere = and(
@@ -112,7 +142,7 @@ export async function findLoans(
       .where(filtersWhere),
   ]);
 
-  return { items, total };
+  return { items: items.map(hideDeletedRelatedRecords), total };
 }
 
 export async function findUserLoans(
@@ -134,7 +164,12 @@ export async function findUserLoans(
         db
           .select({ id: units.id })
           .from(units)
-          .where(ilike(units.code, `%${unitSearch}%`)),
+          .where(
+            and(
+              ilike(units.code, `%${unitSearch}%`),
+              isNull(units.deletedAt),
+            ),
+          ),
       )
     : undefined;
   const where = and(
@@ -161,6 +196,7 @@ export async function findUserLoans(
             phone: true,
             department: true,
             year: true,
+            deletedAt: true,
           },
         },
         unit: true,
@@ -174,11 +210,11 @@ export async function findUserLoans(
     db.select({ total: count() }).from(loans).where(where),
   ]);
 
-  return { items, total };
+  return { items: items.map(hideDeletedRelatedRecords), total };
 }
 
 export async function findLoanById(id: string) {
-  return db.query.loans.findFirst({
+  const loan = await db.query.loans.findFirst({
     where: and(eq(loans.id, id), isNull(loans.deletedAt)),
     with: {
       borrower: true,
@@ -188,15 +224,16 @@ export async function findLoanById(id: string) {
       term: true,
     },
   });
+  return loan ? hideDeletedRelatedRecords(loan) : loan;
 }
 
 export async function findBookingDetails(termId: string, slotId: string) {
   const [term, slot] = await Promise.all([
     db.query.terms.findFirst({
-      where: eq(terms.id, termId),
+      where: and(eq(terms.id, termId), isNull(terms.deletedAt)),
     }),
     db.query.slots.findFirst({
-      where: eq(slots.id, slotId),
+      where: and(eq(slots.id, slotId), isNull(slots.deletedAt)),
     }),
   ]);
 
@@ -238,6 +275,7 @@ export async function findAvailableSlots(
         eq(loans.unitId, unitId),
         eq(loans.slotDate, slotDate),
         eq(loans.slotId, slots.id),
+        isNull(loans.deletedAt),
         inArray(loans.status, RESERVED_STATUSES),
         excludeLoanId ? ne(loans.id, excludeLoanId) : undefined,
       ),
@@ -268,7 +306,9 @@ export async function createUserLoan(data: {
     await tx
       .select({ userId: users.userId })
       .from(users)
-      .where(eq(users.userId, data.borrowerId))
+      .where(
+        and(eq(users.userId, data.borrowerId), isNull(users.deletedAt)),
+      )
       .for("update");
 
     const [{ total: quotaSlotsInUse }] = await tx
@@ -314,6 +354,7 @@ export async function createUserLoan(data: {
           eq(loans.unitId, data.unitId),
           eq(loans.slotDate, data.slotDate),
           eq(loans.slotId, data.slotId),
+          isNull(loans.deletedAt),
           inArray(loans.status, RESERVED_STATUSES),
         ),
       )
@@ -356,7 +397,9 @@ export async function updateUserLoan(
     await tx
       .select({ userId: users.userId })
       .from(users)
-      .where(eq(users.userId, candidate.borrowerId))
+      .where(
+        and(eq(users.userId, candidate.borrowerId), isNull(users.deletedAt)),
+      )
       .for("update");
 
     const [loan] = await tx
@@ -415,6 +458,7 @@ export async function updateUserLoan(
           eq(loans.unitId, loan.unitId),
           eq(loans.slotDate, slotDate),
           eq(loans.slotId, slotId),
+          isNull(loans.deletedAt),
           inArray(loans.status, RESERVED_STATUSES),
           ne(loans.id, id),
         ),
@@ -504,7 +548,9 @@ export async function approveLoanWithinQuota(
     await tx
       .select({ userId: users.userId })
       .from(users)
-      .where(eq(users.userId, candidate.borrowerId))
+      .where(
+        and(eq(users.userId, candidate.borrowerId), isNull(users.deletedAt)),
+      )
       .for("update");
 
     const [loan] = await tx
@@ -523,6 +569,7 @@ export async function approveLoanWithinQuota(
         and(
           eq(loans.borrowerId, loan.borrowerId),
           eq(loans.termId, loan.termId),
+          isNull(loans.deletedAt),
           quotaConsumedPredicate(),
         ),
       );
