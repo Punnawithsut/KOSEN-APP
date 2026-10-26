@@ -179,6 +179,7 @@ export const forms = pgTable("forms", { // For dorms
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   dueDate: timestamp("due_date", { withTimezone: true }),
+  formsURL: text("forms_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
