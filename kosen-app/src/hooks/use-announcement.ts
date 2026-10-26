@@ -27,7 +27,7 @@ export function useAnnouncement(id: string | null, fallbackData?: ApiResponse<An
 
   return {
     announcement: data?.data ?? null,
-    isLoading,
+    isLoading: isLoading && !data,
     isValidating,
     error,
     refetch: mutate,

@@ -130,7 +130,7 @@ export default function AnnouncementPage({
   // `useMyProfile` hands back the raw `{ data }` envelope, same as the profile
   // screen does. Unwrapping it once here keeps every read below on the profile
   // itself rather than on an envelope.
-  const profile = profileResponse?.data;
+  const profile = profileResponse?.data ?? null;
 
   // Admins get the write controls overlaid on the same screen the students see,
   // so there is no second route to keep in sync.

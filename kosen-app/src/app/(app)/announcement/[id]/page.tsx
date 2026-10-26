@@ -1,27 +1,44 @@
-import AnnouncementDetailPage from "./announcement-detail-view";
+import { notFound } from "next/navigation";
+import AnnouncementDetailClient from "./announcement-detail-view";
 import { fetchAnnouncement } from "@/app/api/announcement/announcement.service";
-import { AnnouncementDetailData, ApiResponse } from "@/lib/announcement/types";
+import { ApiResponse, AnnouncementDetailData } from "@/lib/announcement/types";
 
-export default async function Page({
+export default async function AnnouncementDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const resolvedParams = await params;
-  const id = resolvedParams?.id;
-  let initialAnnouncement: ApiResponse<AnnouncementDetailData> | undefined = undefined;
+  const { id } = await params;
+  let initialAnnouncement: ApiResponse<AnnouncementDetailData> | undefined =
+    undefined;
 
-  if (id) {
-    try {
-      const announcement = await fetchAnnouncement(id);
-      initialAnnouncement = {
-        ok: true,
-        data: announcement as unknown as AnnouncementDetailData,
-      };
-    } catch (error) {
-      console.error(`[SSR Prefetch] Failed to fetch announcement ${id}:`, error);
+  try {
+    const rawAnnouncement = await fetchAnnouncement(id);
+    if (!rawAnnouncement) {
+      notFound();
     }
+
+    initialAnnouncement = {
+      ok: true,
+      data: {
+        ...rawAnnouncement,
+        year: rawAnnouncement.year as number | "all",
+        createdAt:
+          rawAnnouncement.createdAt instanceof Date
+            ? rawAnnouncement.createdAt.toISOString()
+            : String(rawAnnouncement.createdAt),
+        updatedAt:
+          rawAnnouncement.updatedAt instanceof Date
+            ? rawAnnouncement.updatedAt.toISOString()
+            : String(rawAnnouncement.updatedAt),
+      },
+    };
+  } catch (error) {
+    console.error(
+      `[SSR Prefetch] Failed to prefetch announcement ${id}:`,
+      error,
+    );
   }
 
-  return <AnnouncementDetailPage initialAnnouncement={initialAnnouncement} />;
+  return <AnnouncementDetailClient initialAnnouncement={initialAnnouncement} />;
 }
