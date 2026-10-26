@@ -313,4 +313,25 @@ export const dormDocs = {
       },
     },
   },
+  "/api/dorm/handbook": {
+    get: {
+      tags: ["Dorm Handbook"],
+      summary: "Download dorm handbook PDF",
+      description:
+        "Downloads the dorm handbook PDF from the steady DORM_HANDBOOK_URL.",
+      responses: {
+        200: {
+          description: "Handbook PDF file",
+          content: {
+            "application/pdf": {
+              schema: { type: "string", format: "binary" },
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+        500: { description: "DORM_HANDBOOK_URL is not configured" },
+        502: { description: "Unable to fetch the handbook file" },
+      },
+    },
+  },
 };
