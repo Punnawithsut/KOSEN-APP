@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db/client"; // Adjust import to match your Drizzle DB instance
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -43,6 +43,15 @@ export function withSessionMiddleware<T = Record<string, string>>(
         );
       }
 
+      const activeUser = await db.query.users.findFirst({
+        where: and(eq(users.userId, user.id), isNull(users.deletedAt)),
+        columns: { userId: true },
+      });
+
+      if (!activeUser) {
+        throw new UnauthorizedError("User account is not active");
+      }
+
       const rateLimitResponse = await enforceApiRateLimit(req);
       if (rateLimitResponse) return rateLimitResponse;
 
@@ -77,7 +86,7 @@ export function useAdminMiddleware<T = Record<string, string>>(
 
       // Query database to check user role
       const dbUser = await db.query.users.findFirst({
-        where: eq(users.userId, user.id),
+        where: and(eq(users.userId, user.id), isNull(users.deletedAt)),
         columns: { role: true },
       });
 

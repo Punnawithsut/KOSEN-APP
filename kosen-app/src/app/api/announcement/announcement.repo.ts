@@ -103,7 +103,7 @@ export async function getAnnouncementById(id: string) {
       eq(announcements.isPublished, true),
       isNull(announcements.deletedAt),
     ),
-    with: { attachments: true },
+    with: { attachments: { where: isNull(announcementAttachments.deletedAt) } },
   });
 }
 
@@ -142,8 +142,13 @@ export async function createAnnouncement(
 
     return [
       await tx.query.announcements.findFirst({
-        where: eq(announcements.id, announcement.id),
-        with: { attachments: true },
+        where: and(
+          eq(announcements.id, announcement.id),
+          isNull(announcements.deletedAt),
+        ),
+        with: {
+          attachments: { where: isNull(announcementAttachments.deletedAt) },
+        },
       }),
     ];
   });
@@ -164,7 +169,12 @@ export async function updateAnnouncementById(
             await tx
               .select({ storagePath: announcementAttachments.storagePath })
               .from(announcementAttachments)
-              .where(eq(announcementAttachments.announcementId, id))
+              .where(
+                and(
+                  eq(announcementAttachments.announcementId, id),
+                  isNull(announcementAttachments.deletedAt),
+                ),
+              )
           )
             .map((file) => file.storagePath)
             .filter(
@@ -176,7 +186,12 @@ export async function updateAnnouncementById(
         : await tx
             .select({ titleImageUrl: announcements.titleImageUrl })
             .from(announcements)
-            .where(eq(announcements.id, id));
+            .where(
+              and(
+                eq(announcements.id, id),
+                isNull(announcements.deletedAt),
+              ),
+            );
 
     const updateData: {
       title?: string;
@@ -209,7 +224,12 @@ export async function updateAnnouncementById(
     if (data.files !== undefined) {
       await tx
         .delete(announcementAttachments)
-        .where(eq(announcementAttachments.announcementId, id));
+        .where(
+          and(
+            eq(announcementAttachments.announcementId, id),
+            isNull(announcementAttachments.deletedAt),
+          ),
+        );
 
       if (data.files.length) {
         await tx.insert(announcementAttachments).values(
@@ -226,8 +246,10 @@ export async function updateAnnouncementById(
 
     return {
       announcement: await tx.query.announcements.findFirst({
-        where: eq(announcements.id, id),
-        with: { attachments: true },
+        where: and(eq(announcements.id, id), isNull(announcements.deletedAt)),
+        with: {
+          attachments: { where: isNull(announcementAttachments.deletedAt) },
+        },
       }),
       removedStoragePaths: previousStoragePaths,
       removedTitleImageUrl:

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SendNotificationButton } from "@/components/send-notification-button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
@@ -535,21 +536,32 @@ export default function ProfilePage() {
               onCheckedChange={handleNotificationToggle}
             />
           </div>
-          {logoutError && (
-            <p role="alert" className="mt-3 text-sm text-negative-primary">
-              Unable to log out: {logoutError}
-            </p>
-          )}
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={isLoggingOut}
-            onClick={handleLogout}
-            className="mt-4 w-full"
-          >
-            {isLoggingOut ? "Logging out…" : "Log out"}
-          </Button>
         </form>
+
+        {profile?.role === "admin" && (
+          <div className="mt-5 w-full">
+            <SendNotificationButton
+              isUseInModal={false}
+              notificationTitle=""
+              notificationBody=""
+            />
+          </div>
+        )}
+
+        {logoutError && (
+          <p role="alert" className="mt-3 w-full text-sm text-negative-primary">
+            Unable to log out: {logoutError}
+          </p>
+        )}
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={isLoggingOut}
+          onClick={handleLogout}
+          className="mt-4 w-full"
+        >
+          {isLoggingOut ? "Logging out…" : "Log out"}
+        </Button>
       </div>
     </div>
   );

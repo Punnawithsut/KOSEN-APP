@@ -1,4 +1,4 @@
-import { asc, count, eq, type SQL } from "drizzle-orm";
+import { and, asc, count, eq, isNull, type SQL } from "drizzle-orm";
 import { db } from "@/db/client";
 import { units } from "@/db/schema";
 
@@ -15,19 +15,24 @@ export async function findUnits(where: SQL | undefined, page: number) {
 
   const [items, [{ total }]] = await Promise.all([
     db.query.units.findMany({
-      where,
+      where: and(where, isNull(units.deletedAt)),
       orderBy: [asc(units.itemType), asc(units.code)],
       limit: PAGE_SIZE,
       offset,
     }),
-    db.select({ total: count() }).from(units).where(where),
+    db
+      .select({ total: count() })
+      .from(units)
+      .where(and(where, isNull(units.deletedAt))),
   ]);
 
   return { items, total };
 }
 
 export async function findUnitById(id: string) {
-  return db.query.units.findFirst({ where: eq(units.id, id) });
+  return db.query.units.findFirst({
+    where: and(eq(units.id, id), isNull(units.deletedAt)),
+  });
 }
 
 export async function insertUnit(data: {
@@ -46,7 +51,7 @@ export async function updateUnitById(
   const [updated] = await db
     .update(units)
     .set(data)
-    .where(eq(units.id, id))
+    .where(and(eq(units.id, id), isNull(units.deletedAt)))
     .returning();
 
   return updated;
@@ -54,5 +59,7 @@ export async function updateUnitById(
 
 /** Lets a FK violation (unit has loan history, onDelete: "restrict") bubble up raw — the service translates it. */
 export async function deleteUnitById(id: string) {
-  await db.delete(units).where(eq(units.id, id));
+  await db
+    .delete(units)
+    .where(and(eq(units.id, id), isNull(units.deletedAt)));
 }

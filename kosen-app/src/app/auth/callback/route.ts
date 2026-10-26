@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 function getGoogleAvatarUrl(user: { user_metadata?: Record<string, unknown> }) {
@@ -72,6 +72,11 @@ export async function GET(request: Request) {
         where: eq(users.userId, data.user.id),
       });
 
+      if (existingUser?.deletedAt) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/login?error=account_inactive`);
+      }
+
       if (existingUser) {
         await db
           .update(users)
@@ -83,7 +88,9 @@ export async function GET(request: Request) {
             updatedBy: data.user.id,
             updatedAt: new Date(),
           })
-          .where(eq(users.userId, data.user.id));
+          .where(
+            and(eq(users.userId, data.user.id), isNull(users.deletedAt)),
+          );
       } else {
         await db.insert(users).values({
           userId: data.user.id,
