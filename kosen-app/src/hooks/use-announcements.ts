@@ -52,15 +52,13 @@ type UseAnnouncementsOptions = {
  * `keepPreviousData: true` keeps the current page's items on screen while the
  * next request is in flight, so the list does not flash empty when you page.
  */
-export function useAnnouncements({
-  page,
-  filters = EMPTY_FILTERS,
-}: UseAnnouncementsOptions) {
+export function useAnnouncements({page, filters = EMPTY_FILTERS,}: UseAnnouncementsOptions, fallbackData?: ApiResponse<AnnouncementListData>) {
   const url = `/api/announcement?${buildAnnouncementQuery(page, filters)}`;
 
   const { data, error, isLoading, isValidating, mutate } = useApi<
     ApiResponse<AnnouncementListData>
   >(url, {
+    fallbackData,
     keepPreviousData: true,
     // SWR retries 5x on ANY error by default. A 401/403 will never fix itself
     // by retrying, so retrying just floods the API with doomed requests.
