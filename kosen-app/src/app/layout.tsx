@@ -4,7 +4,8 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ToastProvider } from "@/hooks/use-toast";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/next"; 
+import { Analytics } from "@vercel/analytics/next";
+import NextTopLoader from "nextjs-toploader";
 
 // Must be `--font-inter`, NOT `--font-sans`.
 //
@@ -66,9 +67,18 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
-        <ToastProvider>
-          {children}
-          </ToastProvider>
+        {/* Fires on click, not on first paint: the page that follows has to
+            fetch before it can render, and without this the app looks frozen
+            for that whole window. Orange matches the primary accent. */}
+        <NextTopLoader
+          color="#f97316"
+          showSpinner={false}
+          height={3}
+          shadow={false}
+          crawlSpeed={200}
+          speed={300}
+        />
+        <ToastProvider>{children}</ToastProvider>
       </body>
       <SpeedInsights />
       <Analytics />

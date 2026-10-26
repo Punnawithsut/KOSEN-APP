@@ -13,7 +13,7 @@ import {
   PAGE_SIZE,
 } from "./announcement.repo";
 import {
-  getAnnouncementFileUrl,
+  getAnnouncementFileUrls,
   removeAnnouncementFiles,
   uploadAnnouncementFiles,
   uploadAnnouncementTitleImage,
@@ -143,27 +143,39 @@ function validateAnnouncementId(id: string) {
 }
 
 async function serializeAnnouncement(announcement: AnnouncementRecord) {
+  const titleImagePath = announcement.titleImageUrl?.startsWith(
+    `${announcement.id}/title/`,
+  )
+    ? announcement.titleImageUrl
+    : null;
+
+  // Everything that needs a signed URL, resolved in ONE Storage round trip.
+  // Signing per object made the detail request wait on 1 + N calls (banner plus
+  // every attachment), which is what made opening an announcement feel slow.
+  const signedUrls = await getAnnouncementFileUrls([
+    ...(titleImagePath ? [titleImagePath] : []),
+    ...announcement.attachments.flatMap((file) =>
+      file.storagePath ? [file.storagePath] : [],
+    ),
+  ]);
+
   return {
     id: announcement.id,
     name: announcement.title,
     description: announcement.content,
-    titleImageUrl: announcement.titleImageUrl?.startsWith(
-      `${announcement.id}/title/`,
-    )
-      ? await getAnnouncementFileUrl(announcement.titleImageUrl)
+    titleImageUrl: titleImagePath
+      ? (signedUrls.get(titleImagePath) ?? null)
       : announcement.titleImageUrl,
     year: announcement.targetYear ?? "all",
     department: announcement.targetDepartment ?? "all",
     type: announcement.category ?? "all",
-    files: await Promise.all(
-      announcement.attachments.map(async (file) => ({
-        url: file.storagePath
-          ? await getAnnouncementFileUrl(file.storagePath)
-          : file.fileUrl,
-        type: file.fileType,
-        displayOrder: file.displayOrder,
-      })),
-    ),
+    files: announcement.attachments.map((file) => ({
+      url: file.storagePath
+        ? (signedUrls.get(file.storagePath) ?? null)
+        : file.fileUrl,
+      type: file.fileType,
+      displayOrder: file.displayOrder,
+    })),
     authorId: announcement.authorId,
     createdBy: announcement.createdBy,
     updatedBy: announcement.updatedBy,
