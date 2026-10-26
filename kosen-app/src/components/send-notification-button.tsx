@@ -22,6 +22,28 @@ const DEPARTMENTS = [
 const YEARS = [1, 2, 3, 4, 5] as const;
 const DORM_BUILDINGS = ["7", "8"] as const;
 const SEND_BATCH_SIZE = 100;
+
+// Codes returned by `/api/notifications/send`. "No device subscribed" is a
+// different problem from "the push service rejected it", so they must not be
+// collapsed into one message.
+const FAILURE_LABELS: Record<string, string> = {
+  no_subscription: "no subscribed device",
+  missing_vapid_keys: "push not configured on the server",
+  delivery_failed: "delivery error",
+};
+
+function describePartialFailure(reasons: string[]): string {
+  const counts = new Map<string, number>();
+  for (const reason of reasons) {
+    counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  }
+
+  const parts = [...counts.entries()].map(
+    ([reason, count]) => `${count} with ${FAILURE_LABELS[reason] ?? reason}`,
+  );
+
+  return parts.length > 0 ? ` (${parts.join(", ")})` : "";
+}
 const FIELD_CLASS =
   "w-full rounded-xl border border-black-5 bg-white px-3 py-2 text-sm text-black-1 outline-none transition focus-visible:border-blue-primary focus-visible:ring-2 focus-visible:ring-blue-subtle-1 disabled:opacity-60";
 
@@ -119,8 +141,7 @@ export const SendNotificationButton = forwardRef<
     const params = new URLSearchParams();
     if (filters.department) params.set("department", filters.department);
     if (filters.year) params.set("year", filters.year);
-    if (filters.dormBuilding)
-      params.set("dormBuilding", filters.dormBuilding);
+    if (filters.dormBuilding) params.set("dormBuilding", filters.dormBuilding);
     if (filters.dormRoom.trim())
       params.set("dormRoom", filters.dormRoom.trim());
 
@@ -182,9 +203,14 @@ export const SendNotificationButton = forwardRef<
       let sentCount = 0;
       let failedCount = 0;
       let firstError: string | undefined;
+      const failureReasons: string[] = [];
 
       try {
-        for (let index = 0; index < uniqueIds.length; index += SEND_BATCH_SIZE) {
+        for (
+          let index = 0;
+          index < uniqueIds.length;
+          index += SEND_BATCH_SIZE
+        ) {
           const batch = uniqueIds.slice(index, index + SEND_BATCH_SIZE);
           try {
             const response = await fetch("/api/notifications/send", {
@@ -200,6 +226,7 @@ export const SendNotificationButton = forwardRef<
               ok?: boolean;
               successfulUsersCount?: number;
               failedUsersCount?: number;
+              failures?: { userId: string; reason: string }[];
               reason?: string;
               error?: string;
             };
@@ -212,6 +239,9 @@ export const SendNotificationButton = forwardRef<
 
             sentCount += result.successfulUsersCount ?? 0;
             failedCount += result.failedUsersCount ?? 0;
+            for (const failure of result.failures ?? []) {
+              failureReasons.push(failure.reason);
+            }
           } catch (error) {
             failedCount += batch.length;
             firstError ??=
@@ -227,7 +257,7 @@ export const SendNotificationButton = forwardRef<
       const error =
         firstError ??
         (failedCount > 0
-          ? `${failedCount} recipient(s) did not receive the notification.`
+          ? `${failedCount} recipient(s) did not receive the notification${describePartialFailure(failureReasons)}.`
           : undefined);
       setSendError(error ?? null);
       return { skipped: false, sentCount, failedCount, error };
@@ -281,7 +311,9 @@ export const SendNotificationButton = forwardRef<
     const result = await sendToUsers(ids);
     if (result.error) {
       toast({
-        title: result.sentCount ? "Notification partially sent" : "Unable to send notification",
+        title: result.sentCount
+          ? "Notification partially sent"
+          : "Unable to send notification",
         description: result.error,
         variant: "error",
       });
@@ -450,7 +482,9 @@ export const SendNotificationButton = forwardRef<
               Dorm room
               <Input
                 value={filters.dormRoom}
-                onChange={(event) => updateFilter("dormRoom", event.target.value)}
+                onChange={(event) =>
+                  updateFilter("dormRoom", event.target.value)
+                }
                 placeholder="All rooms"
                 maxLength={50}
                 disabled={isSending}
@@ -472,11 +506,16 @@ export const SendNotificationButton = forwardRef<
                       ? "Loading users…"
                       : `${selectedCount} of ${recipients.length} selected`}
                   </span>
-                  <span aria-hidden className="text-black-3">▾</span>
+                  <span aria-hidden className="text-black-3">
+                    ▾
+                  </span>
                 </summary>
                 <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-black-5 bg-white p-2 shadow-lg">
                   {recipientError ? (
-                    <p role="alert" className="p-2 text-xs text-negative-primary">
+                    <p
+                      role="alert"
+                      className="p-2 text-xs text-negative-primary"
+                    >
                       {recipientError}
                     </p>
                   ) : isLoadingRecipients ? (
@@ -514,7 +553,9 @@ export const SendNotificationButton = forwardRef<
                               onChange={() => toggleRecipient(recipient.userId)}
                               className="size-4 accent-orange-secondary"
                             />
-                            <span>{recipient.studentId ?? "No student ID"}</span>
+                            <span>
+                              {recipient.studentId ?? "No student ID"}
+                            </span>
                           </label>
                         );
                       })}
