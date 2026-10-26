@@ -26,9 +26,13 @@ export function useLoans(filters: LoanFilters = {}) {
   return useApi<ApiResponse<PagedData<LoanRecord>>>(url);
 }
 
-export function useMyLoans(page = 1, filters: LoanFilters = {}) {
+export function useMyLoans(
+  page = 1,
+  filters: LoanFilters = {},
+  fallbackData?: ApiResponse<PagedData<LoanRecord>>,
+) {
   const url = `${MY_LOANS_URL}${queryString({ ...filters, page })}`;
-  return useApi<ApiResponse<PagedData<LoanRecord>>>(url);
+  return useApi<ApiResponse<PagedData<LoanRecord>>>(url, { fallbackData });
 }
 
 export function useCreateLoan() {

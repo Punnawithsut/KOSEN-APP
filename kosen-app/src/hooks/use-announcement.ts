@@ -14,10 +14,11 @@ import type {
  * `id` is nullable because `useParams()` does not narrow on its own; passing
  * `null` parks SWR instead of requesting `/api/announcement/`.
  */
-export function useAnnouncement(id: string | null) {
+export function useAnnouncement(id: string | null, fallbackData?: ApiResponse<AnnouncementDetailData>) {
   const { data, error, isLoading, isValidating, mutate } = useApi<
     ApiResponse<AnnouncementDetailData>
   >(id ? `/api/announcement/${id}` : null, {
+    fallbackData,
     // A 401/403/404 will never fix itself by retrying, so retrying just floods
     // the API with doomed requests.
     shouldRetryOnError: (err) =>
@@ -26,7 +27,7 @@ export function useAnnouncement(id: string | null) {
 
   return {
     announcement: data?.data ?? null,
-    isLoading,
+    isLoading: isLoading && !data,
     isValidating,
     error,
     refetch: mutate,

@@ -1,123 +1,34 @@
-"use client";
+import { listUnits } from "@/app/api/klongklongplus/units/unit.service";
+import type {
+  ApiResponse,
+  PagedData,
+  Unit,
+} from "@/hooks/types/klongklongplus-types";
+import { serializeDates } from "@/lib/api/serialize-dates";
 
-import * as React from "react";
-import { Search } from "lucide-react";
+import ChargersView from "./chargers-view";
 
-import { Input } from "@/components/ui/input";
-import {
-  DataTableUser,
-  type PaginationState,
-} from "@/components/data-table-user";
-import { LoanRequestDialog } from "@/components/klongklongplus/loan-request-dialog";
-import { useUnits } from "@/hooks/use-unit";
-import { useToast } from "@/hooks/use-toast";
-import type { Unit } from "@/hooks/use-unit";
+/**
+ * Server-rendered shell for the chargers list.
+ *
+ * Prefetches exactly the state the client opens on — page 1, no search — and
+ * hands it to the view as SWR fallback data. Any other state (a search term, a
+ * later page) still goes through the API; a fallback only applies to the key it
+ * was fetched for.
+ *
+ * The prefetch is best-effort: on failure this renders the view with no
+ * fallback and the client fetches for itself, which is exactly how the page
+ * behaved before.
+ */
+export default async function ChargersPage() {
+  let initialUnits: ApiResponse<PagedData<Unit>> | undefined;
 
-const UNIT_STATUS_STYLES = {
-  available: "bg-noti-positive-subtle text-black-2",
-  out: "bg-noti-warning-subtle text-black-2",
-  repair: "bg-muted text-muted-foreground",
-  lost: "bg-negative-subtle text-negative-primary",
-} as const;
+  try {
+    const units = await listUnits({ itemType: "charger", isActive: true }, 1);
+    initialUnits = { ok: true, data: serializeDates<PagedData<Unit>>(units) };
+  } catch (error) {
+    console.error("[SSR Prefetch] Failed to prefetch chargers:", error);
+  }
 
-function formatUnitStatus(status: keyof typeof UNIT_STATUS_STYLES) {
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-export default function ChargersPage() {
-  const [page, setPage] = React.useState(1);
-  const [searchInput, setSearchInput] = React.useState("");
-  const [search, setSearch] = React.useState("");
-  const [selectedUnit, setSelectedUnit] = React.useState<Unit | null>(null);
-  const [isRequestDialogOpen, setIsRequestDialogOpen] = React.useState(false);
-  const { toast } = useToast();
-
-  React.useEffect(() => {
-    const timeout = setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
-    }, 350);
-    return () => clearTimeout(timeout);
-  }, [searchInput]);
-
-  const { data, error, isLoading } = useUnits({
-    itemType: "charger",
-    isActive: true,
-    page,
-    search: search || undefined,
-  });
-  React.useEffect(() => {
-    if (error) {
-      toast({
-        title: "Unable to load chargers",
-        description: error.message,
-        variant: "error",
-      });
-    }
-  }, [error, toast]);
-  const pageData = data?.data;
-  const pagination: PaginationState = {
-    page: pageData?.page ?? page,
-    pageSize: pageData?.pageSize ?? 20,
-    total: pageData?.total ?? 0,
-    totalPages: Math.ceil(
-      (pageData?.total ?? 0) / (pageData?.pageSize ?? 20),
-    ),
-  };
-
-  return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-black-1">
-          Chargers
-        </h1>
-        <p className="text-sm text-black-3">Browse available chargers.</p>
-      </header>
-
-      <div className="relative w-full sm:max-w-xs">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-black-4" />
-        <Input
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search code or notes"
-          className="border-orange-subtle-2 pl-8 focus-visible:border-orange-primary focus-visible:ring-orange-subtle-1"
-          aria-label="Search chargers by code or notes"
-        />
-      </div>
-
-      {error && (
-        <p role="alert" className="text-sm text-negative-primary">
-          Unable to load chargers: {error.message}
-        </p>
-      )}
-
-      <DataTableUser
-        data={pageData?.items ?? []}
-        getItem={(unit) => ({
-          id: unit.id,
-          title: unit.code,
-          description: unit.note ?? undefined,
-          status: {
-            label: formatUnitStatus(unit.status),
-            className: UNIT_STATUS_STYLES[unit.status],
-          },
-          onAction: () => {
-            setSelectedUnit(unit);
-            setIsRequestDialogOpen(true);
-          },
-          actionDisabled: unit.status !== "available",
-          actionLabel: "Request",
-        })}
-        pagination={pagination}
-        onPageChange={setPage}
-        isLoading={isLoading}
-        emptyMessage="No chargers match your search."
-      />
-      <LoanRequestDialog
-        unit={selectedUnit}
-        open={isRequestDialogOpen}
-        onOpenChange={setIsRequestDialogOpen}
-      />
-    </main>
-  );
+  return <ChargersView initialUnits={initialUnits} />;
 }
