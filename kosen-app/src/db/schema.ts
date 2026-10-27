@@ -28,6 +28,16 @@ export const announcementCategoryEnum = pgEnum("announcement_category", [
   "others",
 ]);
 
+export const officeDays = pgEnum("office_days", [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+]);
+
 export const userRoleEnum = pgEnum("user_role", ["user", "counselor", "admin"]);
 
 export const itemTypeEnum = pgEnum("item_type", ["calculator", "charger"]);
@@ -163,6 +173,57 @@ export const announcementAttachments = pgTable(
     ),
   }),
 );
+
+export const forms = pgTable("forms", { // For dorms
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  dueDate: timestamp("due_date", { withTimezone: true }),
+  formsURL: text("forms_url"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => users.userId),
+  updatedBy: uuid("updated_by").references(() => users.userId),
+  deletedBy: uuid("deleted_by").references(() => users.userId),
+});
+
+export const dormWardensInfo = pgTable("dorm_wardens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  lineID: varchar("line_id", { length: 255 }),
+  phone: varchar("phone", { length: 20 }),
+  role: varchar("role", { length: 100 }).default("Educator"),
+  officeDay: officeDays("office_day").notNull(),
+  officeStartTime: time("office_start_time").notNull(),
+  officeEndTime: time("office_end_time").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => users.userId),
+  updatedBy: uuid("updated_by").references(() => users.userId),
+  deletedBy: uuid("deleted_by").references(() => users.userId),
+});
+
+export const rules = pgTable("rules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  rule_description: text("rule_description"),
+  penalty_description: text("penalty_description"), //Optional, but could be useful if want to separate in the frontend.
+  point_deduction: integer("point_deduction"), // Optional
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }), 
+});
 
 export const terms = pgTable("terms", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -364,6 +425,36 @@ export const announcementAttachmentsRelations = relations(
     }),
   }),
 );
+
+export const formsRelations = relations(forms, ({ one }) => ({
+  createdByUser: one(users, {
+    fields: [forms.createdBy],
+    references: [users.userId],
+  }),
+  updatedByUser: one(users, {
+    fields: [forms.updatedBy],
+    references: [users.userId],
+  }),
+  deletedByUser: one(users, {
+    fields: [forms.deletedBy],
+    references: [users.userId],
+  }),
+}));
+
+export const dormWardensInfoRelations = relations(dormWardensInfo, ({ one }) => ({
+  createdByUser: one(users, {
+    fields: [dormWardensInfo.createdBy],
+    references: [users.userId],
+  }),
+  updatedByUser: one(users, {
+    fields: [dormWardensInfo.updatedBy],
+    references: [users.userId],
+  }),
+  deletedByUser: one(users, {
+    fields: [dormWardensInfo.deletedBy],
+    references: [users.userId],
+  }),
+}));  
 
 export const termsRelations = relations(terms, ({ many }) => ({
   loans: many(loans),

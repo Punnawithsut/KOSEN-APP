@@ -73,6 +73,14 @@ function getPolicy(request: Request): RateLimitPolicy | null {
     };
   }
 
+  if (path === '/api/dorm' || /^\/api\/dorm\//.test(path)) {
+    return {
+      identifier: 'dorm',
+      maxRequests: 20,
+      windowSeconds: 60,
+    };
+  }
+
   // Cover new API routes by default. Query strings are intentionally excluded
   // from the bucket so changing search parameters cannot bypass the limit.
   const isRead = method === 'GET' || method === 'HEAD';
