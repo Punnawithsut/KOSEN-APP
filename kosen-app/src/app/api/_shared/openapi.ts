@@ -5,6 +5,7 @@ import { unitsDocs } from "../klongklongplus/units/swagger";
 import { termsDocs } from "../klongklongplus/terms/swagger";
 import { slotsDocs } from "../klongklongplus/slots/swagger";
 import { dormDocs } from "../dorm/dorm.swagger";
+import { userDocs } from "../user/user.swagger";
 
 export const openApiSpec = {
   openapi: "3.0.0",
@@ -24,6 +25,7 @@ export const openApiSpec = {
     { name: "Dorm Handbook", description: "Dormitory handbook download endpoint" },
     { name: "Dorm Rules", description: "Dormitory rule endpoints" },
     { name: "Dorm", description: "Dormitory aggregate dashboard endpoint" },
+    { name: "Users", description: "User recipient lookup endpoints" },
   ],
   paths: {
     ...profileDocs,
@@ -33,5 +35,6 @@ export const openApiSpec = {
     ...termsDocs,
     ...slotsDocs,
     ...dormDocs,
+    ...userDocs,
   },
 };

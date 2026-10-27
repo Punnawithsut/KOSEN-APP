@@ -1,15 +1,13 @@
 import { useApi } from "@/lib/api/use-api";
 import { usePut } from "@/lib/api/use-mutation";
 
-type ApiResponse<T> = {
+export type ApiResponse<T> = {
   data: T;
 };
 
 export type MyProfile = {
   userId: string;
   studentId: string | null;
-  // Mirrors the `user_role` pgEnum in `src/db/schema.ts`. `getUserById` selects
-  // the whole row, so this is already on the wire — it was just missing here.
   role: "user" | "counselor" | "admin";
   firstName: string | null;
   lastName: string | null;
@@ -35,8 +33,10 @@ export type UpdateMyProfile = {
   dormRoom?: string;
 };
 
-export function useMyProfile() {
-  return useApi<ApiResponse<MyProfile>>("/api/profile");
+export function useMyProfile(initialData?: ApiResponse<MyProfile>) {
+  return useApi<ApiResponse<MyProfile>>("/api/profile", {
+    fallbackData: initialData,
+  });
 }
 
 export function useUpdateMyProfile() {

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
@@ -8,7 +8,7 @@ const GOOGLE_AVATAR_HOST = /(^|\.)googleusercontent\.com$/i;
 
 export const GET = withSessionMiddleware(async (_req, { user }) => {
   const profile = await db.query.users.findFirst({
-    where: eq(users.userId, user.id),
+    where: and(eq(users.userId, user.id), isNull(users.deletedAt)),
     columns: { avatarUrl: true },
   });
 

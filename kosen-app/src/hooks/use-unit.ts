@@ -14,10 +14,13 @@ import { queryString } from "@/hooks/types/klongklongplus-types";
 
 const UNITS_URL = "/api/klongklongplus/units";
 
-export function useUnits(filters: UnitFilters = {}) {
+export function useUnits(
+  filters: UnitFilters = {},
+  fallbackData?: ApiResponse<PagedData<Unit>>,
+) {
   const { page = 1, ...query } = filters;
   const url = `${UNITS_URL}${queryString({ ...query, page })}`;
-  return useApi<ApiResponse<PagedData<Unit>>>(url);
+  return useApi<ApiResponse<PagedData<Unit>>>(url, { fallbackData });
 }
 
 export function useCreateUnit() {

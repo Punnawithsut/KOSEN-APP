@@ -1,114 +1,37 @@
-"use client";
+import { listUnits } from "@/app/api/klongklongplus/units/unit.service";
+import type {
+  ApiResponse,
+  PagedData,
+  Unit,
+} from "@/hooks/types/klongklongplus-types";
+import { serializeDates } from "@/lib/api/serialize-dates";
 
-import * as React from "react";
-import { Search } from "lucide-react";
+import CalculatorsView from "./calculators-view";
 
-import { Input } from "@/components/ui/input";
-import {
-  DataTableUser,
-  type PaginationState,
-} from "@/components/data-table-user";
-import { LoanRequestDialog } from "@/components/klongklongplus/loan-request-dialog";
-import { useUnits } from "@/hooks/use-unit";
-import type { Unit } from "@/hooks/use-unit";
+/**
+ * Server-rendered shell for the calculators list.
+ *
+ * Prefetches exactly the state the client opens on — page 1, no search — and
+ * hands it to the view as SWR fallback data, so the first paint already has
+ * rows. Any other state (a search term, a later page) still goes through the
+ * API; a fallback only applies to the key it was fetched for.
+ *
+ * The prefetch is best-effort: on failure this renders the view with no
+ * fallback and the client fetches for itself, which is exactly how the page
+ * behaved before.
+ */
+export default async function CalculatorsPage() {
+  let initialUnits: ApiResponse<PagedData<Unit>> | undefined;
 
-const UNIT_STATUS_STYLES = {
-  available: "bg-noti-positive-subtle text-black-2",
-  out: "bg-noti-warning-subtle text-black-2",
-  repair: "bg-muted text-muted-foreground",
-  lost: "bg-negative-subtle text-negative-primary",
-} as const;
+  try {
+    const units = await listUnits(
+      { itemType: "calculator", isActive: true },
+      1,
+    );
+    initialUnits = { ok: true, data: serializeDates<PagedData<Unit>>(units) };
+  } catch (error) {
+    console.error("[SSR Prefetch] Failed to prefetch calculators:", error);
+  }
 
-function formatUnitStatus(status: keyof typeof UNIT_STATUS_STYLES) {
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-export default function CalculatorsPage() {
-  const [page, setPage] = React.useState(1);
-  const [searchInput, setSearchInput] = React.useState("");
-  const [search, setSearch] = React.useState("");
-  const [selectedUnit, setSelectedUnit] = React.useState<Unit | null>(null);
-  const [isRequestDialogOpen, setIsRequestDialogOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    const timeout = setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
-    }, 350);
-    return () => clearTimeout(timeout);
-  }, [searchInput]);
-
-  const { data, error, isLoading } = useUnits({
-    itemType: "calculator",
-    isActive: true,
-    page,
-    search: search || undefined,
-  });
-  const pageData = data?.data;
-  const pagination: PaginationState = {
-    page: pageData?.page ?? page,
-    pageSize: pageData?.pageSize ?? 20,
-    total: pageData?.total ?? 0,
-    totalPages: Math.ceil(
-      (pageData?.total ?? 0) / (pageData?.pageSize ?? 20),
-    ),
-  };
-
-  return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-black-1">
-          Calculators
-        </h1>
-        <p className="text-sm text-black-3">
-          Browse available calculators.
-        </p>
-      </header>
-
-      <div className="relative w-full sm:max-w-xs">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-black-4" />
-        <Input
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search code or notes"
-          className="border-orange-subtle-2 pl-8 focus-visible:border-orange-primary focus-visible:ring-orange-subtle-1"
-          aria-label="Search calculators by code or notes"
-        />
-      </div>
-
-      {error && (
-        <p role="alert" className="text-sm text-negative-primary">
-          Unable to load calculators: {error.message}
-        </p>
-      )}
-
-      <DataTableUser
-        data={pageData?.items ?? []}
-        getItem={(unit) => ({
-          id: unit.id,
-          title: unit.code,
-          description: unit.note ?? undefined,
-          status: {
-            label: formatUnitStatus(unit.status),
-            className: UNIT_STATUS_STYLES[unit.status],
-          },
-          onAction: () => {
-            setSelectedUnit(unit);
-            setIsRequestDialogOpen(true);
-          },
-          actionDisabled: unit.status !== "available",
-          actionLabel: "Request",
-        })}
-        pagination={pagination}
-        onPageChange={setPage}
-        isLoading={isLoading}
-        emptyMessage="No calculators match your search."
-      />
-      <LoanRequestDialog
-        unit={selectedUnit}
-        open={isRequestDialogOpen}
-        onOpenChange={setIsRequestDialogOpen}
-      />
-    </main>
-  );
+  return <CalculatorsView initialUnits={initialUnits} />;
 }

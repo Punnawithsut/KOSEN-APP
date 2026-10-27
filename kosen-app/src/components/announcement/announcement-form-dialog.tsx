@@ -11,7 +11,13 @@ import {
 
 import { ActionDialog } from "@/components/action-dialog";
 import { AnnouncementPreviewDialog } from "@/components/announcement/announcement-preview-dialog";
+import {
+  SendNotificationButton,
+  type NotificationDraft,
+  type SendNotificationHandle,
+} from "@/components/send-notification-button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import {
   ALL_VALUE,
   DEPARTMENTS,
@@ -32,6 +38,12 @@ const TEXTAREA_CLASS =
 
 /** `adv.` maps to year 6, which `parseYear` rejects — admins can't pick it. */
 const SELECTABLE_YEARS = YEARS.filter((option) => option.enabled);
+const EMPTY_NOTIFICATION_DRAFT: NotificationDraft = {
+  enabled: false,
+  autoFill: false,
+  title: "",
+  body: "",
+};
 
 type AnnouncementFormDialogProps = {
   open: boolean;
@@ -95,6 +107,10 @@ export function AnnouncementFormDialog({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notificationDraft, setNotificationDraft] =
+    useState<NotificationDraft>(EMPTY_NOTIFICATION_DRAFT);
+  const { toast } = useToast();
+  const notificationRef = useRef<SendNotificationHandle>(null);
 
   // Blob URLs for the preview live in a ref, so they are not part of the render
   // dependency graph. Only `previewSrc` — what to actually show — is state.
@@ -125,6 +141,7 @@ export function AnnouncementFormDialog({
     closePreview();
     setFilesError(null);
     setError(null);
+    setNotificationDraft(EMPTY_NOTIFICATION_DRAFT);
   }
 
   /**
@@ -214,6 +231,56 @@ export function AnnouncementFormDialog({
     openPreview();
   }
 
+  async function sendAnnouncementNotification() {
+    const notification = notificationRef.current;
+    if (!notification?.isEnabled()) return;
+
+    try {
+      const params = new URLSearchParams();
+      if (department !== ALL_VALUE) params.set("department", department);
+      if (year !== ALL_VALUE) params.set("year", year);
+
+      const response = await fetch(
+        `/api/user${params.size ? `?${params.toString()}` : ""}`,
+      );
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        data?: { userId: string; studentId: string | null }[];
+        error?: string;
+      };
+      if (!response.ok || !payload.ok || !Array.isArray(payload.data)) {
+        throw new Error(payload.error ?? "Unable to load announcement audience.");
+      }
+
+      const result = await notification.sendIfEnabled(
+        payload.data.map((recipient) => recipient.userId),
+      );
+      if (result.skipped) return;
+      if (result.error) {
+        toast({
+          title: "Announcement published; notification not fully sent",
+          description: result.error,
+          variant: "error",
+        });
+      } else {
+        toast({
+          title: "Announcement notification sent",
+          description: `Sent to ${result.sentCount} user(s).`,
+          variant: "success",
+        });
+      }
+    } catch (notificationError) {
+      toast({
+        title: "Announcement published; notification could not be sent",
+        description:
+          notificationError instanceof Error
+            ? notificationError.message
+            : "Unable to load announcement audience.",
+        variant: "error",
+      });
+    }
+  }
+
   /** The only write in this component, and it only runs from the preview. */
   async function publish() {
     setError(null);
@@ -255,17 +322,27 @@ export function AnnouncementFormDialog({
         );
       }
 
+      if (!isEdit) await sendAnnouncementNotification();
       resetForm();
       onOpenChange(false);
       onSaved();
+      toast({
+        title: isEdit ? "Announcement updated" : "Announcement published",
+        variant: "success",
+      });
     } catch (submitError) {
       // Stay in the preview on failure, so a rejected publish does not cost the
       // admin the text they typed or the files they picked.
-      setError(
+      const message =
         submitError instanceof Error
           ? submitError.message
-          : `Could not ${isEdit ? "update" : "create"} the announcement.`,
-      );
+          : `Could not ${isEdit ? "update" : "create"} the announcement.`;
+      setError(message);
+      toast({
+        title: `Could not ${isEdit ? "update" : "publish"} announcement`,
+        description: message,
+        variant: "error",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -275,27 +352,42 @@ export function AnnouncementFormDialog({
   // own `<ActionDialog>` at the same nesting depth, so nothing below needs
   // re-indenting, and only one overlay is ever mounted.
   return isPreviewing ? (
-    <AnnouncementPreviewDialog
-      name={name.trim()}
-      description={description.trim()}
-      bannerUrl={previewSrc.banner}
-      currentTitleImageUrl={announcement?.titleImageUrl ?? null}
-      files={files}
-      fileUrls={previewSrc.files}
-      currentFiles={announcement?.files ?? []}
-      replacesAttachments={files.length > 0 || clearFiles}
-      isPublishing={submitting}
-      error={error}
-      onCancel={() => {
-        // Back to the form with everything still typed in, minus the publish
-        // error the preview was showing.
-        setError(null);
-        closePreview();
-      }}
-      onPublish={() => {
-        void publish();
-      }}
-    />
+    <>
+      <AnnouncementPreviewDialog
+        name={name.trim()}
+        description={description.trim()}
+        bannerUrl={previewSrc.banner}
+        currentTitleImageUrl={announcement?.titleImageUrl ?? null}
+        files={files}
+        fileUrls={previewSrc.files}
+        currentFiles={announcement?.files ?? []}
+        replacesAttachments={files.length > 0 || clearFiles}
+        isPublishing={submitting}
+        error={error}
+        onCancel={() => {
+          // Back to the form with everything still typed in, minus the publish
+          // error the preview was showing.
+          setError(null);
+          closePreview();
+        }}
+        onPublish={() => {
+          void publish();
+        }}
+      />
+      {!isEdit && (
+        <div className="hidden">
+          <SendNotificationButton
+            ref={notificationRef}
+            isUseInModal
+            inModalText="Notify the announcement audience"
+            notificationTitle={name.trim()}
+            notificationBody={description.trim()}
+            draft={notificationDraft}
+            onDraftChange={setNotificationDraft}
+          />
+        </div>
+      )}
+    </>
   ) : (
     <ActionDialog
       open={open}
@@ -353,6 +445,18 @@ export function AnnouncementFormDialog({
               className={TEXTAREA_CLASS}
             />
           </div>
+
+          {!isEdit && (
+            <SendNotificationButton
+              ref={notificationRef}
+              isUseInModal
+              inModalText="Notify the announcement audience"
+              notificationTitle={name.trim()}
+              notificationBody={description.trim()}
+              draft={notificationDraft}
+              onDraftChange={setNotificationDraft}
+            />
+          )}
 
           {/* ActionDialog is a narrow `max-w-md` shell, so three columns would
               squeeze "Mechatronics" into ~125px. Two columns plus a full-width
