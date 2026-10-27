@@ -8,10 +8,10 @@ import * as formsService from "./forms.service";
 
 
 export const GET = withSessionMiddleware(async (req) => {
-  const { page, filters } = formsService.parseListQuery(
+  const { filters } = formsService.parseListQuery(
     req.nextUrl.searchParams,
   );
-  const data = await formsService.listForms(page, filters);
+  const data = await formsService.listForms(filters);
   return NextResponse.json({ ok: true, data });
 });
 

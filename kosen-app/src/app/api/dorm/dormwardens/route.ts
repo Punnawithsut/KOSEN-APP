@@ -6,10 +6,10 @@ import {
 import * as wardensService from "./dormwardens.service";
 
 export const GET = withSessionMiddleware(async (req) => {
-  const { page, filters } = wardensService.parseListQuery(
+  const { filters } = wardensService.parseListQuery(
     req.nextUrl.searchParams,
   );
-  const data = await wardensService.listWardens(page, filters);
+  const data = await wardensService.listWardens(filters);
   return NextResponse.json({ ok: true, data });
 });
 

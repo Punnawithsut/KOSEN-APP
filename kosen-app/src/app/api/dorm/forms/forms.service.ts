@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../../_shared/errors";
-import { parsePageQuery } from "../../_shared/pagination";
+// import { parsePageQuery } from "../../_shared/pagination";
 import {
   createForm as insertForm,
   getFormById,
@@ -9,7 +9,7 @@ import {
   type FormFilters,
   type FormUpdateData,
   updateFormById,
-  PAGE_SIZE,
+  // PAGE_SIZE,
 } from "./forms.repo";
 
 function parseObjectBody(body: unknown): Record<string, unknown> {
@@ -60,20 +60,21 @@ function parseOptionalUrl(value: unknown): string | null {
 }
 
 export function parseListQuery(searchParams: URLSearchParams) { //Seems useful but based on frontend ref it will not be used
-  const page =  parsePageQuery(searchParams, { //maybe redundant
-    pageSize: PAGE_SIZE,
-    required: true,
-  });
+  // const page =  parsePageQuery(searchParams, { //maybe redundant
+  //   pageSize: PAGE_SIZE,
+  //   required: true,
+  // });
 
   const filters: FormFilters = {};
   const searchName = searchParams.get("searchName")?.trim();
   if (searchName) filters.searchName = searchName;
 
-  return { page, filters };
+  // return { page, filters };
+  return { filters };
 }
 
-export async function listForms(page: number, filters: FormFilters) {
-  const { items, total } = await queryForms(filters, page);
+export async function listForms(filters: FormFilters /*, page: number*/) {
+  const { items /*, total*/ } = await queryForms(filters /*, page*/);
   return {
     items: items.map((item) => ({
       id: item.id,
@@ -88,12 +89,12 @@ export async function listForms(page: number, filters: FormFilters) {
       updatedAt: item.updatedAt,
       deletedAt: item.deletedAt,
     })),
-    pagination: { //Again, probably wouldn't be used based on frontend ref.
-      page,
-      pageSize: PAGE_SIZE,
-      total,
-      totalPages: Math.ceil(total / PAGE_SIZE),
-    },
+    // pagination: { //Again, probably wouldn't be used based on frontend ref.
+    //   page,
+    //   pageSize: PAGE_SIZE,
+    //   total,
+    //   totalPages: Math.ceil(total / PAGE_SIZE),
+    // },
   };
 }
 

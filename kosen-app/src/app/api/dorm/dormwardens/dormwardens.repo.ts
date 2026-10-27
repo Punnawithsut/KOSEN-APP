@@ -5,7 +5,7 @@ import { dormWardensInfo, officeDays } from "@/db/schema";
 /**
  * Rows per page for the dorm wardens list.
  */
-export const PAGE_SIZE = 10;
+// export const PAGE_SIZE = 10;
 
 export type WardenFilters = {
   searchName?: string;
@@ -34,22 +34,22 @@ function buildWardenWhere(filters: WardenFilters) {
   );
 }
 
-export async function listWardens(filters: WardenFilters, page: number) {
+export async function listWardens(filters: WardenFilters /*, page: number*/) {
   const where = buildWardenWhere(filters);
-  const offset = (page - 1) * PAGE_SIZE;
+  // const offset = (page - 1) * PAGE_SIZE;
 
-  const [items, [{ total }]] = await Promise.all([
+  const [items /*, [{ total }]*/] = await Promise.all([
     db
       .select()
       .from(dormWardensInfo)
       .where(where)
       .orderBy(desc(dormWardensInfo.createdAt))
-      .limit(PAGE_SIZE)
-      .offset(offset),
-    db.select({ total: count() }).from(dormWardensInfo).where(where),
+      // .limit(PAGE_SIZE)
+      // .offset(offset),
+    // db.select({ total: count() }).from(dormWardensInfo).where(where),
   ]);
 
-  return { items, total };
+  return { items /*, total*/ };
 }
 
 export async function getWardenById(id: string) {

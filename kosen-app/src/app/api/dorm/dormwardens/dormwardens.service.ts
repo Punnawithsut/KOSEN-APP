@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../../_shared/errors";
-import { parsePageQuery } from "../../_shared/pagination";
+// import { parsePageQuery } from "../../_shared/pagination";
 import { officeDays } from "@/db/schema";
 import {
   createWarden as insertWarden,
@@ -10,7 +10,7 @@ import {
   type WardenFilters,
   type WardenUpdateData,
   updateWardenById,
-  PAGE_SIZE,
+  // PAGE_SIZE,
 } from "./dormwardens.repo";
 
 const ALLOWED_OFFICE_DAYS = [
@@ -76,10 +76,10 @@ function parseRequiredOfficeTime(value: unknown, field: string): string {
 }
 
 export function parseListQuery(searchParams: URLSearchParams) {
-  const page = parsePageQuery(searchParams, {
-    pageSize: PAGE_SIZE,
-    required: true,
-  });
+  // const page = parsePageQuery(searchParams, {
+  //   pageSize: PAGE_SIZE,
+  //   required: true,
+  // });
 
   const filters: WardenFilters = {};
   const searchName = searchParams.get("searchName")?.trim();
@@ -88,11 +88,12 @@ export function parseListQuery(searchParams: URLSearchParams) {
   const officeDayParam = searchParams.get("officeDay")?.trim();
   if (officeDayParam) filters.officeDay = parseOfficeDay(officeDayParam);
 
-  return { page, filters };
+  // return { page, filters };
+  return { filters };
 }
 
-export async function listWardens(page: number, filters: WardenFilters) {
-  const { items, total } = await queryWardens(filters, page);
+export async function listWardens(filters: WardenFilters /*, page: number*/) {
+  const { items /*, total*/ } = await queryWardens(filters /*, page*/);
   return {
     items: items.map((item) => ({
       id: item.id,
@@ -110,12 +111,12 @@ export async function listWardens(page: number, filters: WardenFilters) {
       updatedAt: item.updatedAt,
       deletedAt: item.deletedAt,
     })),
-    pagination: { // Again, could be redundant since its not a whole page
-      page,
-      pageSize: PAGE_SIZE,
-      total,
-      totalPages: Math.ceil(total / PAGE_SIZE),
-    },
+    // pagination: { // Again, could be redundant since its not a whole page
+    //   page,
+    //   pageSize: PAGE_SIZE,
+    //   total,
+    //   totalPages: Math.ceil(total / PAGE_SIZE),
+    // },
   };
 }
 

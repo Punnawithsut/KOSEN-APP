@@ -5,7 +5,7 @@ import { forms } from "@/db/schema";
 /**
  * Rows per page for the dorm forms list.
  */
-export const PAGE_SIZE = 10;
+// export const PAGE_SIZE = 10;
 
 export type FormFilters = {
   searchName?: string;
@@ -25,22 +25,22 @@ function buildFormWhere(filters: FormFilters) {
   );
 }
 
-export async function listForms(filters: FormFilters, page: number) {
+export async function listForms(filters: FormFilters /*, page: number*/) {
   const where = buildFormWhere(filters);
-  const offset = (page - 1) * PAGE_SIZE;
+  // const offset = (page - 1) * PAGE_SIZE;
 
-  const [items, [{ total }]] = await Promise.all([
+  const [items /*, [{ total }]*/] = await Promise.all([
     db
       .select()
       .from(forms)
       .where(where)
       .orderBy(desc(forms.createdAt))
-      .limit(PAGE_SIZE)
-      .offset(offset),
-    db.select({ total: count() }).from(forms).where(where),
+      // .limit(PAGE_SIZE)
+      // .offset(offset),
+    // db.select({ total: count() }).from(forms).where(where),
   ]);
 
-  return { items, total };
+  return { items /*, total*/ };
 }
 
 export async function getFormById(id: string) {
