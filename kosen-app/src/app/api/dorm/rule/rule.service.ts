@@ -50,38 +50,48 @@ function parseOptionalInteger(value: unknown): number | null {
 }
 
 export function parseListQuery(searchParams: URLSearchParams) {
-  const page = parsePageQuery(searchParams, {
-    pageSize: PAGE_SIZE,
-    required: true,
-  });
-
   const filters: RuleFilters = {};
   const searchName = searchParams.get("searchName")?.trim();
   if (searchName) filters.searchName = searchName;
 
+  const pageParam = searchParams.get("page");
+  let page: number | undefined;
+  if (pageParam !== null) {
+    page = parsePageQuery(searchParams, {
+      pageSize: PAGE_SIZE,
+      required: false,
+    });
+  }
+
   return { page, filters };
 }
 
-export async function listRules(page: number, filters: RuleFilters) {
-  const { items, total } = await queryRules(filters, page);
-  return {
-    items: items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      rule_description: item.rule_description,
-      penalty_description: item.penalty_description,
-      point_deduction: item.point_deduction,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-      deletedAt: item.deletedAt,
-    })),
-    pagination: {
-      page,
-      pageSize: PAGE_SIZE,
-      total,
-      totalPages: Math.ceil(total / PAGE_SIZE),
-    },
-  };
+export async function listRules(page: number | undefined, filters: RuleFilters) {
+  const result = await queryRules(filters, page);
+  const items = result.items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    rule_description: item.rule_description,
+    penalty_description: item.penalty_description,
+    point_deduction: item.point_deduction,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    deletedAt: item.deletedAt,
+  }));
+
+  if (page !== undefined && result.total !== undefined) {
+    return {
+      items,
+      pagination: {
+        page,
+        pageSize: PAGE_SIZE,
+        total: result.total,
+        totalPages: Math.ceil(result.total / PAGE_SIZE),
+      },
+    };
+  }
+
+  return { items };
 }
 
 export async function fetchRule(id: string) {

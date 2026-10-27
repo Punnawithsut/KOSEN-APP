@@ -25,22 +25,24 @@ function buildRuleWhere(filters: RuleFilters) {
   );
 }
 
-export async function listRules(filters: RuleFilters, page: number) {
+export async function listRules(
+  filters: RuleFilters,
+  page?: number,
+) {
   const where = buildRuleWhere(filters);
-  const offset = (page - 1) * PAGE_SIZE;
+  const baseQuery = db.select().from(rules).where(where).orderBy(desc(rules.createdAt));
 
-  const [items, [{ total }]] = await Promise.all([
-    db
-      .select()
-      .from(rules)
-      .where(where)
-      .orderBy(desc(rules.createdAt))
-      .limit(PAGE_SIZE)
-      .offset(offset),
-    db.select({ total: count() }).from(rules).where(where),
-  ]);
+  if (page !== undefined) {
+    const offset = (page - 1) * PAGE_SIZE;
+    const [items, [{ total }]] = await Promise.all([
+      baseQuery.limit(PAGE_SIZE).offset(offset),
+      db.select({ total: count() }).from(rules).where(where),
+    ]);
+    return { items, total, page, pageSize: PAGE_SIZE };
+  }
 
-  return { items, total };
+  const items = await baseQuery;
+  return { items };
 }
 
 export async function getRuleById(id: string) {
