@@ -5,12 +5,6 @@ export const dormDocs = {
       summary: "List dorm forms",
       parameters: [
         {
-          name: "page",
-          in: "query",
-          required: true,
-          schema: { type: "integer", minimum: 1 },
-        },
-        {
           name: "searchName",
           in: "query",
           required: false,
@@ -18,8 +12,7 @@ export const dormDocs = {
         },
       ],
       responses: {
-        200: { description: "Dorm forms and pagination metadata" },
-        400: { description: "Invalid pagination parameters" },
+        200: { description: "List of dorm forms" },
         401: { description: "Unauthorized" },
       },
     },
@@ -140,12 +133,6 @@ export const dormDocs = {
       summary: "List dorm wardens",
       parameters: [
         {
-          name: "page",
-          in: "query",
-          required: true,
-          schema: { type: "integer", minimum: 1 },
-        },
-        {
           name: "searchName",
           in: "query",
           required: false,
@@ -170,8 +157,7 @@ export const dormDocs = {
         },
       ],
       responses: {
-        200: { description: "Dorm wardens and pagination metadata" },
-        400: { description: "Invalid pagination parameters" },
+        200: { description: "List of dorm wardens" },
         401: { description: "Unauthorized" },
       },
     },
@@ -334,6 +320,18 @@ export const dormDocs = {
       },
     },
   },
+  "/api/dorm": {
+    get: {
+      tags: ["Dorm"],
+      summary: "Get aggregate dorm dashboard data",
+      description:
+        "Returns information of dorm wardens, forms and rules.",
+      responses: {
+        200: { description: "Aggregate dorm data" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
   "/api/dorm/rule": {
     get: {
       tags: ["Dorm Rules"],
@@ -342,7 +340,7 @@ export const dormDocs = {
         {
           name: "page",
           in: "query",
-          required: true,
+          required: false,
           schema: { type: "integer", minimum: 1 },
         },
         {
@@ -353,7 +351,7 @@ export const dormDocs = {
         },
       ],
       responses: {
-        200: { description: "Dorm rules and pagination metadata" },
+        200: { description: "List of dorm rules" },
         400: { description: "Invalid pagination parameters" },
         401: { description: "Unauthorized" },
       },
