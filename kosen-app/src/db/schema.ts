@@ -211,6 +211,19 @@ export const dormWardensInfo = pgTable("dorm_wardens", {
   deletedBy: uuid("deleted_by").references(() => users.userId),
 });
 
+export const rules = pgTable("rules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  rule_description: text("rule_description"),
+  penalty_description: text("penalty_description"), //Optional, but could be useful if want to separate in the frontend.
+  point_deduction: integer("point_deduction"), // Optional
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }), 
+});
 
 export const terms = pgTable("terms", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -441,7 +454,7 @@ export const dormWardensInfoRelations = relations(dormWardensInfo, ({ one }) => 
     fields: [dormWardensInfo.deletedBy],
     references: [users.userId],
   }),
-}));
+}));  
 
 export const termsRelations = relations(terms, ({ many }) => ({
   loans: many(loans),
