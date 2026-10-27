@@ -334,4 +334,137 @@ export const dormDocs = {
       },
     },
   },
+  "/api/dorm/rule": {
+    get: {
+      tags: ["Dorm Rules"],
+      summary: "List dorm rules",
+      parameters: [
+        {
+          name: "page",
+          in: "query",
+          required: true,
+          schema: { type: "integer", minimum: 1 },
+        },
+        {
+          name: "searchName",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        200: { description: "Dorm rules and pagination metadata" },
+        400: { description: "Invalid pagination parameters" },
+        401: { description: "Unauthorized" },
+      },
+    },
+    post: {
+      tags: ["Dorm Rules"],
+      summary: "Create a dorm rule",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["name"],
+              properties: {
+                name: { type: "string", example: "No running in hallway" },
+                rule_description: {
+                  type: "string",
+                  example: "Students must not run in the dorm hallway.",
+                },
+                penalty_description: {
+                  type: "string",
+                  example: "Verbal warning for first offense.",
+                },
+                point_deduction: {
+                  type: "integer",
+                  example: 5,
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        201: { description: "Created successfully" },
+        400: { description: "Validation error" },
+        401: { description: "Unauthorized" },
+        403: { description: "Admin privileges required" },
+      },
+    },
+  },
+  "/api/dorm/rule/{id}": {
+    get: {
+      tags: ["Dorm Rules"],
+      summary: "Get a dorm rule",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+        },
+      ],
+      responses: {
+        200: { description: "Dorm rule details" },
+        401: { description: "Unauthorized" },
+        404: { description: "Rule not found" },
+      },
+    },
+    put: {
+      tags: ["Dorm Rules"],
+      summary: "Update a dorm rule",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                rule_description: { type: "string" },
+                penalty_description: { type: "string" },
+                point_deduction: { type: "integer" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Updated successfully" },
+        400: { description: "Validation error" },
+        401: { description: "Unauthorized" },
+        403: { description: "Admin privileges required" },
+        404: { description: "Rule not found" },
+      },
+    },
+    delete: {
+      tags: ["Dorm Rules"],
+      summary: "Soft-delete a dorm rule",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+        },
+      ],
+      responses: {
+        200: { description: "Soft-deleted successfully" },
+        401: { description: "Unauthorized" },
+        403: { description: "Admin privileges required" },
+        404: { description: "Rule not found" },
+      },
+    },
+  },
 };

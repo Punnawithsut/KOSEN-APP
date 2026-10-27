@@ -22,6 +22,7 @@ export const openApiSpec = {
     { name: "Dorm Forms", description: "Dormitory form endpoints" },
     { name: "Dorm Wardens", description: "Dormitory warden endpoints" },
     { name: "Dorm Handbook", description: "Dormitory handbook download endpoint" },
+    { name: "Dorm Rules", description: "Dormitory rule endpoints" },
   ],
   paths: {
     ...profileDocs,
