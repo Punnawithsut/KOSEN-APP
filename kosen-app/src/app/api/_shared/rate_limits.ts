@@ -74,10 +74,9 @@ function getPolicy(request: Request): RateLimitPolicy | null {
   }
 
   if (path === '/api/dorm' || /^\/api\/dorm\//.test(path)) {
-    const isRead = method === 'GET' || method === 'HEAD';
     return {
-      identifier: `dorm:${isRead ? 'read' : 'write'}`,
-      maxRequests: isRead ? 60 : 10,
+      identifier: 'dorm',
+      maxRequests: 20,
       windowSeconds: 60,
     };
   }
