@@ -16,8 +16,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AddButton,
+  EditButton,
+} from "@/components/dormitory/admin-ui";
+import {
+  HandbookDialog,
+  RuleDialog,
+} from "@/components/dormitory/handbook-dialogs";
 import { useToast } from "@/hooks/use-toast";
-import type { DormHandbook, DormRule } from "@/lib/dormitory/data";
+import type {
+  DormAttachment,
+  DormHandbook,
+  DormRule,
+} from "@/lib/dormitory/data";
 
 const ACTION_BASE =
   "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition-all active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary";
@@ -26,15 +38,26 @@ export function HandbookSection({
   handbook,
   rules,
   showHandbook,
+  isAdmin = false,
+  onHandbookChange,
+  onRuleSave,
 }: {
   handbook: DormHandbook;
   rules: DormRule[];
   showHandbook: boolean;
+  isAdmin?: boolean;
+  onHandbookChange?: (next: DormHandbook) => void;
+  onRuleSave?: (rule: DormRule) => void;
 }) {
   const { toast } = useToast();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [activeRule, setActiveRule] = useState<string | null>(null);
+  const [editingHandbook, setEditingHandbook] = useState(false);
+  // undefined = closed, null = adding, rule = editing.
+  const [editingRule, setEditingRule] = useState<DormRule | null | undefined>(
+    undefined,
+  );
 
   function handleDownload() {
     if (!handbook.pdfUrl) {
@@ -76,7 +99,14 @@ export function HandbookSection({
 
       <div className="grid gap-4 lg:grid-cols-2">
         {showHandbook ? (
-          <div className="flex gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4">
+          <div className="relative flex gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4">
+            {isAdmin ? (
+              <EditButton
+                label="Update handbook"
+                onClick={() => setEditingHandbook(true)}
+                className="absolute top-2 right-2"
+              />
+            ) : null}
             {/* Book cover */}
             <div
               aria-hidden
@@ -118,7 +148,7 @@ export function HandbookSection({
           </div>
         ) : null}
 
-        {rules.length > 0 ? (
+        {rules.length > 0 || isAdmin ? (
           <div className="flex flex-col gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4 sm:flex-row sm:items-center">
             <div className="flex items-center justify-between gap-4 sm:w-40 sm:shrink-0 sm:flex-col sm:items-start">
               <h3 className="font-display text-3xl text-black-2">Rules</h3>
@@ -133,11 +163,11 @@ export function HandbookSection({
             </div>
             <ul className="flex flex-1 flex-col gap-2">
               {rules.map((rule) => (
-                <li key={rule.id}>
+                <li key={rule.id} className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => openRule(rule.id)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg bg-orange-primary px-3 py-2 text-left text-white transition-all hover:brightness-95 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary"
+                    className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg bg-orange-primary px-3 py-2 text-left text-white transition-all hover:brightness-95 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary"
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-semibold">
@@ -149,8 +179,19 @@ export function HandbookSection({
                     </span>
                     <ArrowUpRightIcon className="size-4 shrink-0" />
                   </button>
+                  {isAdmin ? (
+                    <EditButton
+                      label={`Edit ${rule.title}`}
+                      onClick={() => setEditingRule(rule)}
+                    />
+                  ) : null}
                 </li>
               ))}
+              {isAdmin ? (
+                <li>
+                  <AddButton label="Add rule" onClick={() => setEditingRule(null)} />
+                </li>
+              ) : null}
             </ul>
           </div>
         ) : null}
@@ -200,18 +241,12 @@ export function HandbookSection({
                 {activeRule ? null : (
                   <h4 className="font-semibold text-black-1">{rule.title}</h4>
                 )}
-                <p className="text-sm text-black-2">{rule.body}</p>
-                {rule.fileUrl ? (
-                  <a
-                    href={rule.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-orange-secondary underline-offset-4 hover:underline"
-                  >
-                    <FileTextIcon className="size-4" />
-                    View attached file
-                  </a>
+                {rule.body ? (
+                  <p className="whitespace-pre-line text-sm text-black-2">
+                    {rule.body}
+                  </p>
                 ) : null}
+                <RuleAttachments attachments={rule.attachments} />
                 <p className="mt-1 text-xs text-black-4">
                   Updated {rule.updatedAt}
                 </p>
@@ -220,6 +255,72 @@ export function HandbookSection({
           </div>
         </DialogContent>
       </Dialog>
+
+      {isAdmin && editingHandbook ? (
+        <HandbookDialog
+          handbook={handbook}
+          onClose={() => setEditingHandbook(false)}
+          onSave={(next) => {
+            onHandbookChange?.(next);
+            setEditingHandbook(false);
+            toast({ title: "Handbook updated", variant: "success" });
+          }}
+        />
+      ) : null}
+
+      {isAdmin && editingRule !== undefined ? (
+        <RuleDialog
+          key={editingRule?.id ?? "new"}
+          rule={editingRule}
+          onClose={() => setEditingRule(undefined)}
+          onSave={(next) => {
+            onRuleSave?.(next);
+            setEditingRule(undefined);
+            toast({
+              title: editingRule ? "Rule updated" : "Rule added",
+              variant: "success",
+            });
+          }}
+        />
+      ) : null}
     </section>
+  );
+}
+
+/** Images render inline; every other file type becomes a link. */
+function RuleAttachments({ attachments }: { attachments: DormAttachment[] }) {
+  if (attachments.length === 0) return null;
+  const images = attachments.filter((file) => file.type.startsWith("image/"));
+  const others = attachments.filter((file) => !file.type.startsWith("image/"));
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {images.length > 0 ? (
+        <div className="grid grid-cols-2 gap-2">
+          {images.map((file) => (
+            <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer">
+              {/* Object URLs / arbitrary hosts: next/image cannot optimise these. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={file.url}
+                alt={file.name}
+                className="aspect-video w-full rounded-lg object-cover"
+              />
+            </a>
+          ))}
+        </div>
+      ) : null}
+      {others.map((file) => (
+        <a
+          key={file.id}
+          href={file.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-secondary underline-offset-4 hover:underline"
+        >
+          <FileTextIcon className="size-4 shrink-0" />
+          <span className="truncate">{file.name}</span>
+        </a>
+      ))}
+    </div>
   );
 }

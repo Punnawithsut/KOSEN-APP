@@ -1,48 +1,35 @@
 "use client";
 
-import { GaugeIcon, TableIcon, WrenchIcon, type LucideIcon } from "lucide-react";
+import { useState } from "react";
 
+import { AddButton, EditButton } from "@/components/dormitory/admin-ui";
+import { FormDialog } from "@/components/dormitory/form-dialog";
+import { FORM_ICONS } from "@/components/dormitory/form-icons";
+import {
+  FormPreviewDialog,
+  dueBadge,
+} from "@/components/dormitory/previews";
 import { useToast } from "@/hooks/use-toast";
 import type { DormForm } from "@/lib/dormitory/data";
 
-const ICONS: Record<DormForm["icon"], LucideIcon> = {
-  maintenance: WrenchIcon,
-  transfer: TableIcon,
-  meter: GaugeIcon,
-};
-
-const DAY_MS = 86_400_000;
-
-/** Badge text + colour for a form's deadline. */
-function dueBadge(closesAt: string | null): { label: string; className: string } {
-  if (!closesAt) {
-    return { label: "no due date", className: "bg-blue-subtle-2 text-blue-secondary" };
-  }
-  const days = Math.ceil((new Date(closesAt).getTime() - Date.now()) / DAY_MS);
-  if (days < 0) {
-    return { label: "Closed", className: "bg-black-6 text-black-3" };
-  }
-  if (days <= 3) {
-    const label = days <= 0 ? "Closes today" : `Closes in ${days} day${days === 1 ? "" : "s"}`;
-    return { label, className: "bg-noti-negative-subtle text-negative-primary" };
-  }
-  return { label: `Closes in ${days} days`, className: "bg-noti-warning-subtle text-black-2" };
-}
-
-export function FormsSection({ forms }: { forms: DormForm[] }) {
+export function FormsSection({
+  forms,
+  allForms = forms,
+  isAdmin = false,
+  onSave,
+}: {
+  /** Forms to show (after search). */
+  forms: DormForm[];
+  /** Every form, so the duplicate-link check ignores the search filter. */
+  allForms?: DormForm[];
+  isAdmin?: boolean;
+  onSave?: (form: DormForm) => void;
+}) {
   const { toast } = useToast();
+  // undefined = closed, null = adding, form = editing.
+  const [editing, setEditing] = useState<DormForm | null | undefined>(undefined);
 
-  function open(form: DormForm) {
-    if (!form.url) {
-      toast({
-        title: "Form not available yet",
-        description: "This form has not been published. Please check back later.",
-        variant: "error",
-      });
-      return;
-    }
-    window.open(form.url, "_blank", "noopener,noreferrer");
-  }
+  const [previewing, setPreviewing] = useState<DormForm | null>(null);
 
   return (
     <section aria-labelledby="forms-heading" className="flex flex-col gap-3">
@@ -51,18 +38,18 @@ export function FormsSection({ forms }: { forms: DormForm[] }) {
           Forms
         </h2>
         <p className="text-sm text-black-3">
-          Tap one to open it in Google Forms. Sign in with your @kmitl.ac.th account.
+          Tap a form to see its details and open it in Google Forms. Sign in with your @kmitl.ac.th account.
         </p>
       </div>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {forms.map((form) => {
-          const Icon = ICONS[form.icon];
+          const { Icon } = FORM_ICONS[form.icon];
           const badge = dueBadge(form.closesAt);
           return (
-            <li key={form.id}>
+            <li key={form.id} className="relative">
               <button
                 type="button"
-                onClick={() => open(form)}
+                onClick={() => setPreviewing(form)}
                 className="flex h-full w-full flex-col gap-2 rounded-xl border bg-white p-4 text-left shadow-xs transition-all hover:border-orange-subtle-1 hover:shadow-md active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary"
               >
                 <span className="flex size-10 items-center justify-center rounded-lg bg-black-6 text-black-2">
@@ -76,10 +63,41 @@ export function FormsSection({ forms }: { forms: DormForm[] }) {
                   {badge.label}
                 </span>
               </button>
+              {isAdmin ? (
+                <EditButton
+                  label={`Edit ${form.title}`}
+                  onClick={() => setEditing(form)}
+                  className="absolute top-2 right-2"
+                />
+              ) : null}
             </li>
           );
         })}
       </ul>
+      {previewing ? (
+        <FormPreviewDialog form={previewing} onClose={() => setPreviewing(null)} />
+      ) : null}
+      {isAdmin ? (
+        <AddButton label="Add form" onClick={() => setEditing(null)} />
+      ) : null}
+      {isAdmin && editing !== undefined ? (
+        <FormDialog
+          key={editing?.id ?? "new"}
+          form={editing}
+          takenUrls={allForms
+            .filter((other) => other.id !== editing?.id)
+            .map((other) => other.url)}
+          onClose={() => setEditing(undefined)}
+          onSave={(next) => {
+            onSave?.(next);
+            setEditing(undefined);
+            toast({
+              title: editing ? "Form updated" : "Form added",
+              variant: "success",
+            });
+          }}
+        />
+      ) : null}
     </section>
   );
 }
