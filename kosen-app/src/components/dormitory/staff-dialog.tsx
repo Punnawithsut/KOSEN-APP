@@ -31,7 +31,7 @@ export function StaffDialog({
   onClose,
 }: {
   person: DormStaff | null;
-  onSave: (next: DormStaff) => void;
+  onSave: (next: DormStaff, photoFile: File | null) => void;
   onClose: () => void;
 }) {
   const formId = `${useId()}-staff`;
@@ -46,6 +46,7 @@ export function StaffDialog({
   const [phone, setPhone] = useState(person?.phone ?? "");
   const [lineId, setLineId] = useState(person?.lineId ?? "");
   const [photo, setPhoto] = useState<string | null>(person?.photo ?? null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function updateHour(index: number, patch: Partial<OfficeHour>) {
@@ -56,8 +57,8 @@ export function StaffDialog({
 
   function handlePhoto(file: File | null) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("The profile photo must be an image.");
+    if (!new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]).has(file.type)) {
+      setError("Choose a JPEG, PNG, WebP, or GIF image.");
       return;
     }
     if (file.size > MAX_PHOTO_BYTES) {
@@ -65,6 +66,7 @@ export function StaffDialog({
       return;
     }
     setError(null);
+    setPhotoFile(file);
     setPhoto(URL.createObjectURL(file));
   }
 
@@ -84,7 +86,7 @@ export function StaffDialog({
       phone: phone.trim(),
       lineId: lineId.trim(),
       photo,
-    });
+    }, photoFile);
   }
 
   return (
@@ -225,7 +227,7 @@ export function StaffDialog({
           <input
             id={`${formId}-photo`}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             onChange={(event) => handlePhoto(event.target.files?.[0] ?? null)}
             className={FILE_CLASS}
           />

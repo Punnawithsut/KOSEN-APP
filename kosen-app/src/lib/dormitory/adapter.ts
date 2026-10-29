@@ -15,10 +15,10 @@ export function adaptDormData(raw: { wardens: unknown[]; forms: unknown[]; rules
     const name = String(w.name ?? "");
     const existing = staffById.get(name);
     if (existing) existing.officeHours.push(hours);
-    else staffById.set(name, { id: String(w.id), name, nickname: name, position: positions[String(w.role).toLowerCase()] ?? "educator", officeHours: [hours], phone: String(w.phone ?? ""), lineId: String(w.lineID ?? ""), photo: null });
+    else staffById.set(name, { id: String(w.id), name, nickname: name, position: positions[String(w.role).toLowerCase()] ?? "educator", officeHours: [hours], phone: String(w.phone ?? ""), lineId: String(w.lineID ?? ""), photo: typeof w.photoUrl === "string" ? w.photoUrl : null });
   }
   const forms: DormForm[] = (raw.forms ?? []).map((item) => { const f = asRaw(item); const name = String(f.name ?? ""); return { id: String(f.id), title: name, description: String(f.description ?? ""), url: String(f.formsURL ?? ""), closesAt: f.dueDate ? new Date(String(f.dueDate)).toISOString() : null, icon: iconFor(name) }; });
-  const rules: DormRule[] = (raw.rules ?? []).map((item) => { const r = asRaw(item); return { id: String(r.id), title: String(r.name ?? ""), body: [r.rule_description, r.penalty_description].filter((value): value is string => typeof value === "string" && Boolean(value)).join("\n\nPenalty: "), updatedAt: dateLabel(r.updatedAt), attachments: [] }; });
+  const rules: DormRule[] = (raw.rules ?? []).map((item) => { const r = asRaw(item); return { id: String(r.id), title: String(r.name ?? ""), body: [r.rule_description, r.penalty_description].filter((value): value is string => typeof value === "string" && Boolean(value)).join("\n\nPenalty: "), updatedAt: dateLabel(r.updatedAt) }; });
   const book = raw.handbook ? asRaw(raw.handbook) : null;
   const handbook: DormHandbook = book ? { title: String(book.title), edition: String(book.edition), pages: Number(book.pages), updatedAt: String(book.updatedAt), fileName: String(book.fileName), pdfUrl: String(book.pdfUrl) } : { title: "Dormitory Handbook", edition: "", pages: 0, updatedAt: "—", fileName: null, pdfUrl: null };
   return { staff: [...staffById.values()], forms, rules, handbook };

@@ -41,5 +41,9 @@ export default async function AnnouncementDetailPage({
     );
   }
 
-  return <AnnouncementDetailClient initialAnnouncement={initialAnnouncement} />;
+  return (
+    <div className="bg-bg-primary">
+      <AnnouncementDetailClient initialAnnouncement={initialAnnouncement} />
+    </div>
+  );
 }

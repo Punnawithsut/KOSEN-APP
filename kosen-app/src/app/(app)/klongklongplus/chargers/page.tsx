@@ -27,5 +27,9 @@ export default async function ChargersPage() {
     console.error("[SSR Prefetch] Failed to prefetch chargers:", error);
   }
 
-  return <ChargersView initialUnits={initialUnits} />;
+  return (
+    <div className="bg-bg-primary">
+      <ChargersView initialUnits={initialUnits} />
+    </div>
+  );
 }

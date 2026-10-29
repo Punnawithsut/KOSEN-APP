@@ -267,7 +267,7 @@ export default function ProfileView({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-bg-primary">
+    <div className="relative min-h-screen overflow-hidden">
       {/* decorative circles */}
       <div
         aria-hidden

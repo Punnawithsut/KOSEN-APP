@@ -3,5 +3,9 @@ import { requireAdmin } from "@/lib/auth/role";
 
 export default async function AdminSlotsRoute() {
   await requireAdmin();
-  return <AdminSlotsPage />;
+  return (
+    <div className="bg-bg-primary">
+      <AdminSlotsPage />
+    </div>
+  );
 }

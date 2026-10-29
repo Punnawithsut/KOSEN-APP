@@ -37,5 +37,9 @@ export default async function MyRequestsPage() {
     console.error("[SSR Prefetch] Failed to prefetch loan requests:", error);
   }
 
-  return <MyRequestsView initialLoans={initialLoans} />;
+  return (
+    <div className="bg-bg-primary">
+      <MyRequestsView initialLoans={initialLoans} />
+    </div>
+  );
 }

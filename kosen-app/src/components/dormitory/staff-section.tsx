@@ -22,7 +22,7 @@ export function StaffSection({
 }: {
   staff: DormStaff[];
   isAdmin?: boolean;
-  onSave?: (person: DormStaff) => void;
+  onSave?: (person: DormStaff, photoFile: File | null) => void;
 }) {
   const { toast } = useToast();
   // undefined = closed, null = adding, person = editing.
@@ -120,8 +120,8 @@ export function StaffSection({
           key={editing?.id ?? "new"}
           person={editing}
           onClose={() => setEditing(undefined)}
-          onSave={(next) => {
-            onSave?.(next);
+          onSave={(next, photoFile) => {
+            onSave?.(next, photoFile);
             setEditing(undefined);
             toast({
               title: editing ? "Staff updated" : "Staff added",

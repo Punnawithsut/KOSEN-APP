@@ -3,14 +3,6 @@
  * the shapes below.
  */
 
-export type DormAttachment = {
-  id: string;
-  name: string;
-  /** MIME type, e.g. "image/png" or "application/pdf". */
-  type: string;
-  url: string;
-};
-
 export type DormHandbook = {
   title: string;
   edition: string;
@@ -26,10 +18,8 @@ export type DormRule = {
   id: string;
   title: string;
   updatedAt: string;
-  /** Rule text shown when the rule is opened. May be empty if there are attachments. */
+  /** Rule text shown when the rule is opened. */
   body: string;
-  /** Optional attached images, PDFs or other files. */
-  attachments: DormAttachment[];
 };
 
 export type FormIconKey =
@@ -121,21 +111,18 @@ export const RULES: DormRule[] = [
     title: "Gate curfew",
     updatedAt: "Jun 29, 2026",
     body: "Placeholder: the dormitory gate closes at the curfew time. Residents who return late must inform the staff in advance.",
-    attachments: [],
   },
   {
     id: "contact-hours",
     title: "Contact hours",
     updatedAt: "Jun 29, 2026",
     body: "Placeholder: staff can be reached during their office hours. Outside those hours, use the emergency contact.",
-    attachments: [],
   },
   {
     id: "general",
     title: "General conduct",
     updatedAt: "Jun 29, 2026",
     body: "Placeholder: keep shared spaces clean, keep noise down at night and respect other residents.",
-    attachments: [],
   },
 ];
 

@@ -8,7 +8,7 @@ export default async function ModulesExamplePage() {
   const admin = await isAdmin();
 
   return (
-    <div className="relative mx-auto max-w-2xl px-4 py-10 sm:px-6">
+    <div className="relative mx-auto max-w-2xl px-4 py-10 sm:px-6 bg-bg-primary">
       <h1 className="mb-6 text-2xl font-semibold text-black-1">Equipments</h1>
 
       <div className="flex flex-col gap-4">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { FileTextIcon, XIcon } from "lucide-react";
 
 import { ActionDialog } from "@/components/action-dialog";
 import {
@@ -12,7 +11,6 @@ import {
 } from "@/components/dormitory/admin-ui";
 import { Input } from "@/components/ui/input";
 import type {
-  DormAttachment,
   DormHandbook,
   DormRule,
 } from "@/lib/dormitory/data";
@@ -112,7 +110,7 @@ export function HandbookDialog({
   );
 }
 
-/** Add (`rule` omitted) or edit one rule: title, text and any number of attachments. */
+/** Add or edit a rule's title and text. */
 export function RuleDialog({
   rule,
   onSave,
@@ -125,41 +123,18 @@ export function RuleDialog({
   const formId = `${useId()}-rule`;
   const [title, setTitle] = useState(rule?.title ?? "");
   const [body, setBody] = useState(rule?.body ?? "");
-  const [attachments, setAttachments] = useState<DormAttachment[]>(
-    rule?.attachments ?? [],
-  );
   const [error, setError] = useState<string | null>(null);
-
-  function handleFiles(files: FileList | null) {
-    const picked = Array.from(files ?? []);
-    const oversized = picked.find((file) => file.size > MAX_BYTES);
-    if (oversized) {
-      setError(`${oversized.name} is larger than 50 MiB.`);
-      return;
-    }
-    setError(null);
-    setAttachments((current) => [
-      ...current,
-      ...picked.map((file) => ({
-        id: newId(),
-        name: file.name,
-        type: file.type,
-        url: URL.createObjectURL(file),
-      })),
-    ]);
-  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!body.trim() && attachments.length === 0) {
-      setError("Add some text or at least one attachment.");
+    if (!body.trim()) {
+      setError("Enter the rule text.");
       return;
     }
     onSave({
       id: rule?.id ?? newId(),
       title: title.trim(),
       body: body.trim(),
-      attachments,
       updatedAt: formatToday(),
     });
   }
@@ -194,47 +169,6 @@ export function RuleDialog({
             className={TEXTAREA_CLASS}
           />
         </Field>
-        <Field
-          label="Attachments"
-          htmlFor={`${formId}-files`}
-          hint="Images, PDFs or any other file."
-        >
-          <input
-            id={`${formId}-files`}
-            type="file"
-            multiple
-            onChange={(event) => {
-              handleFiles(event.target.files);
-              event.target.value = "";
-            }}
-            className={FILE_CLASS}
-          />
-        </Field>
-        {attachments.length > 0 ? (
-          <ul className="flex flex-col gap-1.5">
-            {attachments.map((file) => (
-              <li
-                key={file.id}
-                className="flex items-center gap-2 rounded-lg bg-black-6 px-3 py-1.5 text-xs text-black-2"
-              >
-                <FileTextIcon className="size-4 shrink-0" />
-                <span className="min-w-0 flex-1 truncate">{file.name}</span>
-                <button
-                  type="button"
-                  aria-label={`Remove ${file.name}`}
-                  onClick={() =>
-                    setAttachments((current) =>
-                      current.filter((entry) => entry.id !== file.id),
-                    )
-                  }
-                  className="shrink-0 text-black-3 hover:text-black-1"
-                >
-                  <XIcon className="size-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </form>
     </ActionDialog>
   );
