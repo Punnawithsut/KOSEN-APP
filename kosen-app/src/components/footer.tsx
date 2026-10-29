@@ -16,8 +16,8 @@ function InstagramIcon() {
   );
 }
 
-const PARTY_INSTAGRAM_URL = process.env.PARTY_INSTAGRAM_URL;
-const PARTY_LINE_URL = process.env.PARTY_LINE_URL;
+const PARTY_INSTAGRAM_URL = process.env.PARTY_INSTAGRAM_URL == "" ? null : process.env.PARTY_INSTAGRAM_URL;
+const PARTY_LINE_URL = process.env.PARTY_LINE_URL == "" ? null : process.env.PARTY_LINE_URL;
 
 export function Footer() {
   return (
