@@ -53,7 +53,7 @@ export function StaffSection({
                 className="flex items-start justify-between gap-3 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-secondary"
               >
                 <div className="min-w-0">
-                  <h3 className="text-3xl font-semibold text-black-1">
+                  <h3 className="text-xl font-semibold text-black-1">
                     {person.nickname || person.name}
                   </h3>
                   {person.nickname ? (

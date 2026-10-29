@@ -93,7 +93,7 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
             <div
               role="tablist"
               aria-label="Dormitory sections"
-              className="flex gap-1 overflow-x-auto [scrollbar-width:none]"
+              className="flex gap-1 overflow-x-scroll [scrollbar-width:none]"
             >
               {TABS.map(({ id, label, icon: Icon }) => {
                 const active = tab === id;
