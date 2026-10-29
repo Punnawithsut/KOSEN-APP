@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import {
   BookOpenIcon,
   FileTextIcon,
@@ -16,17 +17,13 @@ import { FormsSection } from "@/components/dormitory/forms-section";
 import { HandbookSection } from "@/components/dormitory/handbook-section";
 import { StaffSection } from "@/components/dormitory/staff-section";
 import {
-  FORMS,
-  HANDBOOK,
-  RULES,
-  STAFF,
-  type DormForm,
   type DormHandbook,
-  type DormRule,
-  type DormStaff,
 } from "@/lib/dormitory/data";
 import { STAFF_POSITIONS } from "@/lib/dormitory/data";
-import { upsert } from "@/lib/dormitory/utils";
+import { adaptDormData } from "@/lib/dormitory/adapter";
+import { apiFetcher } from "@/lib/api/fetcher";
+import type { ApiError } from "@/lib/api/fetcher";
+import { useToast } from "@/hooks/use-toast";
 
 type Tab = "all" | "handbook" | "forms" | "staff";
 
@@ -48,13 +45,29 @@ const includes = (text: string, query: string) =>
  * still local state seeded from `@/lib/dormitory/data`, so edits last until
  * the page is reloaded; swap the setters for API calls to persist them.
  */
-export function DormitoryView({ isAdmin = false }: { isAdmin?: boolean }) {
+type DormApi = { ok: true; data: { wardens: Record<string, unknown>[]; forms: Record<string, unknown>[]; rules: Record<string, unknown>[]; handbook: DormHandbook | null } };
+
+export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: boolean; initialData?: DormApi }) {
+  const { data, mutate } = useSWR<DormApi, ApiError>("/api/dorm", apiFetcher, { fallbackData: initialData });
+  const { toast } = useToast();
+  const adapted = data?.data ? adaptDormData(data.data) : { staff: [], forms: [], rules: [], handbook: { title: "Dormitory Handbook", edition: "", pages: 0, updatedAt: "—", fileName: null, pdfUrl: null } as DormHandbook };
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
-  const [handbook, setHandbook] = useState<DormHandbook>(HANDBOOK);
-  const [allRules, setAllRules] = useState<DormRule[]>(RULES);
-  const [allForms, setAllForms] = useState<DormForm[]>(FORMS);
-  const [allStaff, setAllStaff] = useState<DormStaff[]>(STAFF);
+  const handbook = adapted.handbook;
+  const allRules = adapted.rules;
+  const allForms = adapted.forms;
+  const allStaff = adapted.staff;
+  async function save(url: string, method: "POST" | "PUT" | "DELETE", body?: Record<string, unknown>) {
+    const response = await fetch(url, { method, ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}) });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null) as { error?: string } | null;
+      throw new Error(result?.error ?? `Request failed (${response.status})`);
+    }
+    await mutate();
+  }
+  function reportSave(task: Promise<void>, label: string) {
+    void task.then(() => toast({ title: `${label} saved`, variant: "success" })).catch((error: unknown) => toast({ title: `Could not save ${label.toLowerCase()}`, description: error instanceof Error ? error.message : "Please try again.", variant: "error" }));
+  }
   const query = search.trim().toLowerCase();
 
   const rules = allRules.filter(
@@ -139,8 +152,8 @@ export function DormitoryView({ isAdmin = false }: { isAdmin?: boolean }) {
               rules={rules}
               showHandbook={showHandbook}
               isAdmin={isAdmin}
-              onHandbookChange={setHandbook}
-              onRuleSave={(rule) => setAllRules((list) => upsert(list, rule))}
+              onHandbookChange={(next) => { if (next) mutate(); }}
+              onRuleSave={(rule) => { const existing = allRules.some((item) => item.id === rule.id); reportSave(save(existing ? `/api/dorm/rule/${rule.id}` : "/api/dorm/rule", existing ? "PUT" : "POST", { name: rule.title, rule_description: rule.body }), "Rule"); }}
             />
           ) : null}
           {show.forms ? (
@@ -148,14 +161,23 @@ export function DormitoryView({ isAdmin = false }: { isAdmin?: boolean }) {
               forms={forms}
               allForms={allForms}
               isAdmin={isAdmin}
-              onSave={(form) => setAllForms((list) => upsert(list, form))}
+              onSave={(form) => { const existing = allForms.some((item) => item.id === form.id); reportSave(save(existing ? `/api/dorm/forms/${form.id}` : "/api/dorm/forms", existing ? "PUT" : "POST", { name: form.title, description: form.description, formsURL: form.url, dueDate: form.closesAt }), "Form"); }}
             />
           ) : null}
           {show.staff ? (
             <StaffSection
               staff={staff}
               isAdmin={isAdmin}
-              onSave={(person) => setAllStaff((list) => upsert(list, person))}
+              onSave={(person) => {
+                if (!person.officeHours.length) { toast({ title: "Add an office hour", variant: "error" }); return; }
+                const existing = allStaff.find((item) => item.id === person.id);
+                const dayFor = (day: (typeof person.officeHours)[number]["day"]) => ({ Mon: "monday", Tue: "tuesday", Wed: "wednesday", Thu: "thursday", Fri: "friday", Sat: "saturday", Sun: "sunday" } as const)[day];
+                const bodyFor = (hour: (typeof person.officeHours)[number]) => ({ name: person.name, role: STAFF_POSITIONS[person.position], lineID: person.lineId, phone: person.phone, officeDay: dayFor(hour.day), officeStartTime: hour.start, officeEndTime: hour.end });
+                const changes = person.officeHours.map((hour) => save(hour.recordId ? `/api/dorm/dormwardens/${hour.recordId}` : "/api/dorm/dormwardens", hour.recordId ? "PUT" : "POST", bodyFor(hour)));
+                const keptIds = new Set(person.officeHours.map((hour) => hour.recordId).filter(Boolean));
+                for (const oldHour of existing?.officeHours ?? []) if (oldHour.recordId && !keptIds.has(oldHour.recordId)) changes.push(save(`/api/dorm/dormwardens/${oldHour.recordId}`, "DELETE"));
+                reportSave(Promise.all(changes).then(() => undefined).then(() => mutate()).then(() => undefined), "Staff");
+              }}
             />
           ) : null}
 

@@ -68,10 +68,7 @@ export function HandbookSection({
       });
       return;
     }
-    const link = document.createElement("a");
-    link.href = handbook.pdfUrl;
-    link.download = `${handbook.title}.pdf`;
-    link.click();
+    window.location.assign(`${handbook.pdfUrl}?download=1`);
   }
 
   function openRule(id: string | null) {
@@ -260,10 +257,24 @@ export function HandbookSection({
         <HandbookDialog
           handbook={handbook}
           onClose={() => setEditingHandbook(false)}
-          onSave={(next) => {
-            onHandbookChange?.(next);
-            setEditingHandbook(false);
-            toast({ title: "Handbook updated", variant: "success" });
+          onSave={(next, file) => {
+            if (!file) {
+              toast({ title: "Choose a handbook PDF", variant: "error" });
+              return;
+            }
+            const body = new FormData();
+            body.set("file", file);
+            body.set("edition", next.edition);
+            body.set("pages", String(next.pages));
+            void fetch("/api/dorm/handbook", { method: "POST", body })
+              .then(async (response) => {
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error ?? "Could not update handbook.");
+                onHandbookChange?.(result.data);
+                setEditingHandbook(false);
+                toast({ title: "Handbook updated", variant: "success" });
+              })
+              .catch((error: unknown) => toast({ title: "Could not update handbook", description: error instanceof Error ? error.message : "Please try again.", variant: "error" }));
           }}
         />
       ) : null}

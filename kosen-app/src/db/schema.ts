@@ -225,6 +225,17 @@ export const rules = pgTable("rules", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }), 
 });
 
+export const dormHandbooks = pgTable("dorm_handbooks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull().default("Dormitory Handbook"),
+  edition: varchar("edition", { length: 80 }).notNull(),
+  pages: integer("pages").notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  storagePath: text("storage_path").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  createdBy: uuid("created_by").references(() => users.userId),
+});
+
 export const terms = pgTable("terms", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 100 }).notNull(), // เช่น "1/2569"

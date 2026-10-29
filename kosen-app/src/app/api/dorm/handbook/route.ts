@@ -1,52 +1,46 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { withSessionMiddleware } from "../../_shared/middleware";
+import { useAdminMiddleware as withAdmin, withSessionMiddleware } from "../../_shared/middleware";
+import { BadRequestError } from "../../_shared/errors";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentHandbook, replaceHandbookRecord } from "./handbook.repo";
 
-/**
- * GET /api/dorm/handbook
- *
- * Simple download proxy for the dorm handbook PDF.
- * Fetches the PDF from a steady URL (DORM_HANDBOOK_URL env var) and streams it
- * back as an attachment so the browser downloads it instead of navigating to it.
- *
- * Any authenticated user can download it.
- */
-export const GET = withSessionMiddleware(async () => {
-  const handbookUrl = process.env.DORM_HANDBOOK_URL;
+const BUCKET = "dorm-files";
+const MAX_SIZE = 50 * 1024 * 1024;
 
-  if (!handbookUrl) {
-    return NextResponse.json(
-      { ok: false, error: "DORM_HANDBOOK_URL is not configured." },
-      { status: 500 },
-    );
-  }
+export const GET = withSessionMiddleware(async (request) => {
+  const current = await getCurrentHandbook();
+  if (!current) return NextResponse.json({ ok: false, error: "Handbook not found." }, { status: 404 });
+  const supabase = await createClient();
+  const downloadName = request.nextUrl.searchParams.get("download") === "1" ? current.fileName : undefined;
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(current.storagePath, 60 * 60, downloadName ? { download: downloadName } : undefined);
+  if (error || !data?.signedUrl) return NextResponse.json({ ok: false, error: "Unable to access handbook." }, { status: 502 });
+  return NextResponse.redirect(data.signedUrl);
+});
 
-  let upstream: Response;
+export const POST = withAdmin(async (request, { user }) => {
+  const form = await request.formData();
+  const file = form.get("file");
+  const edition = form.get("edition");
+  const pages = Number(form.get("pages"));
+  if (!(file instanceof File) || file.size === 0 || file.size > MAX_SIZE || (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))) throw new BadRequestError("Upload a PDF file smaller than 50 MiB.");
+  if (typeof edition !== "string" || !edition.trim() || edition.length > 80) throw new BadRequestError("Edition is required (maximum 80 characters).");
+  if (!Number.isInteger(pages) || pages < 1) throw new BadRequestError("Pages must be a positive integer.");
+
+  const supabase = await createClient();
+  const old = await getCurrentHandbook();
+  const storagePath = `handbook/${randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120)}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(storagePath, file, { contentType: "application/pdf", upsert: false });
+  if (error) return NextResponse.json({ ok: false, error: "Handbook upload failed." }, { status: 502 });
   try {
-    upstream = await fetch(handbookUrl, { cache: "no-store" });
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "Unable to reach the handbook file." },
-      { status: 502 },
-    );
+    await replaceHandbookRecord({ edition: edition.trim(), pages, fileName: file.name, storagePath, createdBy: user.id });
+  } catch (error) {
+    await supabase.storage.from(BUCKET).remove([storagePath]);
+    throw error;
   }
-
-  if (!upstream.ok) {
-    return NextResponse.json(
-      { ok: false, error: "Handbook file is not available." },
-      { status: 502 },
-    );
+  if (old) {
+    const { error: removeError } = await supabase.storage.from(BUCKET).remove([old.storagePath]);
+    if (removeError) console.error("Unable to remove replaced handbook object:", removeError);
   }
-
-  const contentType = upstream.headers.get("content-type") ?? "application/pdf"; //Can be change if not pdf
-  const buffer = await upstream.arrayBuffer();
-
-  return new NextResponse(buffer, {
-    status: 200,
-    headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": 'attachment; filename="dorm-handbook.pdf"',
-      "Content-Length": String(buffer.byteLength),
-      "Cache-Control": "private, no-store",
-    },
-  });
+  return NextResponse.json({ ok: true, data: { edition: edition.trim(), pages, fileName: file.name, pdfUrl: "/api/dorm/handbook" } });
 });

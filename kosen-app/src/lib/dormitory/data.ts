@@ -78,6 +78,8 @@ export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as con
 export type Weekday = (typeof WEEKDAYS)[number];
 
 export type OfficeHour = {
+  /** Backend warden record id; absent for a newly added office day. */
+  recordId?: string;
   day: Weekday;
   /** "HH:MM", 24h. */
   start: string;

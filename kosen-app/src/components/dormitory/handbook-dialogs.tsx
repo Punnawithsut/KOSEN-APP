@@ -21,8 +21,7 @@ import { formatToday, newId } from "@/lib/dormitory/utils";
 const MAX_BYTES = 50 * 1024 * 1024;
 
 /**
- * Replaces the one and only handbook. Leaving the file empty keeps the current
- * PDF, so the edition label can be fixed without re-uploading.
+ * Replaces the stored handbook PDF and its metadata.
  */
 export function HandbookDialog({
   handbook,
@@ -30,7 +29,7 @@ export function HandbookDialog({
   onClose,
 }: {
   handbook: DormHandbook;
-  onSave: (next: DormHandbook) => void;
+  onSave: (next: DormHandbook, file: File | null) => void;
   onClose: () => void;
 }) {
   const formId = `${useId()}-handbook`;
@@ -41,7 +40,7 @@ export function HandbookDialog({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!file && !handbook.pdfUrl) {
+    if (!file) {
       setError("Choose the handbook PDF to upload.");
       return;
     }
@@ -55,8 +54,8 @@ export function HandbookDialog({
       pages: Number(pages) || 0,
       updatedAt: formatToday(),
       fileName: file ? file.name : handbook.fileName,
-      pdfUrl: file ? URL.createObjectURL(file) : handbook.pdfUrl,
-    });
+      pdfUrl: file ? "/api/dorm/handbook" : handbook.pdfUrl,
+    }, file);
   }
 
   return (
