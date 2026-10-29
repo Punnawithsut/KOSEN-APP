@@ -34,3 +34,9 @@ export async function getWardenPhotoUrl(id: string) {
   if (error || !data?.signedUrl) throw new NotFoundError("Staff photo not found.");
   return data.signedUrl;
 }
+
+export async function removeWardenPhoto(id: string) {
+  const path = photoPath(id);
+  const { error } = await (await createClient()).storage.from(BUCKET).remove([path]);
+  if (error) throw new AppError("Staff photo deletion failed.", 502);
+}

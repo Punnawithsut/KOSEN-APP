@@ -1,11 +1,12 @@
-import type {
-  DormForm,
-  DormHandbook,
-  DormRule,
-  DormStaff,
-  OfficeHour,
-  StaffPosition,
-  Weekday,
+import {
+  FORM_ICON_KEYS,
+  type DormForm,
+  type DormHandbook,
+  type DormRule,
+  type DormStaff,
+  type OfficeHour,
+  type StaffPosition,
+  type Weekday,
 } from "./data";
 
 type Raw = Record<string, unknown>;
@@ -81,7 +82,11 @@ export function adaptDormData(raw: {
       description: String(f.description ?? ""),
       url: String(f.formsURL ?? ""),
       closesAt: f.dueDate ? new Date(String(f.dueDate)).toISOString() : null,
-      icon: iconFor(name),
+      icon:
+        typeof f.icon === "string" &&
+        FORM_ICON_KEYS.includes(f.icon as (typeof FORM_ICON_KEYS)[number])
+          ? (f.icon as DormForm["icon"])
+          : iconFor(name),
     };
   });
   const rules: DormRule[] = (raw.rules ?? []).map((item) => {

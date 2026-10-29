@@ -22,36 +22,14 @@ export type DormRule = {
   body: string;
 };
 
-export type FormIconKey =
-  | "maintenance"
-  | "transfer"
-  | "meter"
-  | "document"
-  | "calendar"
-  | "wifi"
-  | "key"
-  | "bed"
-  | "help"
-  | "mail"
-  | "phone"
-  | "meal"
-  | "laundry"
-  | "clothes"
-  | "transport"
-  | "parcel"
-  | "safety"
-  | "wallet"
-  | "electricity"
-  | "water"
-  | "group"
-  | "home"
-  | "checklist"
-  | "announce"
-  | "health"
-  | "luggage"
-  | "night"
-  | "fee"
-  | "warning";
+export const FORM_ICON_KEYS = [
+  "maintenance", "transfer", "meter", "document", "calendar", "wifi",
+  "key", "bed", "help", "mail", "phone", "meal", "laundry", "clothes",
+  "transport", "parcel", "safety", "wallet", "electricity", "water",
+  "group", "home", "checklist", "announce", "health", "luggage", "night",
+  "fee", "warning",
+] as const;
+export type FormIconKey = (typeof FORM_ICON_KEYS)[number];
 
 export type DormForm = {
   id: string;

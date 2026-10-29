@@ -44,7 +44,7 @@ const includes = (text: string, query: string) =>
  * by the server and refreshed through the shared dormitory API hook.
  */
 export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: boolean; initialData?: ApiResponse<DormDashboard> }) {
-  const { data, mutate, saveJson, uploadHandbook, uploadStaffPhoto } = useDormitory(initialData);
+  const { data, mutate, saveJson, uploadHandbook, uploadStaffPhoto, deleteHandbook, deleteRule, deleteForm, deleteStaff } = useDormitory(initialData);
   const { toast } = useToast();
   const adapted = data?.data ? adaptDormData(data.data) : { staff: [], forms: [], rules: [], handbook: { title: "Dormitory Handbook", edition: "", pages: 0, updatedAt: "—", fileName: null, pdfUrl: null } as DormHandbook };
   const [tab, setTab] = useState<Tab>("all");
@@ -53,8 +53,8 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
   const allRules = adapted.rules;
   const allForms = adapted.forms;
   const allStaff = adapted.staff;
-  function reportSave(task: Promise<void>, label: string) {
-    void task.then(() => toast({ title: `${label} saved`, variant: "success" })).catch((error: unknown) => toast({ title: `Could not save ${label.toLowerCase()}`, description: error instanceof Error ? error.message : "Please try again.", variant: "error" }));
+  function reportSave(task: Promise<void>, label: string, verb = "saved") {
+    void task.then(() => toast({ title: `${label} ${verb}`, variant: "success" })).catch((error: unknown) => toast({ title: `Could not ${verb === "deleted" ? "delete" : "save"} ${label.toLowerCase()}`, description: error instanceof Error ? error.message : "Please try again.", variant: "error" }));
   }
   const query = search.trim().toLowerCase();
 
@@ -141,7 +141,9 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
               showHandbook={showHandbook}
               isAdmin={isAdmin}
               onHandbookUpload={uploadHandbook}
+              onHandbookDelete={deleteHandbook}
               onRuleSave={(rule) => { const existing = allRules.some((item) => item.id === rule.id); reportSave(saveJson(existing ? `/api/dorm/rule/${rule.id}` : "/api/dorm/rule", existing ? "PUT" : "POST", { name: rule.title, rule_description: rule.body }).then(() => undefined), "Rule"); }}
+              onRuleDelete={deleteRule}
             />
           ) : null}
           {show.forms ? (
@@ -149,7 +151,8 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
               forms={forms}
               allForms={allForms}
               isAdmin={isAdmin}
-              onSave={(form) => { const existing = allForms.some((item) => item.id === form.id); reportSave(saveJson(existing ? `/api/dorm/forms/${form.id}` : "/api/dorm/forms", existing ? "PUT" : "POST", { name: form.title, description: form.description, formsURL: form.url, dueDate: form.closesAt }).then(() => undefined), "Form"); }}
+              onSave={(form) => { const existing = allForms.some((item) => item.id === form.id); reportSave(saveJson(existing ? `/api/dorm/forms/${form.id}` : "/api/dorm/forms", existing ? "PUT" : "POST", { name: form.title, description: form.description, formsURL: form.url, dueDate: form.closesAt, icon: form.icon }).then(() => undefined), "Form"); }}
+              onDelete={deleteForm}
             />
           ) : null}
           {show.staff ? (
@@ -169,6 +172,10 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
                   if (photoFile && typeof photoId === "string") await uploadStaffPhoto(photoId, photoFile);
                   else await mutate();
                 }), "Staff");
+              }}
+              onDelete={(person) => {
+                const ids = person.officeHours.map((hour) => hour.recordId).filter((id): id is string => Boolean(id));
+                return deleteStaff(ids, person.photo ? person.id : undefined);
               }}
             />
           ) : null}

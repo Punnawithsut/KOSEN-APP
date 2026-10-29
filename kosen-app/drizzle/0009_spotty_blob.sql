@@ -1,0 +1,1 @@
+ALTER TABLE "forms" ADD COLUMN "icon" varchar(32) DEFAULT 'document' NOT NULL;

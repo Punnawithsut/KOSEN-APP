@@ -1,6 +1,6 @@
 "use client";
 
-import { PencilIcon, PlusIcon } from "lucide-react";
+import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -67,11 +67,36 @@ export function EditButton({
       title={label}
       onClick={onClick}
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full bg-white text-black-2 shadow-sm ring-1 ring-black-5 transition-colors hover:bg-black-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-secondary",
+        "flex size-6 shrink-0 items-center justify-center rounded-full bg-white text-black-2 shadow-sm ring-1 ring-black-5 transition-colors hover:bg-black-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-secondary",
         className,
       )}
     >
-      <PencilIcon className="size-4" />
+      <PencilIcon className="size-3" />
+    </button>
+  );
+}
+
+export function DeleteButton({
+  label,
+  onClick,
+  className,
+}: {
+  label: string;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={cn(
+        "flex size-6 shrink-0 items-center justify-center rounded-full bg-white text-red-600 shadow-sm ring-1 ring-black-5 transition-colors hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600",
+        className,
+      )}
+    >
+      <Trash2Icon className="size-3" />
     </button>
   );
 }

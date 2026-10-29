@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, ilike } from "drizzle-orm";
 import { db } from "@/db/client";
 import { forms } from "@/db/schema";
+import type { FormIconKey } from "@/lib/dormitory/data";
 
 /**
  * Rows per page for the dorm forms list.
@@ -14,6 +15,7 @@ export type FormFilters = {
 export type FormUpdateData = {
   name?: string;
   description?: string | null;
+  icon?: FormIconKey;
   dueDate?: Date | null;
   formsURL?: string | null;
 };
@@ -66,6 +68,7 @@ export async function createForm(
         id: formId,
         name: data.name!,
         description: data.description ?? null,
+        icon: data.icon ?? "document",
         dueDate: data.dueDate ?? null,
         formsURL: data.formsURL ?? null,
         createdBy,
@@ -98,6 +101,7 @@ export async function updateFormById(
     .set({
       ...(data.name !== undefined && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
+      ...(data.icon !== undefined && { icon: data.icon }),
       ...(data.dueDate !== undefined && { dueDate: data.dueDate }),
       ...(data.formsURL !== undefined && { formsURL: data.formsURL }),
       updatedBy,

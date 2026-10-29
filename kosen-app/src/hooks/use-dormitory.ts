@@ -45,5 +45,26 @@ export function useDormitory(initialData?: ApiResponse<DormDashboard>) {
     await swr.mutate();
   }
 
-  return { ...swr, saveJson, uploadHandbook, uploadStaffPhoto };
+  async function deleteHandbook() {
+    await saveJson("/api/dorm/handbook", "DELETE");
+  }
+
+  async function deleteRule(id: string) {
+    await saveJson(`/api/dorm/rule/${encodeURIComponent(id)}`, "DELETE");
+  }
+
+  async function deleteForm(id: string) {
+    await saveJson(`/api/dorm/forms/${encodeURIComponent(id)}`, "DELETE");
+  }
+
+  async function deleteStaff(ids: string[], photoId?: string) {
+    if (!ids.length) return;
+    await Promise.all(ids.map((id) => saveJson(`/api/dorm/dormwardens/${encodeURIComponent(id)}`, "DELETE")));
+    if (photoId) {
+      const photoResponse = await fetch(`/api/dorm/dormwardens/${encodeURIComponent(photoId)}/photo`, { method: "DELETE" });
+      if (!photoResponse.ok) throw await apiErrorFromResponse(photoResponse);
+    }
+  }
+
+  return { ...swr, saveJson, uploadHandbook, uploadStaffPhoto, deleteHandbook, deleteRule, deleteForm, deleteStaff };
 }

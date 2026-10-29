@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-import { AddButton, EditButton } from "@/components/dormitory/admin-ui";
+import { AddButton, DeleteButton, EditButton } from "@/components/dormitory/admin-ui";
+import { DeleteConfirmDialog } from "@/components/dormitory/delete-confirm-dialog";
 import { FormDialog } from "@/components/dormitory/form-dialog";
 import { FORM_ICONS } from "@/components/dormitory/form-icons";
 import {
@@ -17,6 +18,7 @@ export function FormsSection({
   allForms = forms,
   isAdmin = false,
   onSave,
+  onDelete,
 }: {
   /** Forms to show (after search). */
   forms: DormForm[];
@@ -24,12 +26,14 @@ export function FormsSection({
   allForms?: DormForm[];
   isAdmin?: boolean;
   onSave?: (form: DormForm) => void;
+  onDelete?: (id: string) => Promise<void>;
 }) {
   const { toast } = useToast();
   // undefined = closed, null = adding, form = editing.
   const [editing, setEditing] = useState<DormForm | null | undefined>(undefined);
 
   const [previewing, setPreviewing] = useState<DormForm | null>(null);
+  const [deleting, setDeleting] = useState<DormForm | null>(null);
 
   return (
     <section aria-labelledby="forms-heading" className="flex flex-col gap-3">
@@ -64,11 +68,10 @@ export function FormsSection({
                 </span>
               </button>
               {isAdmin ? (
-                <EditButton
-                  label={`Edit ${form.title}`}
-                  onClick={() => setEditing(form)}
-                  className="absolute top-2 right-2"
-                />
+                <div className="absolute top-2 right-2 flex flex-col gap-1">
+                  <EditButton label={`Edit ${form.title}`} onClick={() => setEditing(form)} />
+                  <DeleteButton label={`Delete ${form.title}`} onClick={() => setDeleting(form)} />
+                </div>
               ) : null}
             </li>
           );
@@ -77,6 +80,14 @@ export function FormsSection({
       {previewing ? (
         <FormPreviewDialog form={previewing} onClose={() => setPreviewing(null)} />
       ) : null}
+      <DeleteConfirmDialog
+        open={deleting !== null}
+        title="Delete form?"
+        description={`“${deleting?.title ?? "This form"}” and its link will be removed.`}
+        itemLabel="Form"
+        onCancel={() => setDeleting(null)}
+        onDelete={() => deleting && onDelete ? onDelete(deleting.id) : Promise.reject(new Error("Form deletion is unavailable."))}
+      />
       {isAdmin ? (
         <AddButton label="Add form" onClick={() => setEditing(null)} />
       ) : null}

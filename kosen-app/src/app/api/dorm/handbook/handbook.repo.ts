@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { dormHandbooks } from "@/db/schema";
 
@@ -18,5 +18,10 @@ export async function replaceHandbookRecord(input: { edition: string; pages: num
     const [row] = await tx.insert(dormHandbooks).values(input).returning();
     return row;
   });
+}
+
+export async function deleteHandbookRecord(id: string) {
+  const [row] = await db.delete(dormHandbooks).where(eq(dormHandbooks.id, id)).returning();
+  return row ?? null;
 }
 

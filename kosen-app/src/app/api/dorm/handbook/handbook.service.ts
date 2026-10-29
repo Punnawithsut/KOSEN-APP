@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { AppError, BadRequestError, NotFoundError } from "../../_shared/errors";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentHandbook, replaceHandbookRecord } from "./handbook.repo";
+import { deleteHandbookRecord, getCurrentHandbook, replaceHandbookRecord } from "./handbook.repo";
 
 const BUCKET = "dorm-files";
 const MAX_SIZE = 50 * 1024 * 1024;
@@ -41,4 +41,13 @@ export async function replaceHandbook(file: FormDataEntryValue | null, edition: 
     if (removeError) console.error("Unable to remove replaced handbook object:", removeError);
   }
   return { title: "Dormitory Handbook", edition: edition.trim(), pages, fileName: file.name, pdfUrl: "/api/dorm/handbook" };
+}
+
+export async function removeHandbook() {
+  const current = await getCurrentHandbook();
+  if (!current) throw new NotFoundError("Handbook not found.");
+  const supabase = await createClient();
+  const { error } = await supabase.storage.from(BUCKET).remove([current.storagePath]);
+  if (error) throw new AppError("Handbook file deletion failed.", 502);
+  if (!(await deleteHandbookRecord(current.id))) throw new NotFoundError("Handbook not found.");
 }

@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   AddButton,
+  DeleteButton,
   EditButton,
 } from "@/components/dormitory/admin-ui";
+import { DeleteConfirmDialog } from "@/components/dormitory/delete-confirm-dialog";
 import {
   HandbookDialog,
   RuleDialog,
@@ -30,24 +32,30 @@ export function HandbookSection({
   showHandbook,
   isAdmin = false,
   onHandbookUpload,
+  onHandbookDelete,
   onRuleSave,
+  onRuleDelete,
 }: {
   handbook: DormHandbook;
   rules: DormRule[];
   showHandbook: boolean;
   isAdmin?: boolean;
   onHandbookUpload?: (formData: FormData) => Promise<unknown>;
+  onHandbookDelete?: () => Promise<void>;
   onRuleSave?: (rule: DormRule) => void;
+  onRuleDelete?: (id: string) => Promise<void>;
 }) {
   const { toast } = useToast();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [activeRule, setActiveRule] = useState<string | null>(null);
   const [editingHandbook, setEditingHandbook] = useState(false);
+  const [confirmHandbookDelete, setConfirmHandbookDelete] = useState(false);
   // undefined = closed, null = adding, rule = editing.
   const [editingRule, setEditingRule] = useState<DormRule | null | undefined>(
     undefined,
   );
+  const [deletingRule, setDeletingRule] = useState<DormRule | null>(null);
 
   function handleDownload() {
     if (!handbook.pdfUrl) {
@@ -88,11 +96,10 @@ export function HandbookSection({
         {showHandbook ? (
           <div className="relative flex gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4">
             {isAdmin ? (
-              <EditButton
-                label="Update handbook"
-                onClick={() => setEditingHandbook(true)}
-                className="absolute top-2 right-2"
-              />
+              <div className="absolute top-2 right-2 flex flex-col gap-1">
+                <EditButton label="Update handbook" onClick={() => setEditingHandbook(true)} />
+                {handbook.pdfUrl ? <DeleteButton label="Delete handbook file" onClick={() => setConfirmHandbookDelete(true)} /> : null}
+              </div>
             ) : null}
             {/* Book cover */}
             <div
@@ -167,10 +174,10 @@ export function HandbookSection({
                     <ArrowUpRightIcon className="size-4 shrink-0" />
                   </button>
                   {isAdmin ? (
-                    <EditButton
-                      label={`Edit ${rule.title}`}
-                      onClick={() => setEditingRule(rule)}
-                    />
+                    <div className="flex flex-col gap-1">
+                      <EditButton label={`Edit ${rule.title}`} onClick={() => setEditingRule(rule)} />
+                      <DeleteButton label={`Delete ${rule.title}`} onClick={() => setDeletingRule(rule)} />
+                    </div>
                   ) : null}
                 </li>
               ))}
@@ -210,6 +217,24 @@ export function HandbookSection({
           )}
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmDialog
+        open={confirmHandbookDelete}
+        title="Delete handbook file?"
+        description="This removes the uploaded handbook attachment and its stored metadata."
+        itemLabel="Handbook file"
+        onCancel={() => setConfirmHandbookDelete(false)}
+        onDelete={() => onHandbookDelete?.() ?? Promise.reject(new Error("Handbook deletion is unavailable."))}
+      />
+
+      <DeleteConfirmDialog
+        open={deletingRule !== null}
+        title="Delete rule?"
+        description={`“${deletingRule?.title ?? "This rule"}” will be removed from the dormitory rules.`}
+        itemLabel="Rule"
+        onCancel={() => setDeletingRule(null)}
+        onDelete={() => deletingRule && onRuleDelete ? onRuleDelete(deletingRule.id) : Promise.reject(new Error("Rule deletion is unavailable."))}
+      />
 
       {/* Rules text */}
       <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>

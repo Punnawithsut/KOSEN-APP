@@ -4,7 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import { PhoneIcon, UserIcon } from "lucide-react";
 
-import { AddButton, EditButton } from "@/components/dormitory/admin-ui";
+import { AddButton, DeleteButton, EditButton } from "@/components/dormitory/admin-ui";
+import { DeleteConfirmDialog } from "@/components/dormitory/delete-confirm-dialog";
 import {
   ContactRow,
   LineBadge,
@@ -19,15 +20,18 @@ export function StaffSection({
   staff,
   isAdmin = false,
   onSave,
+  onDelete,
 }: {
   staff: DormStaff[];
   isAdmin?: boolean;
   onSave?: (person: DormStaff, photoFile: File | null) => void;
+  onDelete?: (person: DormStaff) => Promise<void>;
 }) {
   const { toast } = useToast();
   // undefined = closed, null = adding, person = editing.
   const [editing, setEditing] = useState<DormStaff | null | undefined>(undefined);
   const [previewing, setPreviewing] = useState<DormStaff | null>(null);
+  const [deleting, setDeleting] = useState<DormStaff | null>(null);
 
   return (
     <section aria-labelledby="staff-heading" className="flex flex-col gap-3">
@@ -101,11 +105,10 @@ export function StaffSection({
                 />
               </div>
               {isAdmin ? (
-                <EditButton
-                  label={`Edit ${person.name}`}
-                  onClick={() => setEditing(person)}
-                  className="absolute -top-2 -right-2"
-                />
+                <div className="absolute -top-2 -right-2 flex flex-col gap-1">
+                  <EditButton label={`Edit ${person.name}`} onClick={() => setEditing(person)} />
+                  <DeleteButton label={`Delete ${person.name}`} onClick={() => setDeleting(person)} />
+                </div>
               ) : null}
             </li>
           );
@@ -114,6 +117,14 @@ export function StaffSection({
       {previewing ? (
         <StaffPreviewDialog person={previewing} onClose={() => setPreviewing(null)} />
       ) : null}
+      <DeleteConfirmDialog
+        open={deleting !== null}
+        title="Delete staff contact?"
+        description={`“${deleting?.name ?? "This staff contact"}” and all listed office hours will be removed.`}
+        itemLabel="Staff contact"
+        onCancel={() => setDeleting(null)}
+        onDelete={() => deleting && onDelete ? onDelete(deleting) : Promise.reject(new Error("Staff deletion is unavailable."))}
+      />
       {isAdmin ? <AddButton label="Add staff" onClick={() => setEditing(null)} /> : null}
       {isAdmin && editing !== undefined ? (
         <StaffDialog
