@@ -37,7 +37,7 @@ import type {
   LoanFilters,
   LoanRecord,
   LoanStatus,
-} from "@/hooks/types/klongklongplus-types";
+} from "@/types/klongklongplus-types";
 
 const STATUS_STYLES: Record<LoanStatus, string> = {
   pending: "bg-noti-warning-subtle text-black-2",
@@ -159,9 +159,7 @@ export function AdminLoansPage({ adminId }: { adminId: string }) {
     {
       key: "manage",
       header: "Next action",
-      cell: (loan) => (
-        <LoanActions loan={loan} adminId={adminId} />
-      ),
+      cell: (loan) => <LoanActions loan={loan} adminId={adminId} />,
       className: "min-w-44",
     },
   ];
@@ -260,16 +258,13 @@ function filtersWithPage(filters: LoanFilters, page: number): LoanFilters {
   return { ...filters, page };
 }
 
-type LoanAction = "approve" | "reject" | "deliver" | "return" | "no-show" | "cancel";
+type LoanAction =
+  "approve" | "reject" | "deliver" | "return" | "no-show" | "cancel";
 
-function LoanActions({
-  loan,
-  adminId,
-}: {
-  loan: LoanRecord;
-  adminId: string;
-}) {
-  const [activeAction, setActiveAction] = React.useState<LoanAction | null>(null);
+function LoanActions({ loan, adminId }: { loan: LoanRecord; adminId: string }) {
+  const [activeAction, setActiveAction] = React.useState<LoanAction | null>(
+    null,
+  );
   const [detail, setDetail] = React.useState("");
   const [isSendingDecisionNotification, setIsSendingDecisionNotification] =
     React.useState(false);
@@ -277,8 +272,12 @@ function LoanActions({
   const { toast } = useToast();
   const { trigger: accept, isMutating: isAccepting } = useAcceptLoan(loan.id);
   const { trigger: reject, isMutating: isRejecting } = useRejectLoan(loan.id);
-  const { trigger: deliver, isMutating: isDelivering } = useDeliverLoan(loan.id);
-  const { trigger: returnLoan, isMutating: isReturning } = useReturnLoan(loan.id);
+  const { trigger: deliver, isMutating: isDelivering } = useDeliverLoan(
+    loan.id,
+  );
+  const { trigger: returnLoan, isMutating: isReturning } = useReturnLoan(
+    loan.id,
+  );
   const { trigger: markNoShow, isMutating: isMarkingNoShow } =
     useMarkLoanNoShow(loan.id);
   const { trigger: cancel, isMutating: isCancelling } = useCancelLoan(loan.id);
@@ -331,8 +330,7 @@ function LoanActions({
       if (activeAction === "approve" || activeAction === "reject") {
         setIsSendingDecisionNotification(true);
         try {
-          const notification =
-            await notificationRef.current?.sendIfEnabled();
+          const notification = await notificationRef.current?.sendIfEnabled();
           if (notification && !notification.skipped) {
             toast(
               notification.error
@@ -349,16 +347,14 @@ function LoanActions({
             );
           }
         } catch (notificationError) {
-          toast(
-            {
-              title: "Loan updated; notification could not be sent",
-              description:
-                notificationError instanceof Error
-                  ? notificationError.message
-                  : "Please try again.",
-              variant: "error",
-            },
-          );
+          toast({
+            title: "Loan updated; notification could not be sent",
+            description:
+              notificationError instanceof Error
+                ? notificationError.message
+                : "Please try again.",
+            variant: "error",
+          });
         } finally {
           setIsSendingDecisionNotification(false);
         }
@@ -463,10 +459,7 @@ function LoanActions({
     );
   }
 
-  if (
-    ["delivered", "overdue"].includes(loan.status) &&
-    isResponsibleAdmin
-  ) {
+  if (["delivered", "overdue"].includes(loan.status) && isResponsibleAdmin) {
     return (
       <>
         <Button
@@ -508,7 +501,9 @@ function LoanActions({
     );
   }
 
-  return <span className="text-xs text-muted-foreground">No action needed</span>;
+  return (
+    <span className="text-xs text-muted-foreground">No action needed</span>
+  );
 }
 
 function LoanActionDialog({
@@ -540,7 +535,8 @@ function LoanActionDialog({
   };
   const descriptions: Record<LoanAction, string> = {
     approve: "You will become responsible for this loan’s remaining steps.",
-    reject: "A reason is required. The requester will see that the request was rejected.",
+    reject:
+      "A reason is required. The requester will see that the request was rejected.",
     deliver: "Confirm that the equipment has been handed to the borrower.",
     return: "Confirm that the equipment has been returned.",
     "no-show": "Mark the approved request as a no-show.",
@@ -564,7 +560,9 @@ function LoanActionDialog({
       isLoading={isLoading}
       loadingLabel="Updating…"
       isActionDisabled={requiresReason && !detail.trim()}
-      actionVariant={action === "reject" || action === "cancel" ? "destructive" : "default"}
+      actionVariant={
+        action === "reject" || action === "cancel" ? "destructive" : "default"
+      }
     >
       <form
         id="admin-loan-action-form"

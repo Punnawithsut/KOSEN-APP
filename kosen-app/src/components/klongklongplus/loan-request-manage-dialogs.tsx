@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { useDeleteLoan, useUpdateLoan } from "@/hooks/use-loan";
 import { useAvailableSlots } from "@/hooks/use-slot";
 import { useToast } from "@/hooks/use-toast";
-import type { LoanRecord } from "@/hooks/types/klongklongplus-types";
+import type { LoanRecord } from "@/types/klongklongplus-types";
 
 type LoanRequestManageDialogsProps = {
   editingLoan: LoanRecord | null;

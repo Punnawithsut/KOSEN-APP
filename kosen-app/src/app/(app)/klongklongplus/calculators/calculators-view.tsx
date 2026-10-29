@@ -12,10 +12,8 @@ import { LoanRequestDialog } from "@/components/klongklongplus/loan-request-dial
 import { useUnits } from "@/hooks/use-unit";
 import { useToast } from "@/hooks/use-toast";
 import type { Unit } from "@/hooks/use-unit";
-import type {
-  ApiResponse,
-  PagedData,
-} from "@/hooks/types/klongklongplus-types";
+import type { PagedData } from "@/types/klongklongplus-types";
+import type { ApiResponse } from "@/lib/api/types";
 
 const UNIT_STATUS_STYLES = {
   available: "bg-noti-positive-subtle text-black-2",

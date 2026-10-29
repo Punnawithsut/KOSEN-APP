@@ -1,15 +1,14 @@
 import { useDelete, usePost, usePut } from "@/lib/api/use-mutation";
 import { useApi } from "@/lib/api/use-api";
+import type { ApiResponse } from "@/lib/api/types";
 import type {
-  ApiMutationResponse,
-  ApiResponse,
   CreateSlotData,
   PagedData,
   Slot,
   SlotFilters,
   UpdateSlotData,
-} from "@/hooks/types/klongklongplus-types";
-import { queryString } from "@/hooks/types/klongklongplus-types";
+} from "@/types/klongklongplus-types";
+import { queryString } from "@/types/klongklongplus-types";
 
 const SLOTS_URL = "/api/klongklongplus/slots";
 
@@ -52,7 +51,7 @@ export function useUpdateSlot(id: string) {
 
 export function useDeleteSlot(id: string) {
   const url = `${SLOTS_URL}/${encodeURIComponent(id)}`;
-  return useDelete<ApiMutationResponse>(url, {
+  return useDelete<ApiResponse>(url, {
     revalidateKeyPrefixes: [SLOTS_URL, url],
   });
 }

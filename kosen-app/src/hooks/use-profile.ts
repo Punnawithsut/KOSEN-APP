@@ -1,9 +1,6 @@
 import { useApi } from "@/lib/api/use-api";
 import { usePut } from "@/lib/api/use-mutation";
-
-export type ApiResponse<T> = {
-  data: T;
-};
+import type { ApiResponse } from "@/lib/api/types";
 
 export type MyProfile = {
   userId: string;

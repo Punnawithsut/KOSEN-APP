@@ -4,8 +4,8 @@ import {
   EMPTY_FILTERS,
   type AnnouncementFilters,
   type AnnouncementListData,
-  type ApiResponse,
 } from "@/lib/announcement/types";
+import type { ApiResponse } from "@/lib/api/types";
 
 export { buildAnnouncementQuery };
 

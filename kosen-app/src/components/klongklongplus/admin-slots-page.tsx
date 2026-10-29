@@ -25,7 +25,7 @@ import type {
   SlotFilters,
   SlotKind,
   UpdateSlotData,
-} from "@/hooks/types/klongklongplus-types";
+} from "@/types/klongklongplus-types";
 
 export function AdminSlotsPage() {
   const [page, setPage] = React.useState(1);
@@ -65,7 +65,8 @@ export function AdminSlotsPage() {
     } catch (error) {
       toast({
         title: "Unable to delete slot",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
         variant: "error",
       });
     }
@@ -269,9 +270,7 @@ function SlotFormDialog({
   const [startTime, setStartTime] = React.useState(
     slot?.startTime.slice(0, 5) ?? "",
   );
-  const [endTime, setEndTime] = React.useState(
-    slot?.endTime.slice(0, 5) ?? "",
-  );
+  const [endTime, setEndTime] = React.useState(slot?.endTime.slice(0, 5) ?? "");
   const [leadMin, setLeadMin] = React.useState(String(slot?.leadMin ?? 0));
   const [displayOrder, setDisplayOrder] = React.useState(
     String(slot?.displayOrder ?? 0),
@@ -309,7 +308,8 @@ function SlotFormDialog({
     } catch (error) {
       toast({
         title: slot ? "Unable to update slot" : "Unable to create slot",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
         variant: "error",
       });
     }

@@ -98,15 +98,6 @@ export type AnnouncementListData = {
   pagination: Pagination;
 };
 
-/** The envelope every route in this project returns (see `_shared/errors.ts`). */
-export type ApiResponse<T> = {
-  ok: boolean;
-  data?: T;
-  error?: string;
-  reason?: string;
-  message?: string;
-};
-
 /**
  * The four filter values the UI owns.
  * The literal `"all"` (and `""` for the name) means "no filter applied" — the

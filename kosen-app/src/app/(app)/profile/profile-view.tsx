@@ -9,8 +9,8 @@ import { SendNotificationButton } from "@/components/send-notification-button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
+import type { ApiResponse } from "@/lib/api/types";
 import {
-  ApiResponse,
   useMyProfile,
   useUpdateMyProfile,
   type MyProfile,
