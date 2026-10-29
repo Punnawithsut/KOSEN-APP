@@ -4,6 +4,7 @@ import { loansDocs } from "../klongklongplus/loans/swagger";
 import { unitsDocs } from "../klongklongplus/units/swagger";
 import { termsDocs } from "../klongklongplus/terms/swagger";
 import { slotsDocs } from "../klongklongplus/slots/swagger";
+import { dormDocs } from "../dorm/dorm.swagger";
 import { userDocs } from "../user/user.swagger";
 
 export const openApiSpec = {
@@ -19,6 +20,11 @@ export const openApiSpec = {
     { name: "Units", description: "Klong Klong Plus inventory unit endpoints" },
     { name: "Terms", description: "Klong Klong Plus academic term endpoints" },
     { name: "Slots", description: "Klong Klong Plus loan pickup slot endpoints" },
+    { name: "Dorm Forms", description: "Dormitory form endpoints" },
+    { name: "Dorm Wardens", description: "Dormitory warden endpoints" },
+    { name: "Dorm Handbook", description: "Dormitory handbook download endpoint" },
+    { name: "Dorm Rules", description: "Dormitory rule endpoints" },
+    { name: "Dorm", description: "Dormitory aggregate dashboard endpoint" },
     { name: "Users", description: "User recipient lookup endpoints" },
   ],
   paths: {
@@ -28,6 +34,7 @@ export const openApiSpec = {
     ...unitsDocs,
     ...termsDocs,
     ...slotsDocs,
+    ...dormDocs,
     ...userDocs,
   },
 };

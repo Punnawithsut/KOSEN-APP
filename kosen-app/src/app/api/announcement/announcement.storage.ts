@@ -101,6 +101,55 @@ export async function getAnnouncementFileUrl(storagePath: string) {
 }
 
 /**
+ * Signs many objects in a single Storage request.
+ *
+ * `createSignedUrl` is one HTTP round trip per object, so resolving a banner
+ * plus ten attachments cost eleven of them — all of it blocking the detail
+ * response. `createSignedUrls` batches the whole set into one call.
+ *
+ * An object that fails to sign is logged and left out of the map rather than
+ * failing the request: one unreadable attachment should not blank the page.
+ */
+export async function getAnnouncementFileUrls(
+  storagePaths: string[],
+  expiresIn = 60 * 60,
+): Promise<Map<string, string>> {
+  const uniquePaths = [...new Set(storagePaths)];
+  if (uniquePaths.length === 0) return new Map();
+
+  const { data, error } = await (
+    await createClient()
+  ).storage
+    .from(BUCKET_NAME)
+    .createSignedUrls(uniquePaths, expiresIn);
+
+  if (error || !data) {
+    throw new AppError(
+      "Failed to generate announcement file URLs from Supabase Storage.",
+      502,
+    );
+  }
+
+  const urls = new Map<string, string>();
+
+  data.forEach((entry, index) => {
+    const path = entry.path || uniquePaths[index];
+
+    if (entry.error || !entry.signedUrl || !path) {
+      console.error("Failed to sign announcement file:", {
+        path,
+        error: entry.error,
+      });
+      return;
+    }
+
+    urls.set(path, entry.signedUrl);
+  });
+
+  return urls;
+}
+
+/**
  * Pulls an object back out of the private bucket.
  *
  * Used by the title-image route, which has to read the original before it can

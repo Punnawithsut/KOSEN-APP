@@ -50,6 +50,13 @@
       "when": 1792555084905,
       "tag": "0006_quiet_vector",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793113387257,
+      "tag": "0007_classy_tusk",
+      "breakpoints": true
     }
   ]
 }
