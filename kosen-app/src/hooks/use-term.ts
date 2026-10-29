@@ -1,14 +1,13 @@
 import { useDelete, usePost, usePut } from "@/lib/api/use-mutation";
 import { useApi } from "@/lib/api/use-api";
+import type { ApiResponse } from "@/lib/api/types";
 import type {
-  ApiMutationResponse,
-  ApiResponse,
   CreateTermData,
   PagedData,
   Term,
   UpdateTermData,
-} from "@/hooks/types/klongklongplus-types";
-import { queryString } from "@/hooks/types/klongklongplus-types";
+} from "@/types/klongklongplus-types";
+import { queryString } from "@/types/klongklongplus-types";
 
 const TERMS_URL = "/api/klongklongplus/terms";
 
@@ -29,9 +28,7 @@ export function useTerm(id: string | null) {
 }
 
 export function useCurrentTerm(enabled = true) {
-  return useApi<ApiResponse<Term>>(
-    enabled ? `${TERMS_URL}/current` : null,
-  );
+  return useApi<ApiResponse<Term>>(enabled ? `${TERMS_URL}/current` : null);
 }
 
 export function useCreateTerm() {
@@ -49,7 +46,7 @@ export function useUpdateTerm(id: string) {
 
 export function useDeleteTerm(id: string) {
   const url = `${TERMS_URL}/${encodeURIComponent(id)}`;
-  return useDelete<ApiMutationResponse>(url, {
+  return useDelete<ApiResponse>(url, {
     revalidateKeyPrefixes: [TERMS_URL, url],
   });
 }

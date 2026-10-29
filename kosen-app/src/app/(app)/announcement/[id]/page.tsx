@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import AnnouncementDetailClient from "./announcement-detail-view";
 import { fetchAnnouncement } from "@/app/api/announcement/announcement.service";
-import { ApiResponse, AnnouncementDetailData } from "@/lib/announcement/types";
+import type { ApiResponse } from "@/lib/api/types";
+import type { AnnouncementDetailData } from "@/lib/announcement/types";
 
 export default async function AnnouncementDetailPage({
   params,

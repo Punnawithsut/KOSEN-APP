@@ -12,11 +12,11 @@ import {
   notExists,
   or,
   sql,
-  type SQL,
 } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   itemTypeEnum,
+  loanStatusEnum,
   loans,
   slots,
   slotKindEnum,
@@ -32,6 +32,15 @@ import { hasReachedTermLoanQuota } from "./loan-quota";
  */
 
 export const PAGE_SIZE = 20;
+export type LoanListFilters = {
+  status?: (typeof loanStatusEnum.enumValues)[number];
+  itemType?: (typeof itemTypeEnum.enumValues)[number];
+  slotDate?: string;
+  slotId?: string;
+  borrowerId?: string;
+  mine?: boolean;
+};
+export type LoanUpdatePredicate = { statuses: (typeof loanStatusEnum.enumValues)[number][]; approvedBy?: string | null };
 
 const RESERVED_STATUSES = ["pending", "approved", "delivered", "overdue"] as const;
 
@@ -72,7 +81,8 @@ function quotaConsumedPredicate() {
 }
 
 export async function findLoans(
-  where: SQL | undefined,
+  filters: LoanListFilters,
+  adminId: string | undefined,
   page: number,
   borrowerName?: string,
   unitSearch?: string,
@@ -116,7 +126,12 @@ export async function findLoans(
       )
     : undefined;
   const filtersWhere = and(
-    where,
+    filters.status ? eq(loans.status, filters.status) : undefined,
+    filters.itemType ? eq(loans.itemType, filters.itemType) : undefined,
+    filters.slotDate ? eq(loans.slotDate, filters.slotDate) : undefined,
+    filters.slotId ? eq(loans.slotId, filters.slotId) : undefined,
+    filters.borrowerId ? eq(loans.borrowerId, filters.borrowerId) : undefined,
+    filters.mine && adminId ? eq(loans.approvedBy, adminId) : undefined,
     borrowerNameWhere,
     unitWhere,
     isNull(loans.deletedAt),
@@ -519,9 +534,11 @@ export async function deleteUserLoan(id: string, userId: string) {
  * race-safe). Returns the updated row, or `undefined` if nothing matched.
  */
 export async function updateLoanWhere(
-  where: SQL | undefined,
+  id: string,
+  predicate: LoanUpdatePredicate,
   data: Partial<typeof loans.$inferInsert>,
 ) {
+  const where = and(eq(loans.id, id), inArray(loans.status, predicate.statuses), predicate.approvedBy === null ? isNull(loans.approvedBy) : predicate.approvedBy ? eq(loans.approvedBy, predicate.approvedBy) : undefined);
   const [updated] = await db
     .update(loans)
     .set(data)

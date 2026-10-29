@@ -15,7 +15,7 @@ import {
   titleImageSrcSet,
 } from "@/lib/announcement/title-image";
 import { AnnouncementDetailData, splitAnnouncementFiles } from "@/lib/announcement/types";
-import { ApiResponse } from "@/lib/announcement/types";
+import type { ApiResponse } from "@/lib/api/types";
 
 /** Announcement detail screen — banner, body, attachments, gallery. */
 export default function AnnouncementDetailPage({

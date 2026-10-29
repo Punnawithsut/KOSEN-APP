@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { db } from "@/db/client"; // Adjust import to match your Drizzle DB instance
-import { users } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { hasActiveUser, isActiveAdmin } from "./auth.repo";
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -43,12 +41,7 @@ export function withSessionMiddleware<T = Record<string, string>>(
         );
       }
 
-      const activeUser = await db.query.users.findFirst({
-        where: and(eq(users.userId, user.id), isNull(users.deletedAt)),
-        columns: { userId: true },
-      });
-
-      if (!activeUser) {
+      if (!(await hasActiveUser(user.id))) {
         throw new UnauthorizedError("User account is not active");
       }
 
@@ -85,12 +78,7 @@ export function useAdminMiddleware<T = Record<string, string>>(
       }
 
       // Query database to check user role
-      const dbUser = await db.query.users.findFirst({
-        where: and(eq(users.userId, user.id), isNull(users.deletedAt)),
-        columns: { role: true },
-      });
-
-      if (!dbUser || dbUser.role !== "admin") {
+      if (!(await isActiveAdmin(user.id))) {
         throw new ForbiddenError("Forbidden: Admin privileges required");
       }
 

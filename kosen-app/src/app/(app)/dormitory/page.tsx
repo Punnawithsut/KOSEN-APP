@@ -1,15 +1,17 @@
-export default function DormitoryPage() {
-  return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-4 p-6 text-slate-900">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-blue-600">
-          Dormitory
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold">Dormitory module</h1>
-        <p className="mt-3 text-sm text-slate-600">
-          This is the dedicated dormitory section.
-        </p>
-      </div>
-    </main>
-  );
+import { DormitoryView } from "@/components/dormitory/dormitory-view";
+import { isAdmin } from "@/lib/auth/role";
+import { getDormDashboard } from "@/app/api/dorm/dorm.service";
+import { serializeDates } from "@/lib/api/serialize-dates";
+
+export default async function DormitoryPage() {
+  let initialData = undefined;
+  let admin = false;
+  try {
+    [admin] = await Promise.all([isAdmin()]);
+    const data = await getDormDashboard();
+    initialData = serializeDates<{ ok: true; data: typeof data }>({ ok: true as const, data });
+  } catch (error) {
+    console.error("[SSR Prefetch] Failed to prefetch dormitory:", error);
+  }
+  return <DormitoryView isAdmin={admin} initialData={initialData} />;
 }

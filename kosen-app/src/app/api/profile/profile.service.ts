@@ -3,7 +3,9 @@ import {
   updateUserById,
   type UpdateProfileData,
 } from "./profile.repo";
-import { NotFoundError, BadRequestError } from "../_shared/errors";
+import { AppError, NotFoundError, BadRequestError } from "../_shared/errors";
+
+export type { UpdateProfileData } from "./profile.repo";
 
 const ALLOWED_DEPARTMENTS = [
   "Computer Engineering",
@@ -21,6 +23,30 @@ export async function fetchUserProfile(userId: string) {
   }
 
   return user;
+}
+
+export async function fetchAvatarUrl(userId: string) {
+  const user = await getUserById(userId);
+  return user?.avatarUrl ?? null;
+}
+
+export async function fetchAvatarImage(userId: string) {
+  const value = await fetchAvatarUrl(userId);
+  if (!value) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new AppError("Invalid profile image URL.", 502);
+  }
+  if (url.protocol !== "https:" || !/(^|\.)googleusercontent\.com$/i.test(url.hostname)) {
+    throw new AppError("Unsupported profile image source.", 502);
+  }
+  const response = await fetch(url, { cache: "force-cache", headers: { Accept: "image/*" }, redirect: "error" });
+  if (!response.ok) throw new AppError(`Profile image provider returned ${response.status}.`, 502);
+  const contentType = response.headers.get("content-type");
+  if (!contentType?.startsWith("image/")) throw new AppError("Profile image provider returned a non-image response.", 502);
+  return { body: response.body, contentType };
 }
 
 export async function modifyUserProfile(

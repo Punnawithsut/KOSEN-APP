@@ -1,7 +1,5 @@
-import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../../_shared/errors";
 // import { parsePageQuery } from "../../_shared/pagination";
-import { officeDays } from "@/db/schema";
 import {
   createWarden as insertWarden,
   getWardenById,
@@ -22,6 +20,7 @@ const ALLOWED_OFFICE_DAYS = [
   "saturday",
   "sunday",
 ] as const;
+type OfficeDay = (typeof ALLOWED_OFFICE_DAYS)[number];
 
 function parseObjectBody(body: unknown): Record<string, unknown> {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -52,8 +51,6 @@ function parseOptionalText(value: unknown): string | null {
   }
   return value.trim() || null;
 }
-
-type OfficeDay = (typeof officeDays.enumValues)[number];
 
 function parseOfficeDay(value: unknown): OfficeDay {
   if (

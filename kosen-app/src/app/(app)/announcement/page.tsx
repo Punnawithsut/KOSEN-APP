@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import AnnouncementPage from "./announcement-view";
 import { listAnnouncements } from "@/app/api/announcement/announcement.service";
-import { AnnouncementListData, ApiResponse } from "@/lib/announcement/types";
+import type { ApiResponse } from "@/lib/api/types";
+import type { AnnouncementListData } from "@/lib/announcement/types";
 
 export default async function Page() {
   let initialAnnouncements: ApiResponse<AnnouncementListData> | undefined =

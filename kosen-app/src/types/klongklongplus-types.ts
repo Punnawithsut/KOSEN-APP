@@ -12,18 +12,6 @@ export type LoanStatus =
   | "no_show";
 export type SlotKind = "normal" | "exam";
 
-export type ApiResponse<T> = {
-  ok: true;
-  data: T;
-  message?: string;
-};
-
-export type ApiMutationResponse<T = unknown> = {
-  ok: true;
-  data?: T;
-  message?: string;
-};
-
 export type PagedData<T> = {
   items: T[];
   total: number;

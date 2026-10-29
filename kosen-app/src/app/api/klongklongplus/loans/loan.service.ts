@@ -1,5 +1,3 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
-import { itemTypeEnum, loanStatusEnum, loans } from "@/db/schema";
 import {
   AppError,
   BadRequestError,
@@ -13,9 +11,9 @@ import * as unitRepo from "../units/unit.repo";
 import * as termRepo from "../terms/term.repo";
 import { serializeTermDates } from "../terms/term.service";
 import * as profileService from "../../profile/profile.service";
+import { ITEM_TYPES, LOAN_STATUSES, type ItemType, type LoanStatus } from "@/lib/klongklongplus/domain";
 
-export type LoanStatus = (typeof loanStatusEnum.enumValues)[number];
-export type ItemType = (typeof itemTypeEnum.enumValues)[number];
+export type { ItemType, LoanStatus } from "@/lib/klongklongplus/domain";
 
 export type LoanFilters = {
   status?: LoanStatus;
@@ -44,17 +42,6 @@ export type UpdateUserLoanData = {
   returnNote?: string | null;
 };
 
-function buildLoanWhere(filters: LoanFilters, adminId?: string) {
-  return and(
-    filters.status ? eq(loans.status, filters.status) : undefined,
-    filters.itemType ? eq(loans.itemType, filters.itemType) : undefined,
-    filters.slotDate ? eq(loans.slotDate, filters.slotDate) : undefined,
-    filters.slotId ? eq(loans.slotId, filters.slotId) : undefined,
-    filters.borrowerId ? eq(loans.borrowerId, filters.borrowerId) : undefined,
-    filters.mine && adminId ? eq(loans.approvedBy, adminId) : undefined,
-  );
-}
-
 /** Parse ?status=&itemType=&slotDate=&slotId=&borrowerId=&mine=&page= from the admin loans list query string. */
 export function parseListQuery(searchParams: URLSearchParams) {
   const page = parsePageQuery(searchParams, { pageSize: loanRepo.PAGE_SIZE });
@@ -62,14 +49,14 @@ export function parseListQuery(searchParams: URLSearchParams) {
   const status = searchParams.get("status");
   const itemType = searchParams.get("itemType");
   const mine = searchParams.get("mine");
-  if (status && !loanStatusEnum.enumValues.includes(status as LoanStatus)) {
+  if (status && !LOAN_STATUSES.includes(status as LoanStatus)) {
     throw new BadRequestError(
-      `status must be one of: ${loanStatusEnum.enumValues.join(", ")}`,
+      `status must be one of: ${LOAN_STATUSES.join(", ")}`,
     );
   }
-  if (itemType && !itemTypeEnum.enumValues.includes(itemType as ItemType)) {
+  if (itemType && !ITEM_TYPES.includes(itemType as ItemType)) {
     throw new BadRequestError(
-      `itemType must be one of: ${itemTypeEnum.enumValues.join(", ")}`,
+      `itemType must be one of: ${ITEM_TYPES.join(", ")}`,
     );
   }
   if (mine !== null && mine !== "true" && mine !== "false") {
@@ -105,9 +92,9 @@ export async function listLoans(
   page: number,
   adminId?: string,
 ) {
-  const where = buildLoanWhere(filters, adminId);
   const { items, total } = await loanRepo.findLoans(
-    where,
+    filters,
+    adminId,
     page,
     filters.searchName,
     filters.unitSearch,
@@ -128,14 +115,14 @@ export function parseMyLoansQuery(searchParams: URLSearchParams) {
   const status = searchParams.get("status");
   const itemType = searchParams.get("itemType");
 
-  if (status && !loanStatusEnum.enumValues.includes(status as LoanStatus)) {
+  if (status && !LOAN_STATUSES.includes(status as LoanStatus)) {
     throw new BadRequestError(
-      `status must be one of: ${loanStatusEnum.enumValues.join(", ")}`,
+      `status must be one of: ${LOAN_STATUSES.join(", ")}`,
     );
   }
-  if (itemType && !itemTypeEnum.enumValues.includes(itemType as ItemType)) {
+  if (itemType && !ITEM_TYPES.includes(itemType as ItemType)) {
     throw new BadRequestError(
-      `itemType must be one of: ${itemTypeEnum.enumValues.join(", ")}`,
+      `itemType must be one of: ${ITEM_TYPES.join(", ")}`,
     );
   }
 
@@ -204,10 +191,10 @@ function parseUuid(value: unknown, field: string): string {
 function parseItemType(value: unknown, field: string): ItemType {
   if (
     typeof value !== "string" ||
-    !itemTypeEnum.enumValues.includes(value as ItemType)
+    !ITEM_TYPES.includes(value as ItemType)
   ) {
     throw new BadRequestError(
-      `Field "${field}" must be one of: ${itemTypeEnum.enumValues.join(", ")}`,
+      `Field "${field}" must be one of: ${ITEM_TYPES.join(", ")}`,
     );
   }
   return value as ItemType;
@@ -673,7 +660,8 @@ export async function rejectLoan(
   }
 
   const updated = await loanRepo.updateLoanWhere(
-    and(eq(loans.id, loanId), eq(loans.status, "pending")),
+    loanId,
+    { statuses: ["pending"] },
     {
       status: "rejected",
       rejectReason: reason.trim(),
@@ -702,11 +690,8 @@ export async function deliverLoan(
   conditionOut?: string,
 ) {
   const updated = await loanRepo.updateLoanWhere(
-    and(
-      eq(loans.id, loanId),
-      eq(loans.status, "approved"),
-      eq(loans.approvedBy, adminId),
-    ),
+    loanId,
+    { statuses: ["approved"], approvedBy: adminId },
     {
       status: "delivered",
       deliveredAt: new Date(),
@@ -741,11 +726,8 @@ export async function returnLoan(
   conditionIn?: string,
 ) {
   const updated = await loanRepo.updateLoanWhere(
-    and(
-      eq(loans.id, loanId),
-      inArray(loans.status, ["delivered", "overdue"]),
-      eq(loans.approvedBy, adminId),
-    ),
+    loanId,
+    { statuses: ["delivered", "overdue"], approvedBy: adminId },
     {
       status: "returned",
       returnedAt: new Date(),
@@ -774,11 +756,8 @@ export async function returnLoan(
 /** approved -> no_show. Only the approving admin; still counts toward quota (requirements §3.4). */
 export async function markNoShow(loanId: string, adminId: string) {
   const updated = await loanRepo.updateLoanWhere(
-    and(
-      eq(loans.id, loanId),
-      eq(loans.status, "approved"),
-      eq(loans.approvedBy, adminId),
-    ),
+    loanId,
+    { statuses: ["approved"], approvedBy: adminId },
     { status: "no_show", updatedAt: new Date() },
   );
 
@@ -810,11 +789,8 @@ export async function cancelLoanByAdmin(
   }
 
   const updated = await loanRepo.updateLoanWhere(
-    and(
-      eq(loans.id, loanId),
-      eq(loans.status, "approved"),
-      eq(loans.approvedBy, adminId),
-    ),
+    loanId,
+    { statuses: ["approved"], approvedBy: adminId },
     {
       status: "cancelled",
       cancelReason: reason.trim(),
@@ -845,11 +821,8 @@ export async function cancelLoanByAdmin(
  */
 export async function releaseLoan(loanId: string, adminId: string) {
   const updated = await loanRepo.updateLoanWhere(
-    and(
-      eq(loans.id, loanId),
-      eq(loans.status, "approved"),
-      eq(loans.approvedBy, adminId),
-    ),
+    loanId,
+    { statuses: ["approved"], approvedBy: adminId },
     { approvedBy: null, approvedAt: null, updatedAt: new Date() },
   );
 
@@ -872,11 +845,8 @@ export async function releaseLoan(loanId: string, adminId: string) {
 /** "รับช่วงต่อ" — any admin can claim an approved loan that has no responsible admin right now. */
 export async function reassignLoan(loanId: string, adminId: string) {
   const updated = await loanRepo.updateLoanWhere(
-    and(
-      eq(loans.id, loanId),
-      eq(loans.status, "approved"),
-      isNull(loans.approvedBy),
-    ),
+    loanId,
+    { statuses: ["approved"], approvedBy: null },
     { approvedBy: adminId, approvedAt: new Date(), updatedAt: new Date() },
   );
 

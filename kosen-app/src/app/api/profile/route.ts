@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { withSessionMiddleware, parseJsonBody } from "../_shared/middleware";
 import * as profileService from "./profile.service";
-import type { UpdateProfileData } from "./profile.repo";
+import type { UpdateProfileData } from "./profile.service";
 
 // GET /api/profile -> Returns current user profile
 export const GET = withSessionMiddleware(async (req, { user }) => {

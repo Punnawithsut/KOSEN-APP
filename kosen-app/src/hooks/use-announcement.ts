@@ -1,8 +1,6 @@
 import { useApi } from "@/lib/api/use-api";
-import type {
-  AnnouncementDetailData,
-  ApiResponse,
-} from "@/lib/announcement/types";
+import type { ApiResponse } from "@/lib/api/types";
+import type { AnnouncementDetailData } from "@/lib/announcement/types";
 
 /**
  * Loads a single announcement.

@@ -1,9 +1,9 @@
-import { slotKindEnum } from "@/db/schema";
 import { AppError, BadRequestError, NotFoundError } from "../../_shared/errors";
 import { parsePageQuery } from "../../_shared/pagination";
+import { SLOT_KINDS, type SlotKind } from "@/lib/klongklongplus/domain";
 import * as slotRepo from "./slot.repo";
 
-export type SlotKind = (typeof slotKindEnum.enumValues)[number];
+export type { SlotKind } from "@/lib/klongklongplus/domain";
 
 export type SlotData = {
   kind: SlotKind;
@@ -45,10 +45,10 @@ function timeToMilliseconds(value: string): number {
 function parseKind(raw: unknown): SlotKind {
   if (
     typeof raw !== "string" ||
-    !slotKindEnum.enumValues.includes(raw as SlotKind)
+    !SLOT_KINDS.includes(raw as SlotKind)
   ) {
     throw new BadRequestError(
-      `Field "kind" must be one of: ${slotKindEnum.enumValues.join(", ")}`,
+      `Field "kind" must be one of: ${SLOT_KINDS.join(", ")}`,
     );
   }
   return raw as SlotKind;
@@ -139,9 +139,9 @@ export function parseListQuery(searchParams: URLSearchParams) {
   const page = parsePageQuery(searchParams, { pageSize: slotRepo.PAGE_SIZE });
 
   const rawKind = searchParams.get("kind");
-  if (rawKind && !slotKindEnum.enumValues.includes(rawKind as SlotKind)) {
+  if (rawKind && !SLOT_KINDS.includes(rawKind as SlotKind)) {
     throw new BadRequestError(
-      `kind must be one of: ${slotKindEnum.enumValues.join(", ")}`,
+      `kind must be one of: ${SLOT_KINDS.join(", ")}`,
     );
   }
 

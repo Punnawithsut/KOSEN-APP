@@ -1,16 +1,15 @@
 import { useDelete, usePatch, usePost, usePut } from "@/lib/api/use-mutation";
 import { useApi } from "@/lib/api/use-api";
+import type { ApiResponse } from "@/lib/api/types";
 import type {
-  ApiMutationResponse,
-  ApiResponse,
   CreateUnitData,
   PagedData,
   Unit,
   UnitFilters,
   UpdateUnitData,
   UnitStatus,
-} from "@/hooks/types/klongklongplus-types";
-import { queryString } from "@/hooks/types/klongklongplus-types";
+} from "@/types/klongklongplus-types";
+import { queryString } from "@/types/klongklongplus-types";
 
 const UNITS_URL = "/api/klongklongplus/units";
 
@@ -38,7 +37,7 @@ export function useUpdateUnit(id: string) {
 
 export function useDeleteUnit(id: string) {
   const url = `${UNITS_URL}/${encodeURIComponent(id)}`;
-  return useDelete<ApiMutationResponse>(url, {
+  return useDelete<ApiResponse>(url, {
     revalidateKeyPrefixes: [UNITS_URL, url],
   });
 }

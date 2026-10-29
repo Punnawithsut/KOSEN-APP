@@ -1,15 +1,14 @@
 import { useApi } from "@/lib/api/use-api";
 import { useDelete, usePatch, usePost, usePut } from "@/lib/api/use-mutation";
+import type { ApiResponse } from "@/lib/api/types";
 import type {
-  ApiMutationResponse,
-  ApiResponse,
   CreateLoanData,
   LoanFilters,
   LoanRecord,
   PagedData,
   UpdateLoanData,
-} from "@/hooks/types/klongklongplus-types";
-import { queryString } from "@/hooks/types/klongklongplus-types";
+} from "@/types/klongklongplus-types";
+import { queryString } from "@/types/klongklongplus-types";
 
 const LOANS_URL = "/api/klongklongplus/loans";
 const MY_LOANS_URL = `${LOANS_URL}/mine`;
@@ -36,7 +35,7 @@ export function useMyLoans(
 }
 
 export function useCreateLoan() {
-  return usePost<ApiMutationResponse<LoanRecord>, CreateLoanData>(
+  return usePost<ApiResponse<LoanRecord>, CreateLoanData>(
     LOANS_URL,
     loanMutationOptions(),
   );
@@ -44,7 +43,7 @@ export function useCreateLoan() {
 
 export function useUpdateLoan(id: string) {
   const url = `${LOANS_URL}/${encodeURIComponent(id)}`;
-  return usePut<ApiMutationResponse<LoanRecord>, UpdateLoanData>(
+  return usePut<ApiResponse<LoanRecord>, UpdateLoanData>(
     url,
     loanMutationOptions(id),
   );
@@ -52,15 +51,12 @@ export function useUpdateLoan(id: string) {
 
 export function useDeleteLoan(id: string) {
   const url = `${LOANS_URL}/${encodeURIComponent(id)}`;
-  return useDelete<ApiMutationResponse>(url, loanMutationOptions(id));
+  return useDelete<ApiResponse>(url, loanMutationOptions(id));
 }
 
 function useLoanAction<Body = undefined>(id: string, action: string) {
   const url = `${LOANS_URL}/${encodeURIComponent(id)}/${action}`;
-  return usePatch<ApiMutationResponse<LoanRecord>, Body>(
-    url,
-    loanMutationOptions(id),
-  );
+  return usePatch<ApiResponse<LoanRecord>, Body>(url, loanMutationOptions(id));
 }
 
 export function useAcceptLoan(id: string) {

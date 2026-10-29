@@ -17,7 +17,7 @@ import type {
   CreateTermData,
   Term,
   UpdateTermData,
-} from "@/hooks/types/klongklongplus-types";
+} from "@/types/klongklongplus-types";
 import { useUpdateTerm } from "@/hooks/use-term";
 
 export function AdminTermsPage() {
@@ -53,7 +53,8 @@ export function AdminTermsPage() {
     } catch (error) {
       toast({
         title: "Unable to delete term",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
         variant: "error",
       });
     }
@@ -275,7 +276,8 @@ function TermFormDialog({
     } catch (error) {
       toast({
         title: term ? "Unable to update term" : "Unable to create term",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
         variant: "error",
       });
     }
@@ -312,12 +314,44 @@ function TermFormDialog({
           />
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
-          <DateField label="Term starts" value={startDate} onChange={setStartDate} disabled={isLoading} required />
-          <DateField label="Term ends" value={endDate} onChange={setEndDate} disabled={isLoading} required />
-          <DateField label="Midterm starts" value={midtermStartDate} onChange={setMidtermStartDate} disabled={isLoading} />
-          <DateField label="Midterm ends" value={midtermEndDate} onChange={setMidtermEndDate} disabled={isLoading} />
-          <DateField label="Final exam starts" value={finalExamStartDate} onChange={setFinalExamStartDate} disabled={isLoading} />
-          <DateField label="Final exam ends" value={finalExamEndDate} onChange={setFinalExamEndDate} disabled={isLoading} />
+          <DateField
+            label="Term starts"
+            value={startDate}
+            onChange={setStartDate}
+            disabled={isLoading}
+            required
+          />
+          <DateField
+            label="Term ends"
+            value={endDate}
+            onChange={setEndDate}
+            disabled={isLoading}
+            required
+          />
+          <DateField
+            label="Midterm starts"
+            value={midtermStartDate}
+            onChange={setMidtermStartDate}
+            disabled={isLoading}
+          />
+          <DateField
+            label="Midterm ends"
+            value={midtermEndDate}
+            onChange={setMidtermEndDate}
+            disabled={isLoading}
+          />
+          <DateField
+            label="Final exam starts"
+            value={finalExamStartDate}
+            onChange={setFinalExamStartDate}
+            disabled={isLoading}
+          />
+          <DateField
+            label="Final exam ends"
+            value={finalExamEndDate}
+            onChange={setFinalExamEndDate}
+            disabled={isLoading}
+          />
         </div>
       </form>
     </ActionDialog>

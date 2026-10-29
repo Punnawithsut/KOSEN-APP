@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,8 @@ type ActionDialogProps = {
   isLoading?: boolean;
   loadingLabel?: string;
   isActionDisabled?: boolean;
+  /** Extra classes for the dialog panel, e.g. a wider `sm:max-w-2xl`. */
+  contentClassName?: string;
 };
 
 export function ActionDialog({
@@ -46,6 +49,7 @@ export function ActionDialog({
   isLoading = false,
   loadingLabel = "Please wait…",
   isActionDisabled = false,
+  contentClassName,
 }: ActionDialogProps) {
   return (
     <Dialog
@@ -56,7 +60,9 @@ export function ActionDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+      <DialogContent
+        className={cn("max-w-md gap-0 overflow-hidden p-0", contentClassName)}
+      >
         <DialogHeader className="border-b border-orange-subtle-2 px-6 py-5">
           <DialogTitle className="pr-8 text-lg text-black-1">
             {title}
@@ -66,7 +72,9 @@ export function ActionDialog({
           )}
         </DialogHeader>
 
-        <div className="space-y-5 px-6 py-6">{children}</div>
+        <div className="max-h-[65vh] space-y-5 overflow-y-auto px-6 py-6">
+          {children}
+        </div>
 
         <DialogFooter className="border-t border-orange-subtle-2 px-6 py-4">
           <Button

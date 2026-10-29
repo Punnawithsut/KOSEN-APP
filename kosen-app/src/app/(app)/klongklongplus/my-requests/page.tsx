@@ -1,9 +1,6 @@
 import { listUserLoans } from "@/app/api/klongklongplus/loans/loan.service";
-import type {
-  ApiResponse,
-  LoanRecord,
-  PagedData,
-} from "@/hooks/types/klongklongplus-types";
+import type { ApiResponse } from "@/lib/api/types";
+import type { LoanRecord, PagedData } from "@/types/klongklongplus-types";
 import { serializeDates } from "@/lib/api/serialize-dates";
 import { createClient } from "@/lib/supabase/server";
 

@@ -1,9 +1,6 @@
 import { listUnits } from "@/app/api/klongklongplus/units/unit.service";
-import type {
-  ApiResponse,
-  PagedData,
-  Unit,
-} from "@/hooks/types/klongklongplus-types";
+import type { ApiResponse } from "@/lib/api/types";
+import type { PagedData, Unit } from "@/types/klongklongplus-types";
 import { serializeDates } from "@/lib/api/serialize-dates";
 
 import ChargersView from "./chargers-view";

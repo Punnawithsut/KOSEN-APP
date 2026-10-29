@@ -15,13 +15,13 @@ import { useMyLoans } from "@/hooks/use-loan";
 import { useSlots } from "@/hooks/use-slot";
 import { useToast } from "@/hooks/use-toast";
 import type {
-  ApiResponse,
   ItemType,
   LoanFilters,
   LoanRecord,
   LoanStatus,
   PagedData,
-} from "@/hooks/types/klongklongplus-types";
+} from "@/types/klongklongplus-types";
+import type { ApiResponse } from "@/lib/api/types";
 import { Pencil, Trash2 } from "lucide-react";
 
 const STATUS_STYLES: Record<LoanStatus, string> = {

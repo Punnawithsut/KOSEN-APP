@@ -13,15 +13,15 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAnnouncements } from "@/hooks/use-announcements";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { MyProfile, useMyProfile } from "@/hooks/use-profile";
+import { useMyProfile } from "@/hooks/use-profile";
 import { apiFetcher } from "@/lib/api/fetcher";
+import type { ApiResponse } from "@/lib/api/types";
 import type {
   Announcement,
   AnnouncementDetailData,
   AnnouncementFilters,
   AnnouncementListData,
   AnnouncementListItem,
-  ApiResponse,
   FilterMode,
 } from "@/lib/announcement/types";
 

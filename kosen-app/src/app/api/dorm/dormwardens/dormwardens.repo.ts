@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, ilike } from "drizzle-orm";
+import { and, desc, eq, isNull, ilike } from "drizzle-orm";
 import { db } from "@/db/client";
 import { dormWardensInfo, officeDays } from "@/db/schema";
 

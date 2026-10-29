@@ -304,7 +304,7 @@ export const dormDocs = {
       tags: ["Dorm Handbook"],
       summary: "Download dorm handbook PDF",
       description:
-        "Downloads the dorm handbook PDF from the steady DORM_HANDBOOK_URL.",
+        "Downloads the current dorm handbook PDF stored in Supabase Storage.",
       responses: {
         200: {
           description: "Handbook PDF file",
@@ -315,8 +315,8 @@ export const dormDocs = {
           },
         },
         401: { description: "Unauthorized" },
-        500: { description: "DORM_HANDBOOK_URL is not configured" },
-        502: { description: "Unable to fetch the handbook file" },
+        404: { description: "No handbook has been uploaded" },
+        502: { description: "Unable to access the handbook file" },
       },
     },
   },
