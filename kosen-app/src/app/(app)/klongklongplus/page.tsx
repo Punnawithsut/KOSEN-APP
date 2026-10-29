@@ -16,7 +16,7 @@ export default async function ModulesExamplePage() {
           width={200}
           height={100}
           titleText="Calculator"
-          image="/images/calculator-thumb.jpg"
+          image="/icons/icon-192.png"
           destination="/klongklongplus/calculators"
           description="Scientific calculators for exams and classwork"
           extendedInfo="Borrow a scientific calculator for class or an exam. Please return it the same day you borrow it, since demand is highest during exam weeks."
@@ -26,7 +26,7 @@ export default async function ModulesExamplePage() {
           width={200}
           height={100}
           titleText="Charger"
-          image="/images/charger-thumb.jpg"
+          image="/icons/icon-192.png"
           destination="/klongklongplus/chargers"
           description="Phone and laptop charging cables"
           extendedInfo="A selection of USB-C, Lightning, and laptop charging cables are available. Check availability before heading over — popular cables run out fast."
