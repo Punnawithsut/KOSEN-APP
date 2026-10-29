@@ -16,6 +16,9 @@ function InstagramIcon() {
   );
 }
 
+const PARTY_INSTAGRAM_URL = process.env.PARTY_INSTAGRAM_URL;
+const PARTY_LINE_URL = process.env.PARTY_LINE_URL;
+
 export function Footer() {
   return (
     <footer className="bg-black-2 text-black-5">
@@ -39,7 +42,7 @@ export function Footer() {
           {/* right — social links */}
           <div className="flex items-center gap-3 sm:pt-1">
             <Link
-              href="https://line.me"
+              href={PARTY_LINE_URL ?? "https://line.me"}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="LINE"
@@ -48,7 +51,7 @@ export function Footer() {
               <LineIcon />
             </Link>
             <Link
-              href="https://instagram.com"
+              href={PARTY_INSTAGRAM_URL ?? "https://instagram.com"}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"
