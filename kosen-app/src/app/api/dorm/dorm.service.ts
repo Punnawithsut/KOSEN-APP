@@ -4,7 +4,7 @@ import * as rulesService from "./rule/rule.service";
 import { getHandbookMetadata } from "./handbook/handbook.repo";
 import { createClient } from "@/lib/supabase/server";
 
-const AUDIT_FIELDS = ["createdBy", "updatedBy", "deletedBy", "deletedAt", "updatedAt", "createdAt"] as const;
+const AUDIT_FIELDS = ["createdBy", "updatedBy", "deletedBy", "deletedAt", "createdAt"] as const;
 function stripAudit<T extends Record<string, unknown>>(item: T): T {
   const rest = { ...item };
   for (const field of AUDIT_FIELDS) delete rest[field];
