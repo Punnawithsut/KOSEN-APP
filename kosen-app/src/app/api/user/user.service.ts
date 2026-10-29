@@ -1,5 +1,3 @@
-import { and, eq } from "drizzle-orm";
-import { users } from "@/db/schema";
 import { BadRequestError } from "../_shared/errors";
 import { findUserIdByFilters } from "./user.repo";
 
@@ -24,19 +22,6 @@ function getOptionalQueryValue(
 ): string | undefined {
   const value = searchParams.get(key)?.trim();
   return value || undefined;
-}
-
-function buildUserWhere(filters: UserFilters) {
-  return and(
-    filters.department
-      ? eq(users.department, filters.department)
-      : undefined,
-    filters.year !== undefined ? eq(users.year, filters.year) : undefined,
-    filters.dormBuilding
-      ? eq(users.dormBuilding, filters.dormBuilding)
-      : undefined,
-    filters.dormRoom ? eq(users.dormRoom, filters.dormRoom) : undefined,
-  );
 }
 
 export function parseListQuery(searchParams: URLSearchParams): UserFilters {
@@ -84,5 +69,5 @@ export function parseListQuery(searchParams: URLSearchParams): UserFilters {
 }
 
 export async function listUsers(filters: UserFilters) {
-  return findUserIdByFilters(buildUserWhere(filters));
+  return findUserIdByFilters(filters);
 }

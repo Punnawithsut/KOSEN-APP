@@ -1,4 +1,4 @@
-import { and, asc, count, eq, isNull, type SQL } from "drizzle-orm";
+import { and, asc, count, eq, ilike, isNull, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { units } from "@/db/schema";
 
@@ -9,8 +9,20 @@ import { units } from "@/db/schema";
  */
 
 export const PAGE_SIZE = 20;
+export type UnitListFilters = {
+  itemType?: (typeof units.$inferSelect)["itemType"];
+  status?: (typeof units.$inferSelect)["status"];
+  isActive?: boolean;
+  search?: string;
+};
 
-export async function findUnits(where: SQL | undefined, page: number) {
+export async function findUnits(filters: UnitListFilters, page: number) {
+  const where = and(
+    filters.itemType ? eq(units.itemType, filters.itemType) : undefined,
+    filters.status ? eq(units.status, filters.status) : undefined,
+    filters.isActive !== undefined ? eq(units.isActive, filters.isActive) : undefined,
+    filters.search ? or(ilike(units.code, `%${filters.search}%`), ilike(units.note, `%${filters.search}%`)) : undefined,
+  );
   const offset = (page - 1) * PAGE_SIZE;
 
   const [items, [{ total }]] = await Promise.all([

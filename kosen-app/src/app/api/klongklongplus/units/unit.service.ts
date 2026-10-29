@@ -1,18 +1,11 @@
-import { and, eq, ilike, or } from "drizzle-orm";
-import { itemTypeEnum, unitStatusEnum, units } from "@/db/schema";
 import { AppError, BadRequestError, NotFoundError } from "../../_shared/errors";
 import { parsePageQuery } from "../../_shared/pagination";
+import { ITEM_TYPES, UNIT_STATUSES, type ItemType, type UnitStatus } from "@/lib/klongklongplus/domain";
 import * as unitRepo from "./unit.repo";
 
-export type ItemType = (typeof itemTypeEnum.enumValues)[number];
-export type UnitStatus = (typeof unitStatusEnum.enumValues)[number];
+export type { ItemType, UnitStatus } from "@/lib/klongklongplus/domain";
 
-export type UnitFilters = {
-  itemType?: ItemType;
-  status?: UnitStatus;
-  isActive?: boolean;
-  search?: string;
-};
+export type UnitFilters = { itemType?: ItemType; status?: UnitStatus; isActive?: boolean; search?: string };
 
 export type CreateUnitData = {
   code: string;
@@ -27,22 +20,6 @@ export type UpdateUnitData = {
   isActive?: boolean;
 };
 
-function buildUnitWhere(filters: UnitFilters) {
-  return and(
-    filters.itemType ? eq(units.itemType, filters.itemType) : undefined,
-    filters.status ? eq(units.status, filters.status) : undefined,
-    filters.isActive !== undefined
-      ? eq(units.isActive, filters.isActive)
-      : undefined,
-    filters.search
-      ? or(
-          ilike(units.code, `%${filters.search}%`),
-          ilike(units.note, `%${filters.search}%`),
-        )
-      : undefined,
-  );
-}
-
 /** Parse ?itemType=&status=&isActive=&search=&page= from the units list query string. */
 export function parseListQuery(searchParams: URLSearchParams) {
   const page = parsePageQuery(searchParams, { pageSize: unitRepo.PAGE_SIZE });
@@ -53,11 +30,11 @@ export function parseListQuery(searchParams: URLSearchParams) {
 
   const filters: UnitFilters = {
     itemType:
-      itemType && itemTypeEnum.enumValues.includes(itemType as ItemType)
+      itemType && ITEM_TYPES.includes(itemType as ItemType)
         ? (itemType as ItemType)
         : undefined,
     status:
-      status && unitStatusEnum.enumValues.includes(status as UnitStatus)
+      status && UNIT_STATUSES.includes(status as UnitStatus)
         ? (status as UnitStatus)
         : undefined,
     isActive: isActiveParam === null ? undefined : isActiveParam === "true",
@@ -68,8 +45,7 @@ export function parseListQuery(searchParams: URLSearchParams) {
 }
 
 export async function listUnits(filters: UnitFilters, page: number) {
-  const where = buildUnitWhere(filters);
-  const { items, total } = await unitRepo.findUnits(where, page);
+  const { items, total } = await unitRepo.findUnits(filters, page);
   return { items, total, page, pageSize: unitRepo.PAGE_SIZE };
 }
 
@@ -89,10 +65,10 @@ function parseCode(raw: unknown): string {
 function parseItemType(raw: unknown): ItemType {
   if (
     typeof raw !== "string" ||
-    !itemTypeEnum.enumValues.includes(raw as ItemType)
+    !ITEM_TYPES.includes(raw as ItemType)
   ) {
     throw new BadRequestError(
-      `Field "itemType" must be one of: ${itemTypeEnum.enumValues.join(", ")}`,
+      `Field "itemType" must be one of: ${ITEM_TYPES.join(", ")}`,
     );
   }
   return raw as ItemType;
@@ -101,10 +77,10 @@ function parseItemType(raw: unknown): ItemType {
 function parseUnitStatus(raw: unknown): UnitStatus {
   if (
     typeof raw !== "string" ||
-    !unitStatusEnum.enumValues.includes(raw as UnitStatus)
+    !UNIT_STATUSES.includes(raw as UnitStatus)
   ) {
     throw new BadRequestError(
-      `Field "status" must be one of: ${unitStatusEnum.enumValues.join(", ")}`,
+      `Field "status" must be one of: ${UNIT_STATUSES.join(", ")}`,
     );
   }
   return raw as UnitStatus;
@@ -168,7 +144,7 @@ export async function createUnit(data: CreateUnitData) {
 export async function updateUnitById(id: string, data: UpdateUnitData) {
   await requireUnit(id);
 
-  const update: Partial<typeof units.$inferInsert> & { updatedAt: Date } = {
+  const update: { code?: string; itemType?: ItemType; note?: string | null; isActive?: boolean; status?: UnitStatus; updatedAt: Date } = {
     updatedAt: new Date(),
   };
   if (data.code !== undefined) update.code = data.code;

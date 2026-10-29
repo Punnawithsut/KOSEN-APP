@@ -13,7 +13,7 @@ export const GET = withSessionMiddleware(async (req) => {
   return NextResponse.json({ ok: true, data });
 });
 
-export const POST = withAdminMiddleware(async (req, { user }) => {
+export const POST = withAdminMiddleware(async (req) => {
   const created = await ruleService.createRule(await req.json());
   return NextResponse.json(
     {

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { BadRequestError, NotFoundError } from "../_shared/errors";
 import { parsePageQuery } from "../_shared/pagination";
 import {
@@ -13,6 +14,7 @@ import {
   PAGE_SIZE,
 } from "./announcement.repo";
 import {
+  downloadAnnouncementFile,
   getAnnouncementFileUrls,
   removeAnnouncementFiles,
   uploadAnnouncementFiles,
@@ -37,6 +39,27 @@ const ALLOWED_TYPES = [
 type AnnouncementRecord = NonNullable<
   Awaited<ReturnType<typeof getAnnouncementById>>
 >;
+
+export async function getTitleImagePath(id: string) {
+  const announcement = await getAnnouncementById(id);
+  if (!announcement?.titleImageUrl) {
+    throw new NotFoundError("This announcement has no title image.");
+  }
+  return announcement.titleImageUrl;
+}
+
+export async function getAnnouncementTitleImage(id: string, requestedWidth: number) {
+  const storagePath = await getTitleImagePath(id);
+  const original = await downloadAnnouncementFile(storagePath);
+  const allowedWidths = new Set([400, 800, 1600]);
+  const width = allowedWidths.has(requestedWidth) ? requestedWidth : 800;
+  const resizableTypes = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/avif"]);
+  const canResize = resizableTypes.has(original.contentType);
+  const body = canResize
+    ? await sharp(original.data).resize({ width, withoutEnlargement: true }).webp({ quality: 78 }).toBuffer()
+    : original.data;
+  return { body, contentType: canResize ? "image/webp" : original.contentType };
+}
 
 function parseObjectBody(body: unknown): Record<string, unknown> {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
