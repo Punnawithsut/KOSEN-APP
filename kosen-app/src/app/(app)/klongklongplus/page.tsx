@@ -30,7 +30,7 @@ export default async function ModulesExamplePage() {
           destination="/klongklongplus/chargers"
           description="Phone and laptop charging cables"
           extendedInfo="A selection of USB-C, Lightning, and laptop charging cables are available. Check availability before heading over — popular cables run out fast."
-          badgeText="Popular"
+          //badgeText="Popular"
         />
       </div>
 
