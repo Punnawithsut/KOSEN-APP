@@ -5,6 +5,8 @@ import { serializeDates } from "@/lib/api/serialize-dates";
 
 import CalculatorsView from "./calculators-view";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Server-rendered shell for the calculators list.
  *

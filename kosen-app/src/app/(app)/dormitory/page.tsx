@@ -3,6 +3,8 @@ import { isAdmin } from "@/lib/auth/role";
 import { getDormDashboard } from "@/app/api/dorm/dorm.service";
 import { serializeDates } from "@/lib/api/serialize-dates";
 
+export const dynamic = "force-dynamic";
+
 export default async function DormitoryPage() {
   let initialData = undefined;
   let admin = false;

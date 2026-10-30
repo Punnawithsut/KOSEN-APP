@@ -4,6 +4,8 @@ import { fetchAnnouncement } from "@/app/api/announcement/announcement.service";
 import type { ApiResponse } from "@/lib/api/types";
 import type { AnnouncementDetailData } from "@/lib/announcement/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function AnnouncementDetailPage({
   params,
 }: {
