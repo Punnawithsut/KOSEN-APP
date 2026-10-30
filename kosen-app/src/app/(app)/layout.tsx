@@ -31,7 +31,7 @@ export default async function AppLayout({
   //return <RequireStandalone>{children}</RequireStandalone>;
   return (
     <RequireStandalone>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col bg-bg-primary">
         <Navbar/>
           <main className="flex-1">{children}</main>
         <Footer/>
