@@ -18,7 +18,7 @@ export function Navbar() {
   return (
     <>
       {/* ── Desktop: fixed top bar ── */}
-      <header className="fixed inset-x-0 top-0 z-50 hidden h-16 items-center justify-between border-b border-orange-subtle-2 bg-bg-primary px-8 md:flex">
+      <header className="fixed inset-x-0 top-0 z-50 hidden h-16 items-center justify-between border-b border-orange-subtle-2 bg-white px-8 md:flex">
         <Link href="/" className="flex items-center gap-2.5">
           <Image
             src="/icons/icon-192.png"
@@ -54,7 +54,7 @@ export function Navbar() {
       </header>
       {/* ── Mobile: fixed bottom tab bar ── */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-stretch border-t border-orange-subtle-2 bg-bg-primary md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 flex h-16 items-stretch border-t border-orange-subtle-2 bg-white md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {

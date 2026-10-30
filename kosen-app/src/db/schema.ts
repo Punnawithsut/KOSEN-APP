@@ -178,6 +178,7 @@ export const forms = pgTable("forms", { // For dorms
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
+  icon: varchar("icon", { length: 32 }).notNull().default("document"),
   dueDate: timestamp("due_date", { withTimezone: true }),
   formsURL: text("forms_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

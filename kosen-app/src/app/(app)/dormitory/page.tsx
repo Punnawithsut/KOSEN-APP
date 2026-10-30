@@ -13,5 +13,9 @@ export default async function DormitoryPage() {
   } catch (error) {
     console.error("[SSR Prefetch] Failed to prefetch dormitory:", error);
   }
-  return <DormitoryView isAdmin={admin} initialData={initialData} />;
+  return (
+    <div className="bg-bg-primary">
+      <DormitoryView isAdmin={admin} initialData={initialData} />
+    </div>
+  );
 }

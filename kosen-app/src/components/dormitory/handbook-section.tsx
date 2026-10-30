@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ArrowUpRightIcon,
-  DownloadIcon,
-  EyeIcon,
-  FileTextIcon,
-  FileXIcon,
-} from "lucide-react";
+import { ArrowUpRightIcon, DownloadIcon, EyeIcon, FileXIcon } from "lucide-react";
 
 import {
   Dialog,
@@ -18,18 +12,16 @@ import {
 } from "@/components/ui/dialog";
 import {
   AddButton,
+  DeleteButton,
   EditButton,
 } from "@/components/dormitory/admin-ui";
+import { DeleteConfirmDialog } from "@/components/dormitory/delete-confirm-dialog";
 import {
   HandbookDialog,
   RuleDialog,
 } from "@/components/dormitory/handbook-dialogs";
 import { useToast } from "@/hooks/use-toast";
-import type {
-  DormAttachment,
-  DormHandbook,
-  DormRule,
-} from "@/lib/dormitory/data";
+import type { DormHandbook, DormRule } from "@/lib/dormitory/data";
 
 const ACTION_BASE =
   "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition-all active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary";
@@ -39,25 +31,31 @@ export function HandbookSection({
   rules,
   showHandbook,
   isAdmin = false,
-  onHandbookChange,
+  onHandbookUpload,
+  onHandbookDelete,
   onRuleSave,
+  onRuleDelete,
 }: {
   handbook: DormHandbook;
   rules: DormRule[];
   showHandbook: boolean;
   isAdmin?: boolean;
-  onHandbookChange?: (next: DormHandbook) => void;
+  onHandbookUpload?: (formData: FormData) => Promise<unknown>;
+  onHandbookDelete?: () => Promise<void>;
   onRuleSave?: (rule: DormRule) => void;
+  onRuleDelete?: (id: string) => Promise<void>;
 }) {
   const { toast } = useToast();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [activeRule, setActiveRule] = useState<string | null>(null);
   const [editingHandbook, setEditingHandbook] = useState(false);
+  const [confirmHandbookDelete, setConfirmHandbookDelete] = useState(false);
   // undefined = closed, null = adding, rule = editing.
   const [editingRule, setEditingRule] = useState<DormRule | null | undefined>(
     undefined,
   );
+  const [deletingRule, setDeletingRule] = useState<DormRule | null>(null);
 
   function handleDownload() {
     if (!handbook.pdfUrl) {
@@ -98,11 +96,10 @@ export function HandbookSection({
         {showHandbook ? (
           <div className="relative flex gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4">
             {isAdmin ? (
-              <EditButton
-                label="Update handbook"
-                onClick={() => setEditingHandbook(true)}
-                className="absolute top-2 right-2"
-              />
+              <div className="absolute top-2 right-2 flex flex-col gap-1">
+                <EditButton label="Update handbook" onClick={() => setEditingHandbook(true)} />
+                {handbook.pdfUrl ? <DeleteButton label="Delete handbook file" onClick={() => setConfirmHandbookDelete(true)} /> : null}
+              </div>
             ) : null}
             {/* Book cover */}
             <div
@@ -177,10 +174,10 @@ export function HandbookSection({
                     <ArrowUpRightIcon className="size-4 shrink-0" />
                   </button>
                   {isAdmin ? (
-                    <EditButton
-                      label={`Edit ${rule.title}`}
-                      onClick={() => setEditingRule(rule)}
-                    />
+                    <div className="flex flex-col gap-1">
+                      <EditButton label={`Edit ${rule.title}`} onClick={() => setEditingRule(rule)} />
+                      <DeleteButton label={`Delete ${rule.title}`} onClick={() => setDeletingRule(rule)} />
+                    </div>
                   ) : null}
                 </li>
               ))}
@@ -221,6 +218,24 @@ export function HandbookSection({
         </DialogContent>
       </Dialog>
 
+      <DeleteConfirmDialog
+        open={confirmHandbookDelete}
+        title="Delete handbook file?"
+        description="This removes the uploaded handbook attachment and its stored metadata."
+        itemLabel="Handbook file"
+        onCancel={() => setConfirmHandbookDelete(false)}
+        onDelete={() => onHandbookDelete?.() ?? Promise.reject(new Error("Handbook deletion is unavailable."))}
+      />
+
+      <DeleteConfirmDialog
+        open={deletingRule !== null}
+        title="Delete rule?"
+        description={`“${deletingRule?.title ?? "This rule"}” will be removed from the dormitory rules.`}
+        itemLabel="Rule"
+        onCancel={() => setDeletingRule(null)}
+        onDelete={() => deletingRule && onRuleDelete ? onRuleDelete(deletingRule.id) : Promise.reject(new Error("Rule deletion is unavailable."))}
+      />
+
       {/* Rules text */}
       <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
@@ -243,7 +258,6 @@ export function HandbookSection({
                     {rule.body}
                   </p>
                 ) : null}
-                <RuleAttachments attachments={rule.attachments} />
                 <p className="mt-1 text-xs text-black-4">
                   Updated {rule.updatedAt}
                 </p>
@@ -266,11 +280,8 @@ export function HandbookSection({
             body.set("file", file);
             body.set("edition", next.edition);
             body.set("pages", String(next.pages));
-            void fetch("/api/dorm/handbook", { method: "POST", body })
-              .then(async (response) => {
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error ?? "Could not update handbook.");
-                onHandbookChange?.(result.data);
+            void (onHandbookUpload?.(body) ?? Promise.reject(new Error("Handbook upload is unavailable.")))
+              .then(() => {
                 setEditingHandbook(false);
                 toast({ title: "Handbook updated", variant: "success" });
               })
@@ -295,43 +306,5 @@ export function HandbookSection({
         />
       ) : null}
     </section>
-  );
-}
-
-/** Images render inline; every other file type becomes a link. */
-function RuleAttachments({ attachments }: { attachments: DormAttachment[] }) {
-  if (attachments.length === 0) return null;
-  const images = attachments.filter((file) => file.type.startsWith("image/"));
-  const others = attachments.filter((file) => !file.type.startsWith("image/"));
-  return (
-    <div className="mt-2 flex flex-col gap-2">
-      {images.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2">
-          {images.map((file) => (
-            <a key={file.id} href={file.url} target="_blank" rel="noopener noreferrer">
-              {/* Object URLs / arbitrary hosts: next/image cannot optimise these. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={file.url}
-                alt={file.name}
-                className="aspect-video w-full rounded-lg object-cover"
-              />
-            </a>
-          ))}
-        </div>
-      ) : null}
-      {others.map((file) => (
-        <a
-          key={file.id}
-          href={file.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-secondary underline-offset-4 hover:underline"
-        >
-          <FileTextIcon className="size-4 shrink-0" />
-          <span className="truncate">{file.name}</span>
-        </a>
-      ))}
-    </div>
   );
 }

@@ -47,9 +47,11 @@ export default async function Page() {
   }
 
   return (
-    <AnnouncementPage
-      initialAnnouncements={initialAnnouncements}
-      initialProfile={initialProfile}
-    />
+    <div className="bg-bg-primary">
+      <AnnouncementPage
+        initialAnnouncements={initialAnnouncements}
+        initialProfile={initialProfile}
+      />
+    </div>
   );
 }

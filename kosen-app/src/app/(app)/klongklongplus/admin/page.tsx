@@ -5,7 +5,7 @@ export default async function AdminPage() {
   await requireAdmin();
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-6 px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-2xl space-y-6 px-4 py-10 sm:px-6 bg-bg-primary">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold text-black-1">
           Equipment administration

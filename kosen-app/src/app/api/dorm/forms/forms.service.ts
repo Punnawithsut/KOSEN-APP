@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestError, NotFoundError } from "../../_shared/errors";
+import { FORM_ICON_KEYS, type FormIconKey } from "@/lib/dormitory/data";
 // import { parsePageQuery } from "../../_shared/pagination";
 import {
   createForm as insertForm,
@@ -59,6 +60,13 @@ function parseOptionalUrl(value: unknown): string | null {
   return value.trim() || null;
 }
 
+function parseFormIcon(value: unknown): FormIconKey {
+  if (typeof value !== "string" || !FORM_ICON_KEYS.includes(value as FormIconKey)) {
+    throw new BadRequestError("icon must be a supported form icon.");
+  }
+  return value as FormIconKey;
+}
+
 export function parseListQuery(searchParams: URLSearchParams) { //Seems useful but based on frontend ref it will not be used
   // const page =  parsePageQuery(searchParams, { //maybe redundant
   //   pageSize: PAGE_SIZE,
@@ -80,6 +88,7 @@ export async function listForms(filters: FormFilters /*, page: number*/) {
       id: item.id,
       name: item.name,
       description: item.description,
+      icon: item.icon,
       dueDate: item.dueDate,
       formsURL: item.formsURL,
       createdBy: item.createdBy,
@@ -106,6 +115,7 @@ export async function fetchForm(id: string) {
     id: form.id,
     name: form.name,
     description: form.description,
+    icon: form.icon,
     dueDate: form.dueDate,
     formsURL: form.formsURL,
     createdBy: form.createdBy,
@@ -122,6 +132,7 @@ export async function createForm(createdBy: string, body: unknown) {
   const name = parseRequiredText(payload.name, "Name");
   const description =
     typeof payload.description === "string" ? payload.description : null;
+  const icon = payload.icon === undefined ? "document" : parseFormIcon(payload.icon);
   const dueDate = parseOptionalDate(payload.dueDate);
   const formsURL = parseOptionalUrl(payload.formsURL);
   const formId = randomUUID();
@@ -129,6 +140,7 @@ export async function createForm(createdBy: string, body: unknown) {
   return await insertForm(formId, createdBy, {
     name,
     description,
+    icon,
     dueDate,
     formsURL,
   }).then(
@@ -140,6 +152,7 @@ export async function createForm(createdBy: string, body: unknown) {
         id: created.id,
         name: created.name,
         description: created.description,
+        icon: created.icon,
         dueDate: created.dueDate,
         formsURL: created.formsURL,
         createdBy: created.createdBy,
@@ -166,6 +179,7 @@ export async function modifyForm(
   if ("description" in payload)
     data.description =
       typeof payload.description === "string" ? payload.description : null;
+  if ("icon" in payload) data.icon = parseFormIcon(payload.icon);
   if ("dueDate" in payload) data.dueDate = parseOptionalDate(payload.dueDate);
   if ("formsURL" in payload) data.formsURL = parseOptionalUrl(payload.formsURL);
 
@@ -180,6 +194,7 @@ export async function modifyForm(
     id: result.id,
     name: result.name,
     description: result.description,
+    icon: result.icon,
     dueDate: result.dueDate,
     formsURL: result.formsURL,
     createdBy: result.createdBy,

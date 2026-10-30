@@ -19,5 +19,9 @@ export default async function ProfilePage() {
     console.error("[SSR Prefetch] Failed to prefetch profile:", error);
   }
 
-  return <ProfileView initialProfile={initialProfile} />;
+  return (
+    <div className="bg-bg-primary">
+      <ProfileView initialProfile={initialProfile} />
+    </div>
+  );
 }

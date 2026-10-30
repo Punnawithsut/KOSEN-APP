@@ -30,5 +30,9 @@ export default async function CalculatorsPage() {
     console.error("[SSR Prefetch] Failed to prefetch calculators:", error);
   }
 
-  return <CalculatorsView initialUnits={initialUnits} />;
+  return (
+    <div className="bg-bg-primary">
+      <CalculatorsView initialUnits={initialUnits} />
+    </div>
+  );
 }

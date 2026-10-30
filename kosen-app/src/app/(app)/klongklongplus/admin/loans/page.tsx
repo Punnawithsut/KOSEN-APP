@@ -7,5 +7,9 @@ export default async function AdminLoansRoute() {
   const admin = await getCurrentUser();
   if (!admin) redirect("/login");
 
-  return <AdminLoansPage adminId={admin.userId} />;
+  return (
+    <div className="bg-bg-primary">
+      <AdminLoansPage adminId={admin.userId} />
+    </div>
+  );
 }

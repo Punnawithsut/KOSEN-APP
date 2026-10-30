@@ -3,5 +3,9 @@ import { requireAdmin } from "@/lib/auth/role";
 
 export default async function AdminTermsRoute() {
   await requireAdmin();
-  return <AdminTermsPage />;
+  return (
+    <div className="bg-bg-primary">
+      <AdminTermsPage />
+    </div>
+  );
 }

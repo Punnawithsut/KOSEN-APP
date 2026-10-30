@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import useSWR from "swr";
 import {
   BookOpenIcon,
   FileTextIcon,
@@ -13,6 +12,8 @@ import {
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import { useDormitory, type DormDashboard } from "@/hooks/use-dormitory";
+import type { ApiResponse } from "@/lib/api/types";
 import { FormsSection } from "@/components/dormitory/forms-section";
 import { HandbookSection } from "@/components/dormitory/handbook-section";
 import { StaffSection } from "@/components/dormitory/staff-section";
@@ -21,8 +22,6 @@ import {
 } from "@/lib/dormitory/data";
 import { STAFF_POSITIONS } from "@/lib/dormitory/data";
 import { adaptDormData } from "@/lib/dormitory/adapter";
-import { apiFetcher } from "@/lib/api/fetcher";
-import type { ApiError } from "@/lib/api/fetcher";
 import { useToast } from "@/hooks/use-toast";
 
 type Tab = "all" | "handbook" | "forms" | "staff";
@@ -41,14 +40,11 @@ const includes = (text: string, query: string) =>
  * Dormitory screen. One page, four tabs; the search box narrows whatever the
  * active tab shows, and "All" shows every section that still has a match.
  *
- * Admins get edit/add controls overlaid on the same screen. The content is
- * still local state seeded from `@/lib/dormitory/data`, so edits last until
- * the page is reloaded; swap the setters for API calls to persist them.
+ * Admins get edit/add controls overlaid on the same screen. Data is prefetched
+ * by the server and refreshed through the shared dormitory API hook.
  */
-type DormApi = { ok: true; data: { wardens: Record<string, unknown>[]; forms: Record<string, unknown>[]; rules: Record<string, unknown>[]; handbook: DormHandbook | null } };
-
-export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: boolean; initialData?: DormApi }) {
-  const { data, mutate } = useSWR<DormApi, ApiError>("/api/dorm", apiFetcher, { fallbackData: initialData });
+export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: boolean; initialData?: ApiResponse<DormDashboard> }) {
+  const { data, mutate, saveJson, uploadHandbook, uploadStaffPhoto, deleteHandbook, deleteRule, deleteForm, deleteStaff } = useDormitory(initialData);
   const { toast } = useToast();
   const adapted = data?.data ? adaptDormData(data.data) : { staff: [], forms: [], rules: [], handbook: { title: "Dormitory Handbook", edition: "", pages: 0, updatedAt: "—", fileName: null, pdfUrl: null } as DormHandbook };
   const [tab, setTab] = useState<Tab>("all");
@@ -57,16 +53,8 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
   const allRules = adapted.rules;
   const allForms = adapted.forms;
   const allStaff = adapted.staff;
-  async function save(url: string, method: "POST" | "PUT" | "DELETE", body?: Record<string, unknown>) {
-    const response = await fetch(url, { method, ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}) });
-    if (!response.ok) {
-      const result = await response.json().catch(() => null) as { error?: string } | null;
-      throw new Error(result?.error ?? `Request failed (${response.status})`);
-    }
-    await mutate();
-  }
-  function reportSave(task: Promise<void>, label: string) {
-    void task.then(() => toast({ title: `${label} saved`, variant: "success" })).catch((error: unknown) => toast({ title: `Could not save ${label.toLowerCase()}`, description: error instanceof Error ? error.message : "Please try again.", variant: "error" }));
+  function reportSave(task: Promise<void>, label: string, verb = "saved") {
+    void task.then(() => toast({ title: `${label} ${verb}`, variant: "success" })).catch((error: unknown) => toast({ title: `Could not ${verb === "deleted" ? "delete" : "save"} ${label.toLowerCase()}`, description: error instanceof Error ? error.message : "Please try again.", variant: "error" }));
   }
   const query = search.trim().toLowerCase();
 
@@ -96,7 +84,7 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
   const empty = !show.handbook && !show.forms && !show.staff;
 
   return (
-    <main className="min-h-screen bg-white pb-10">
+    <main className="min-h-screen pb-10">
       <div className="mx-auto flex w-full max-w-[430px] flex-col md:max-w-3xl lg:max-w-6xl">
         {/* Plain block at the top of the page: scrolls away with the content. */}
         <div className="px-4 pt-4 md:px-6">
@@ -105,7 +93,7 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
             <div
               role="tablist"
               aria-label="Dormitory sections"
-              className="flex gap-1 overflow-x-auto [scrollbar-width:none]"
+              className="flex gap-1 overflow-x-scroll [scrollbar-width:none]"
             >
               {TABS.map(({ id, label, icon: Icon }) => {
                 const active = tab === id;
@@ -152,8 +140,10 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
               rules={rules}
               showHandbook={showHandbook}
               isAdmin={isAdmin}
-              onHandbookChange={(next) => { if (next) mutate(); }}
-              onRuleSave={(rule) => { const existing = allRules.some((item) => item.id === rule.id); reportSave(save(existing ? `/api/dorm/rule/${rule.id}` : "/api/dorm/rule", existing ? "PUT" : "POST", { name: rule.title, rule_description: rule.body }), "Rule"); }}
+              onHandbookUpload={uploadHandbook}
+              onHandbookDelete={deleteHandbook}
+              onRuleSave={(rule) => { const existing = allRules.some((item) => item.id === rule.id); reportSave(saveJson(existing ? `/api/dorm/rule/${rule.id}` : "/api/dorm/rule", existing ? "PUT" : "POST", { name: rule.title, rule_description: rule.body }).then(() => undefined), "Rule"); }}
+              onRuleDelete={deleteRule}
             />
           ) : null}
           {show.forms ? (
@@ -161,22 +151,31 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
               forms={forms}
               allForms={allForms}
               isAdmin={isAdmin}
-              onSave={(form) => { const existing = allForms.some((item) => item.id === form.id); reportSave(save(existing ? `/api/dorm/forms/${form.id}` : "/api/dorm/forms", existing ? "PUT" : "POST", { name: form.title, description: form.description, formsURL: form.url, dueDate: form.closesAt }), "Form"); }}
+              onSave={(form) => { const existing = allForms.some((item) => item.id === form.id); reportSave(saveJson(existing ? `/api/dorm/forms/${form.id}` : "/api/dorm/forms", existing ? "PUT" : "POST", { name: form.title, description: form.description, formsURL: form.url, dueDate: form.closesAt, icon: form.icon }).then(() => undefined), "Form"); }}
+              onDelete={deleteForm}
             />
           ) : null}
           {show.staff ? (
             <StaffSection
               staff={staff}
               isAdmin={isAdmin}
-              onSave={(person) => {
+              onSave={(person, photoFile) => {
                 if (!person.officeHours.length) { toast({ title: "Add an office hour", variant: "error" }); return; }
                 const existing = allStaff.find((item) => item.id === person.id);
                 const dayFor = (day: (typeof person.officeHours)[number]["day"]) => ({ Mon: "monday", Tue: "tuesday", Wed: "wednesday", Thu: "thursday", Fri: "friday", Sat: "saturday", Sun: "sunday" } as const)[day];
                 const bodyFor = (hour: (typeof person.officeHours)[number]) => ({ name: person.name, role: STAFF_POSITIONS[person.position], lineID: person.lineId, phone: person.phone, officeDay: dayFor(hour.day), officeStartTime: hour.start, officeEndTime: hour.end });
-                const changes = person.officeHours.map((hour) => save(hour.recordId ? `/api/dorm/dormwardens/${hour.recordId}` : "/api/dorm/dormwardens", hour.recordId ? "PUT" : "POST", bodyFor(hour)));
+                const changes = person.officeHours.map((hour) => saveJson(hour.recordId ? `/api/dorm/dormwardens/${hour.recordId}` : "/api/dorm/dormwardens", hour.recordId ? "PUT" : "POST", bodyFor(hour)));
                 const keptIds = new Set(person.officeHours.map((hour) => hour.recordId).filter(Boolean));
-                for (const oldHour of existing?.officeHours ?? []) if (oldHour.recordId && !keptIds.has(oldHour.recordId)) changes.push(save(`/api/dorm/dormwardens/${oldHour.recordId}`, "DELETE"));
-                reportSave(Promise.all(changes).then(() => undefined).then(() => mutate()).then(() => undefined), "Staff");
+                for (const oldHour of existing?.officeHours ?? []) if (oldHour.recordId && !keptIds.has(oldHour.recordId)) changes.push(saveJson(`/api/dorm/dormwardens/${oldHour.recordId}`, "DELETE"));
+                reportSave(Promise.all(changes).then(async (results) => {
+                  const photoId = existing?.id ?? results.find((result) => result?.data?.id)?.data?.id;
+                  if (photoFile && typeof photoId === "string") await uploadStaffPhoto(photoId, photoFile);
+                  else await mutate();
+                }), "Staff");
+              }}
+              onDelete={(person) => {
+                const ids = person.officeHours.map((hour) => hour.recordId).filter((id): id is string => Boolean(id));
+                return deleteStaff(ids, person.photo ? person.id : undefined);
               }}
             />
           ) : null}

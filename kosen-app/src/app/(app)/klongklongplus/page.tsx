@@ -8,7 +8,7 @@ export default async function ModulesExamplePage() {
   const admin = await isAdmin();
 
   return (
-    <div className="relative mx-auto max-w-2xl px-4 py-10 sm:px-6">
+    <div className="relative mx-auto max-w-2xl px-4 py-10 sm:px-6 bg-bg-primary">
       <h1 className="mb-6 text-2xl font-semibold text-black-1">Equipments</h1>
 
       <div className="flex flex-col gap-4">
@@ -16,7 +16,7 @@ export default async function ModulesExamplePage() {
           width={200}
           height={100}
           titleText="Calculator"
-          image="/images/calculator-thumb.jpg"
+          image="/icons/icon-192.png"
           destination="/klongklongplus/calculators"
           description="Scientific calculators for exams and classwork"
           extendedInfo="Borrow a scientific calculator for class or an exam. Please return it the same day you borrow it, since demand is highest during exam weeks."
@@ -26,11 +26,11 @@ export default async function ModulesExamplePage() {
           width={200}
           height={100}
           titleText="Charger"
-          image="/images/charger-thumb.jpg"
+          image="/icons/icon-192.png"
           destination="/klongklongplus/chargers"
           description="Phone and laptop charging cables"
           extendedInfo="A selection of USB-C, Lightning, and laptop charging cables are available. Check availability before heading over — popular cables run out fast."
-          badgeText="Popular"
+          //badgeText="Popular"
         />
       </div>
 

@@ -64,6 +64,13 @@
       "when": 1793255188949,
       "tag": "0008_slim_lord_tyger",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793265028723,
+      "tag": "0009_spotty_blob",
+      "breakpoints": true
     }
   ]
 }
