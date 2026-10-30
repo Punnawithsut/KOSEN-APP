@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Download, Share, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useIsStandalone } from "@/lib/use-standalone";
+import { useToast } from "@/hooks/use-toast";
+import { createClient } from "@/lib/supabase/client";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -62,12 +64,47 @@ function useInstallPrompt() {
 
 export default function NoStandalonePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const { prompt, isIos, installed, install } = useInstallPrompt();
+
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const standalone = useIsStandalone();
 
   if (standalone) {
     router.push("/announcement");
+  }
+
+  async function handleLogout() {
+    setLogoutError(null);
+    setIsLoggingOut(true);
+    try {
+      const { error } = await createClient().auth.signOut();
+      if (error) {
+        setLogoutError(error.message);
+        toast({
+          title: "Could not sign out",
+          description: error.message,
+          variant: "error",
+        });
+        setIsLoggingOut(false);
+        return;
+      }
+      router.replace("/login");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred.";
+      setLogoutError(message);
+      toast({
+        title: "Could not sign out",
+        description: message,
+        variant: "error",
+      });
+      setIsLoggingOut(false);
+    }
   }
 
   if (installed) {
@@ -216,8 +253,17 @@ export default function NoStandalonePage() {
         )}
 
         <p className="mt-6 text-xs text-black-4">
-          Works on Android, iOS, and Windows — no app store needed.
+          Works on Android, iOS, and Windows
         </p>
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={isLoggingOut}
+          onClick={handleLogout}
+          className="mt-4 w-full"
+        >
+          {isLoggingOut ? "Logging out…" : "Log out"}
+        </Button>
       </div>
     </div>
   );
