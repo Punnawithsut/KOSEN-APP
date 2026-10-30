@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 
 import MyRequestsView from "./my-requests-view";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Server-rendered shell for a student's own loan requests.
  *

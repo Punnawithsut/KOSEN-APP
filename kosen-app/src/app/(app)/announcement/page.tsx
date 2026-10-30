@@ -4,6 +4,8 @@ import { listAnnouncements } from "@/app/api/announcement/announcement.service";
 import type { ApiResponse } from "@/lib/api/types";
 import type { AnnouncementListData } from "@/lib/announcement/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   let initialAnnouncements: ApiResponse<AnnouncementListData> | undefined =
     undefined;

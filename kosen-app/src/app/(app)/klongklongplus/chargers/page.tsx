@@ -5,6 +5,8 @@ import { serializeDates } from "@/lib/api/serialize-dates";
 
 import ChargersView from "./chargers-view";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Server-rendered shell for the chargers list.
  *
