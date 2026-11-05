@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowLeftIcon } from "lucide-react";
 
+import { BackLink } from "@/components/back-link";
 import { AnnouncementDetailView } from "@/components/announcement/announcement-detail-view";
 import { Button } from "@/components/ui/button";
 import { useAnnouncement } from "@/hooks/use-announcement";
@@ -38,23 +37,13 @@ export default function AnnouncementDetailPage({
     }
   }, [error, toast]);
 
-  const backButton = (
-    <Link
-      href="/announcement"
-      aria-label="Back to announcements"
-      className="flex size-9 items-center justify-center rounded-full bg-orange-primary text-white transition-colors hover:bg-orange-secondary"
-    >
-      <ArrowLeftIcon className="size-5" />
-    </Link>
-  );
-
   if (id === null || isLoading) {
     return (
       <div className="mx-auto w-full max-w-[430px] px-4 pt-3 pb-8 md:max-w-3xl md:px-6">
         <div aria-busy className="animate-pulse">
           <div className="mb-3 size-9 rounded-full bg-black-5" />
           <div className="space-y-4">
-            <div className="aspect-[16/9] w-full rounded-2xl bg-blue-subtle-3" />
+            <div className="aspect-[16/9] w-full rounded-2xl bg-gray-300" />
             <div className="h-4 w-2/3 rounded bg-black-5" />
             <div className="h-3 w-full rounded bg-black-6" />
             <div className="h-3 w-5/6 rounded bg-black-6" />
@@ -99,7 +88,7 @@ export default function AnnouncementDetailPage({
       {/* Above the banner, not on top of it. Overlaid, the button sat over the
           part of the photo most likely to carry detail, and had to stay legible
           against whatever colour happened to be underneath it. */}
-      <div className="mb-3">{backButton}</div>
+      <BackLink href="/announcement" label="Back to announcements" />
 
       <AnnouncementDetailView
         name={announcement.name}

@@ -42,7 +42,7 @@ export function AnnouncementList({
               <div className="h-3 w-2/3 rounded bg-black-6" />
               <div className="h-4 w-12 rounded-full bg-orange-subtle-2" />
             </div>
-            <div className="aspect-[4/3] w-[45%] shrink-0 rounded-[clamp(0.75rem,1vw,1.5rem)] bg-blue-subtle-2 lg:aspect-[5/3] lg:w-[41%]" />
+            <div className="aspect-[4/3] w-[45%] shrink-0 rounded-[clamp(0.75rem,1vw,1.5rem)] bg-gray-300 lg:aspect-[5/3] lg:w-[41%]" />
           </div>
         ))}
       </div>

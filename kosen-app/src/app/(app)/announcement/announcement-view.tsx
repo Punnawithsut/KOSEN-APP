@@ -9,7 +9,6 @@ import { AnnouncementFormDialog } from "@/components/announcement/announcement-f
 import { AnnouncementHero } from "@/components/announcement/announcement-hero";
 import { AnnouncementList } from "@/components/announcement/announcement-list";
 import { AnnouncementPagination } from "@/components/announcement/announcement-pagination";
-import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAnnouncements } from "@/hooks/use-announcements";
@@ -188,9 +187,6 @@ export default function AnnouncementPage({
 
   return (
     <main className="min-h-screen  pb-10">
-      {isAdmin ? (
-        <BackLink href="/admin/" label="Back to admin" sticky />
-      ) : null}
       {/* Full-bleed: the desktop design has the dome fill the whole first screen. */}
       <AnnouncementHero />
 

@@ -56,7 +56,7 @@ const ICON_CLASS = "size-[clamp(0.875rem,1.04vw,1.25rem)]";
  * two the whole card scales with the viewport, so the proportions stay put.
  */
 const THUMBNAIL_CLASS =
-  "aspect-[4/3] w-[45%] shrink-0 rounded-[clamp(0.75rem,1vw,1.5rem)] bg-black-5 object-cover lg:aspect-[5/3] lg:w-[41%]";
+  "aspect-[4/3] w-[45%] shrink-0 rounded-[clamp(0.75rem,1vw,1.5rem)] bg-gray-300 object-cover lg:aspect-[5/3] lg:w-[41%]";
 
 /**
  * Memoised on purpose: the page re-renders on every keystroke in the search
