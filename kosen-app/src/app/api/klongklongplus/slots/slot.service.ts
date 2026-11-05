@@ -196,6 +196,12 @@ export async function updateSlot(
   userId: string,
 ) {
   const existing = await getSlot(id);
+  if (await slotRepo.hasLoanReferences(id)) {
+    throw new AppError(
+      "Slot is referenced by loan requests and cannot be edited",
+      409,
+    );
+  }
   const startTime = data.startTime ?? existing.startTime;
   const endTime = data.endTime ?? existing.endTime;
   const kind = data.kind ?? existing.kind;
@@ -213,16 +219,6 @@ export async function updateSlot(
     throw new BadRequestError("Slot time overlaps with another active slot");
   }
 
-  if (
-    data.isActive === false &&
-    (await slotRepo.hasActiveLoanReferences(id))
-  ) {
-    throw new AppError(
-      "Slot is referenced by loan requests and cannot be deactivated",
-      409,
-    );
-  }
-
   const updated = await slotRepo.updateSlotById(id, {
     ...data,
     updatedBy: userId,
@@ -234,7 +230,7 @@ export async function updateSlot(
 
 export async function deleteSlot(id: string, userId: string) {
   await getSlot(id);
-  if (await slotRepo.hasActiveLoanReferences(id)) {
+  if (await slotRepo.hasLoanReferences(id)) {
     throw new AppError(
       "Slot is referenced by loan requests and cannot be deleted",
       409,

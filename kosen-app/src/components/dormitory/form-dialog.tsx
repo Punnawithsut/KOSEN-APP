@@ -113,7 +113,7 @@ export function FormDialog({
             type="date"
             value={dueDate}
             onChange={(event) => setDueDate(event.target.value)}
-            className={FIELD_CLASS}
+            className={`${FIELD_CLASS} date-input`}
           />
         </Field>
         <fieldset>

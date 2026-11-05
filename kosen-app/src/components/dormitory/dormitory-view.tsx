@@ -85,9 +85,8 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
 
   return (
     <main className="min-h-screen pb-10">
-      <div className="mx-auto flex w-full max-w-[430px] flex-col md:max-w-3xl lg:max-w-6xl">
-        {/* Plain block at the top of the page: scrolls away with the content. */}
-        <div className="px-4 pt-4 md:px-6">
+      <div className="sticky top-0 z-40 w-full bg-bg-primary pb-2 md:top-16">
+        <div className="mx-auto w-full max-w-[430px] px-4 pt-4 md:max-w-3xl md:px-6 lg:max-w-6xl">
           {/* Light-blue surface, same as the announcement filter bar. */}
           <div className="flex flex-col gap-2 rounded-2xl bg-blue-subtle-2 p-2 md:flex-row md:items-center md:gap-3">
             <div
@@ -132,7 +131,9 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="mx-auto flex w-full max-w-[430px] flex-col md:max-w-3xl lg:max-w-6xl">
         <div className="flex flex-col gap-10 px-4 pt-4 md:px-6">
           {show.handbook ? (
             <HandbookSection

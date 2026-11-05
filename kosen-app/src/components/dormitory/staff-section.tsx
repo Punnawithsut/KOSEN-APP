@@ -36,7 +36,7 @@ export function StaffSection({
   return (
     <section aria-labelledby="staff-heading" className="flex flex-col gap-3">
       <div>
-        <h2 id="staff-heading" className="font-display text-3xl text-black-1 md:text-4xl">
+        <h2 id="staff-heading" className="font-heading text-3xl text-black-1 md:text-4xl">
           Contact Staff
         </h2>
         <p className="text-sm text-black-3">

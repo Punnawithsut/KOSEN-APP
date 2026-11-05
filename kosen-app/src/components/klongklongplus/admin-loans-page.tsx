@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 
+import { BackLink } from "@/components/back-link";
 import { ActionDialog } from "@/components/action-dialog";
 import {
   SendNotificationButton,
@@ -142,8 +143,13 @@ export function AdminLoansPage({ adminId }: { adminId: string }) {
     {
       key: "slot",
       header: "Time",
-      cell: (loan) =>
-        `${loan.slot.startTime.slice(0, 5)}–${loan.slot.endTime.slice(0, 5)}`,
+      cell: (loan) => {
+        const startTime = loan.slot?.startTime;
+        const endTime = loan.slot?.endTime;
+        return startTime && endTime
+          ? `${startTime.slice(0, 5)}–${endTime.slice(0, 5)}`
+          : "Unavailable";
+      },
     },
     {
       key: "status",
@@ -173,6 +179,7 @@ export function AdminLoansPage({ adminId }: { adminId: string }) {
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
+      <BackLink href="/admin/" label="Back to admin" sticky />
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-black-1">
           Loan management

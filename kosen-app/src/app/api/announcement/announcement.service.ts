@@ -148,12 +148,32 @@ export async function parseAnnouncementFormData(request: Request) {
   if (clearFiles !== null && clearFiles !== "true" && clearFiles !== "false") {
     throw new BadRequestError("clearFiles must be 'true' or 'false'.");
   }
+  const replaceFilesField = formData.get("replaceFiles");
+  if (
+    replaceFilesField !== null &&
+    replaceFilesField !== "true" &&
+    replaceFilesField !== "false"
+  ) {
+    throw new BadRequestError("replaceFiles must be 'true' or 'false'.");
+  }
+  if (
+    replaceFilesField === "true" &&
+    fileEntries.length === 0 &&
+    clearFiles !== "true"
+  ) {
+    throw new BadRequestError(
+      "Choose replacement files or confirm that all attachments should be removed.",
+    );
+  }
 
   return {
     fields,
     files,
     titleImage,
-    replaceFiles: formData.has("files") || clearFiles === "true",
+    replaceFiles:
+      replaceFilesField === "true" ||
+      fileEntries.length > 0 ||
+      clearFiles === "true",
   };
 }
 
@@ -299,6 +319,7 @@ export async function listAnnouncements(
       description: item.content,
       hasTitleImage: item.hasTitleImage,
       createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
     })),
     pagination: {
       page,

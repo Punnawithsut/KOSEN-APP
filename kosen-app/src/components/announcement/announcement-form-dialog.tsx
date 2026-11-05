@@ -293,6 +293,9 @@ export function AnnouncementFormDialog({
     body.set("type", type);
     if (titleImage) body.set("titleImage", titleImage);
     for (const file of files) body.append("files", file);
+    if (isEdit && (files.length > 0 || clearFiles)) {
+      body.set("replaceFiles", "true");
+    }
     // Only meaningful on its own: with new files attached, `replaceFiles` is
     // already true and the new set wins anyway.
     if (isEdit && clearFiles && files.length === 0) {

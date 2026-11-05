@@ -83,6 +83,7 @@ export async function listAnnouncements(
         title: announcements.title,
         content: announcements.content,
         createdAt: announcements.createdAt,
+        updatedAt: announcements.updatedAt,
         hasTitleImage: sql<boolean>`${announcements.titleImageUrl} IS NOT NULL`,
       })
       .from(announcements)

@@ -61,6 +61,7 @@ export type Slot = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  hasLoanReferences?: boolean;
 };
 
 export type SlotFilters = {
@@ -87,6 +88,7 @@ export type Term = {
   finalExamEndDate: string | null;
   createdAt: string;
   updatedAt: string;
+  hasLoanReferences?: boolean;
 };
 
 type TermExamDates = Pick<
@@ -115,7 +117,7 @@ export type LoanRecord = {
   rejectReason: string | null;
   cancelReason: string | null;
   unit: Unit;
-  slot: Slot;
+  slot: Slot | null;
   term: Term;
   approver?: {
     userId: string;

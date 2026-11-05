@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
+import { BackLink } from "@/components/back-link";
 import { ActionDialog } from "@/components/action-dialog";
 import {
   DataTable,
@@ -123,7 +124,13 @@ export function AdminSlotsPage() {
             type="button"
             variant="ghost"
             size="icon-sm"
+            disabled={slot.hasLoanReferences}
             aria-label={`Edit ${slot.kind} slot ${slot.startTime.slice(0, 5)}`}
+            title={
+              slot.hasLoanReferences
+                ? "Slots referenced by loans cannot be edited"
+                : "Edit slot"
+            }
             onClick={() => {
               setEditingSlot(slot);
               setIsFormOpen(true);
@@ -135,7 +142,13 @@ export function AdminSlotsPage() {
             type="button"
             variant="ghost"
             size="icon-sm"
+            disabled={slot.hasLoanReferences}
             aria-label={`Delete ${slot.kind} slot ${slot.startTime.slice(0, 5)}`}
+            title={
+              slot.hasLoanReferences
+                ? "Slots referenced by loans cannot be deleted"
+                : "Delete slot"
+            }
             onClick={() => setDeletingSlot(slot)}
           >
             <Trash2 />
@@ -155,6 +168,7 @@ export function AdminSlotsPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
+      <BackLink href="/admin/" label="Back to admin" sticky />
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight text-black-1">
@@ -251,8 +265,7 @@ export function AdminSlotsPage() {
         loadingLabel="Deleting…"
       >
         <p className="text-sm text-black-3">
-          Existing loan records remain unchanged. A slot referenced by a loan
-          may not be removable.
+          A slot referenced by a loan cannot be edited or deleted.
         </p>
       </ActionDialog>
     </main>

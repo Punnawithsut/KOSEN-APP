@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { BackLink } from "@/components/back-link";
 import {
   DataTable,
   type DataTableColumn,
@@ -91,8 +92,13 @@ export default function MyRequestsView({
     {
       key: "slot",
       header: "Time slot",
-      cell: (loan) =>
-        `${loan.slot.startTime.slice(0, 5)}–${loan.slot.endTime.slice(0, 5)}`,
+      cell: (loan) => {
+        const startTime = loan.slot?.startTime;
+        const endTime = loan.slot?.endTime;
+        return startTime && endTime
+          ? `${startTime.slice(0, 5)}–${endTime.slice(0, 5)}`
+          : "Unavailable";
+      },
     },
     {
       key: "term",
@@ -204,6 +210,7 @@ export default function MyRequestsView({
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-10">
+      <BackLink href="/klongklongplus" label="Back to Klong+" />
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-black-1">
           My Requests
@@ -248,8 +255,8 @@ export default function MyRequestsView({
         <label className="space-y-1.5 text-sm font-medium text-black-2">
           Borrow date
           <Input
-            className="h-8 text-sm"
             type="date"
+            className="h-8 text-sm date-input"
             value={filters.slotDate ?? ""}
             onChange={(event) => updateFilter("slotDate", event.target.value)}
           />

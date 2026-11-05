@@ -41,6 +41,10 @@ export default async function Page() {
             item.createdAt instanceof Date
               ? item.createdAt.toISOString()
               : String(item.createdAt),
+          updatedAt:
+            item.updatedAt instanceof Date
+              ? item.updatedAt.toISOString()
+              : String(item.updatedAt),
         })),
       },
     };

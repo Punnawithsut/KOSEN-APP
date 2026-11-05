@@ -276,6 +276,12 @@ export async function updateTerm(
   userId: string,
 ) {
   const existing = await getTerm(id);
+  if (await termRepo.hasLoanReferences(id)) {
+    throw new AppError(
+      "Term is referenced by loan requests and cannot be edited",
+      409,
+    );
+  }
   const startDate = data.startDate ?? existing.startDate;
   const endDate = data.endDate ?? existing.endDate;
   validateTermDates({
@@ -314,7 +320,7 @@ export async function updateTerm(
 
 export async function deleteTerm(id: string, userId: string) {
   await getTerm(id);
-  if (await termRepo.hasActiveLoanReferences(id)) {
+  if (await termRepo.hasLoanReferences(id)) {
     throw new AppError(
       "Term is referenced by loan requests and cannot be deleted",
       409,

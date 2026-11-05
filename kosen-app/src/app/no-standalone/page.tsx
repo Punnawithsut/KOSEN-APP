@@ -72,9 +72,13 @@ export default function NoStandalonePage() {
 
   const standalone = useIsStandalone();
 
-  if (standalone) {
-    router.push("/announcement");
-  }
+  useEffect(() => {
+    if (standalone) {
+      window.location.replace("/announcement");
+    }
+  }, [standalone]);
+
+  if (standalone) return null;
 
   async function handleLogout() {
     setLogoutError(null);
@@ -260,7 +264,7 @@ export default function NoStandalonePage() {
           variant="destructive"
           disabled={isLoggingOut}
           onClick={handleLogout}
-          className="mt-4 w-full"
+          className="mt-4 w-full bg-negative-primary text-white hover:brightness-90"
         >
           {isLoggingOut ? "Logging out…" : "Log out"}
         </Button>
