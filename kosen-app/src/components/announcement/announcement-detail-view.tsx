@@ -71,7 +71,7 @@ export function AnnouncementDetailView({
       ) : (
         <div
           aria-hidden
-          className="aspect-[16/9] w-full rounded-2xl bg-blue-subtle-2"
+          className="aspect-[16/9] w-full rounded-2xl bg-black-5"
         />
       )}
 

@@ -3,15 +3,17 @@ import {
   asc,
   count,
   eq,
+  getTableColumns,
   gt,
   inArray,
   isNull,
   lt,
   ne,
+  sql,
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db/client";
-import { loans, loanStatusEnum, slots, slotKindEnum } from "@/db/schema";
+import { loanStatusEnum, loans, slots, slotKindEnum } from "@/db/schema";
 
 export type SlotKind = (typeof slotKindEnum.enumValues)[number];
 
@@ -36,12 +38,20 @@ export async function findSlots(filters: SlotFilters, page: number) {
   const where = buildWhere(filters);
   const offset = (page - 1) * PAGE_SIZE;
   const [items, [{ total }]] = await Promise.all([
-    db.query.slots.findMany({
-      where,
-      orderBy: [asc(slots.displayOrder), asc(slots.startTime)],
-      limit: PAGE_SIZE,
-      offset,
-    }),
+    db
+      .select({
+        ...getTableColumns(slots),
+        hasLoanReferences: sql<boolean>`EXISTS (
+          SELECT 1 FROM ${loans}
+          WHERE ${loans.slotId} = ${slots.id}
+            AND ${loans.deletedAt} IS NULL
+        )`,
+      })
+      .from(slots)
+      .where(where)
+      .orderBy(asc(slots.displayOrder), asc(slots.startTime))
+      .limit(PAGE_SIZE)
+      .offset(offset),
     db.select({ total: count() }).from(slots).where(where),
   ]);
 
@@ -93,6 +103,20 @@ export async function updateSlotById(
     .where(and(eq(slots.id, id), isNull(slots.deletedAt)))
     .returning();
   return updated;
+}
+
+export async function hasLoanReferences(slotId: string) {
+  const [loan] = await db
+    .select({ id: loans.id })
+    .from(loans)
+    .where(
+      and(
+        eq(loans.slotId, slotId),
+        isNull(loans.deletedAt),
+      ),
+    )
+    .limit(1);
+  return Boolean(loan);
 }
 
 export async function hasActiveLoanReferences(slotId: string) {

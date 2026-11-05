@@ -107,8 +107,8 @@ export default function AnnouncementDetailPage({
         titleImage={
           announcement.titleImageUrl
             ? {
-                src: titleImageSrc(id, 1600),
-                srcSet: titleImageSrcSet(id),
+                src: titleImageSrc(id, 1600, announcement.updatedAt),
+                srcSet: titleImageSrcSet(id, announcement.updatedAt),
                 sizes:
                   "(min-width: 1024px) 79vw, (min-width: 768px) 768px, 100vw",
               }

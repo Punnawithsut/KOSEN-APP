@@ -38,7 +38,7 @@ export function FormsSection({
   return (
     <section aria-labelledby="forms-heading" className="flex flex-col gap-3">
       <div>
-        <h2 id="forms-heading" className="font-display text-3xl text-black-1 md:text-4xl">
+        <h2 id="forms-heading" className="font-heading text-3xl text-black-1 md:text-4xl">
           Forms
         </h2>
         <p className="text-sm text-black-3">

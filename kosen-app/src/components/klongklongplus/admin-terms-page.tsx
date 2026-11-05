@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
+import { BackLink } from "@/components/back-link";
 import { ActionDialog } from "@/components/action-dialog";
 import {
   DataTable,
@@ -99,7 +100,13 @@ export function AdminTermsPage() {
             type="button"
             variant="ghost"
             size="icon-sm"
+            disabled={term.hasLoanReferences}
             aria-label={`Edit term ${term.name}`}
+            title={
+              term.hasLoanReferences
+                ? "Terms referenced by loans cannot be edited"
+                : "Edit term"
+            }
             onClick={() => {
               setEditingTerm(term);
               setIsFormOpen(true);
@@ -111,7 +118,13 @@ export function AdminTermsPage() {
             type="button"
             variant="ghost"
             size="icon-sm"
+            disabled={term.hasLoanReferences}
             aria-label={`Delete term ${term.name}`}
+            title={
+              term.hasLoanReferences
+                ? "Terms referenced by loans cannot be deleted"
+                : "Delete term"
+            }
             onClick={() => setDeletingTerm(term)}
           >
             <Trash2 />
@@ -131,6 +144,7 @@ export function AdminTermsPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
+      <BackLink href="/admin/" label="Back to admin" sticky />
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight text-black-1">
@@ -204,7 +218,7 @@ export function AdminTermsPage() {
           if (!open && !isDeleting) setDeletingTerm(null);
         }}
         title="Delete term?"
-        description={`Delete ${deletingTerm?.name ?? "this term"}? Terms referenced by loans may not be removable.`}
+        description={`Delete ${deletingTerm?.name ?? "this term"}? Terms referenced by loans cannot be deleted.`}
         actionLabel="Delete term"
         actionVariant="destructive"
         onCancel={() => setDeletingTerm(null)}
@@ -376,6 +390,7 @@ function DateField({
       {label}
       <Input
         type="date"
+        className="date-input"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}

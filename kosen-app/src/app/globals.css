@@ -123,6 +123,21 @@
   }
 }
 
+.date-input {
+  color-scheme: light;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 16px;
+}
+
+.date-input::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.75;
+}
+
 /* ── Announcement hero — type proportional to the “sunrise” dome ─────────────
    Both hero artworks are SVGs with `preserveAspectRatio="… slice"`, so the dome
    is only as deep as the smaller of the two axes allows. Fixed `px` type

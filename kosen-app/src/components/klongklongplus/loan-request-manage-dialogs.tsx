@@ -185,6 +185,7 @@ function EditLoanDialog({
             Borrow date
             <Input
               type="date"
+              className="date-input"
               value={editDate}
               min={minDate}
               max={loan.term.endDate}

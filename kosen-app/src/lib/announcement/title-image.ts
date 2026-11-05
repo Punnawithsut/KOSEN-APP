@@ -18,12 +18,18 @@ export type TitleImage = {
  * served through our own route so the image can be resized for the slot it
  * lands in.
  */
-export function titleImageSrc(announcementId: string, width: number): string {
-  return `/api/announcement/${announcementId}/title-image?w=${width}`;
+export function titleImageSrc(
+  announcementId: string,
+  width: number,
+  version?: string,
+): string {
+  const params = new URLSearchParams({ w: String(width) });
+  if (version) params.set("v", version);
+  return `/api/announcement/${announcementId}/title-image?${params}`;
 }
 
-export function titleImageSrcSet(announcementId: string): string {
+export function titleImageSrcSet(announcementId: string, version?: string): string {
   return TITLE_IMAGE_WIDTHS.map(
-    (width) => `${titleImageSrc(announcementId, width)} ${width}w`,
+    (width) => `${titleImageSrc(announcementId, width, version)} ${width}w`,
   ).join(", ");
 }

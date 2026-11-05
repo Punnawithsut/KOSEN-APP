@@ -86,8 +86,7 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
   return (
     <main className="min-h-screen pb-10">
       <div className="mx-auto flex w-full max-w-[430px] flex-col md:max-w-3xl lg:max-w-6xl">
-        {/* Plain block at the top of the page: scrolls away with the content. */}
-        <div className="px-4 pt-4 md:px-6">
+        <div className="sticky top-0 z-40 bg-bg-primary px-4 pt-4 pb-2 md:top-16 md:px-6">
           {/* Light-blue surface, same as the announcement filter bar. */}
           <div className="flex flex-col gap-2 rounded-2xl bg-blue-subtle-2 p-2 md:flex-row md:items-center md:gap-3">
             <div

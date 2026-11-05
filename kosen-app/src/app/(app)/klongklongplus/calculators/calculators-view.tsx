@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Search } from "lucide-react";
 
+import { BackLink } from "@/components/back-link";
 import { Input } from "@/components/ui/input";
 import {
   DataTableUser,
@@ -74,6 +75,7 @@ export default function CalculatorsView({
 
   return (
     <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
+      <BackLink href="/klongklongplus" label="Back to Klong+" />
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-black-1">
           Calculators

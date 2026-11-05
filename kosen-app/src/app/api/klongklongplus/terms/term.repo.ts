@@ -3,16 +3,18 @@ import {
   asc,
   count,
   eq,
+  getTableColumns,
   gte,
   ilike,
   inArray,
   isNull,
   lte,
   ne,
+  sql,
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db/client";
-import { loans, loanStatusEnum, terms } from "@/db/schema";
+import { loanStatusEnum, loans, terms } from "@/db/schema";
 
 export const PAGE_SIZE = 20;
 
@@ -31,12 +33,20 @@ export async function findTerms(filters: TermFilters, page: number) {
   const where = buildWhere(filters);
   const offset = (page - 1) * PAGE_SIZE;
   const [items, [{ total }]] = await Promise.all([
-    db.query.terms.findMany({
-      where,
-      orderBy: [asc(terms.startDate), asc(terms.name)],
-      limit: PAGE_SIZE,
-      offset,
-    }),
+    db
+      .select({
+        ...getTableColumns(terms),
+        hasLoanReferences: sql<boolean>`EXISTS (
+          SELECT 1 FROM ${loans}
+          WHERE ${loans.termId} = ${terms.id}
+            AND ${loans.deletedAt} IS NULL
+        )`,
+      })
+      .from(terms)
+      .where(where)
+      .orderBy(asc(terms.startDate), asc(terms.name))
+      .limit(PAGE_SIZE)
+      .offset(offset),
     db.select({ total: count() }).from(terms).where(where),
   ]);
 
@@ -98,6 +108,20 @@ export async function updateTermById(
     .where(and(eq(terms.id, id), isNull(terms.deletedAt)))
     .returning();
   return updated;
+}
+
+export async function hasLoanReferences(termId: string) {
+  const [loan] = await db
+    .select({ id: loans.id })
+    .from(loans)
+    .where(
+      and(
+        eq(loans.termId, termId),
+        isNull(loans.deletedAt),
+      ),
+    )
+    .limit(1);
+  return Boolean(loan);
 }
 
 export async function hasActiveLoanReferences(termId: string) {

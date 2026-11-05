@@ -49,6 +49,7 @@ export type AnnouncementListItem = {
   description: string;
   hasTitleImage: boolean;
   createdAt: string;
+  updatedAt: string;
 };
 
 /** The `data` payload of `GET /api/announcement/[id]`. */

@@ -194,6 +194,7 @@ export function LoanRequestDialog({
               Borrow date
               <Input
                 type="date"
+                className="date-input"
                 value={slotDate}
                 min={minDate}
                 max={term?.endDate}

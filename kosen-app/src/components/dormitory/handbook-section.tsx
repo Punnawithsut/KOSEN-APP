@@ -83,7 +83,7 @@ export function HandbookSection({
       <div>
         <h2
           id="handbook-heading"
-          className="font-display text-3xl text-black-1 md:text-4xl"
+          className="font-heading text-3xl text-black-1 md:text-4xl"
         >
           Handbooks &amp; Rules
         </h2>
@@ -111,7 +111,7 @@ export function HandbookSection({
 
             <div className="flex min-w-0 flex-1 flex-col justify-between gap-4">
               <div>
-                <h3 className="font-display text-2xl leading-tight text-black-2 sm:text-3xl">
+                <h3 className="font-heading text-2xl leading-tight text-black-2 sm:text-3xl">
                   {handbook.title}
                 </h3>
                 <p className="mt-2 text-xs text-black-2">
@@ -145,7 +145,7 @@ export function HandbookSection({
         {rules.length > 0 || isAdmin ? (
           <div className="flex flex-col gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4 sm:flex-row sm:items-center">
             <div className="flex items-center justify-between gap-4 sm:w-40 sm:shrink-0 sm:flex-col sm:items-start">
-              <h3 className="font-display text-3xl text-black-2">Rules</h3>
+              <h3 className="font-heading text-3xl text-black-2">Rules</h3>
               <button
                 type="button"
                 onClick={() => openRule(null)}
