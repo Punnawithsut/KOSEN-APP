@@ -115,7 +115,7 @@ export type LoanRecord = {
   rejectReason: string | null;
   cancelReason: string | null;
   unit: Unit;
-  slot: Slot;
+  slot: Slot | null;
   term: Term;
   approver?: {
     userId: string;

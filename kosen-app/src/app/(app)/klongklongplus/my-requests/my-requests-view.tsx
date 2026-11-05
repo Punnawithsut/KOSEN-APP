@@ -91,8 +91,13 @@ export default function MyRequestsView({
     {
       key: "slot",
       header: "Time slot",
-      cell: (loan) =>
-        `${loan.slot.startTime.slice(0, 5)}–${loan.slot.endTime.slice(0, 5)}`,
+      cell: (loan) => {
+        const startTime = loan.slot?.startTime;
+        const endTime = loan.slot?.endTime;
+        return startTime && endTime
+          ? `${startTime.slice(0, 5)}–${endTime.slice(0, 5)}`
+          : "Unavailable";
+      },
     },
     {
       key: "term",

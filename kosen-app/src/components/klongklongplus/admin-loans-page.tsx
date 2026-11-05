@@ -142,8 +142,13 @@ export function AdminLoansPage({ adminId }: { adminId: string }) {
     {
       key: "slot",
       header: "Time",
-      cell: (loan) =>
-        `${loan.slot.startTime.slice(0, 5)}–${loan.slot.endTime.slice(0, 5)}`,
+      cell: (loan) => {
+        const startTime = loan.slot?.startTime;
+        const endTime = loan.slot?.endTime;
+        return startTime && endTime
+          ? `${startTime.slice(0, 5)}–${endTime.slice(0, 5)}`
+          : "Unavailable";
+      },
     },
     {
       key: "status",
