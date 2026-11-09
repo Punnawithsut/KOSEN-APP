@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  SendNotificationButton,
+  type NotificationDraft,
+  type SendNotificationHandle,
+} from "@/components/send-notification-button";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +25,13 @@ import type { Unit } from "@/hooks/use-unit";
 import { useCurrentTerm } from "@/hooks/use-term";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError } from "@/lib/api/fetcher";
+
+const EMPTY_NOTIFICATION_DRAFT: NotificationDraft = {
+  enabled: false,
+  autoFill: true,
+  title: "",
+  body: "",
+};
 
 type LoanRequestDialogProps = {
   unit: Unit | null;
@@ -50,6 +62,10 @@ export function LoanRequestDialog({
   const [responsibilityAgreementAccepted, setResponsibilityAgreementAccepted] =
     useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [notificationDraft, setNotificationDraft] =
+    useState<NotificationDraft>(EMPTY_NOTIFICATION_DRAFT);
+  const notificationRef = useRef<SendNotificationHandle>(null);
   const {
     data: termResponse,
     error: termError,
@@ -70,6 +86,7 @@ export function LoanRequestDialog({
 
   const term = termResponse?.data;
   const slots = slotsResponse?.data ?? [];
+  const selectedSlot = slots.find((slot) => slot.id === slotId);
   const today = getBangkokDate();
   const minDate =
     term?.startDate && term.startDate > today ? term.startDate : today;
@@ -88,13 +105,14 @@ export function LoanRequestDialog({
   }, [bookingOptionsError, toast]);
 
   function handleOpenChange(nextOpen: boolean) {
-    if (isMutating) return;
+    if (isMutating || isSendingNotification) return;
     if (!nextOpen) {
       setSlotDate("");
       setSlotId("");
       setBorrowingRulesAccepted(false);
       setResponsibilityAgreementAccepted(false);
       setSubmitError(null);
+      setNotificationDraft(EMPTY_NOTIFICATION_DRAFT);
     }
     onOpenChange(nextOpen);
   }
@@ -114,7 +132,7 @@ export function LoanRequestDialog({
       return;
 
     try {
-      await createLoan({
+      const createdLoan = await createLoan({
         unitId: unit.id,
         itemType: unit.itemType,
         termId: term.id,
@@ -122,12 +140,52 @@ export function LoanRequestDialog({
         slotDate,
         returnNote: null,
       });
+      let notificationResult:
+        | Awaited<ReturnType<SendNotificationHandle["sendIfEnabled"]>>
+        | undefined;
+      let notificationError: string | undefined;
+      if (notificationDraft.enabled) {
+        setIsSendingNotification(true);
+        try {
+          notificationResult =
+            await notificationRef.current?.sendIfEnabled(undefined, {
+              loanId: createdLoan.data.id,
+            });
+          if (!notificationResult) {
+            notificationError = "Unable to notify admins.";
+          }
+        } catch (error) {
+          notificationError =
+            error instanceof Error ? error.message : "Unable to notify admins.";
+        } finally {
+          setIsSendingNotification(false);
+        }
+      }
       setSlotDate("");
       setSlotId("");
       setBorrowingRulesAccepted(false);
       setResponsibilityAgreementAccepted(false);
+      setNotificationDraft(EMPTY_NOTIFICATION_DRAFT);
       onOpenChange(false);
-      toast({ title: "Loan request submitted", variant: "success" });
+      if (notificationError || notificationResult?.error) {
+        toast({
+          title: "Loan request submitted; admins were not fully notified",
+          description:
+            notificationError ??
+            notificationResult?.error ??
+            "Please try again.",
+          variant: "error",
+        });
+      } else {
+        toast({
+          title: "Loan request submitted",
+          description:
+            notificationResult && !notificationResult.skipped
+              ? `Admins notified (${notificationResult.sentCount}).`
+              : undefined,
+          variant: "success",
+        });
+      }
     } catch (error) {
       const message =
         error instanceof ApiError && error.status === 409
@@ -203,7 +261,9 @@ export function LoanRequestDialog({
                   setSlotId("");
                   setSubmitError(null);
                 }}
-                disabled={!term || isTermLoading || isMutating}
+                disabled={
+                  !term || isTermLoading || isMutating || isSendingNotification
+                }
                 required
               />
               {term && (
@@ -223,7 +283,8 @@ export function LoanRequestDialog({
                   !slotDate ||
                   areSlotsLoading ||
                   slots.length === 0 ||
-                  isMutating
+                  isMutating ||
+                  isSendingNotification
                 }
                 required
               >
@@ -263,11 +324,21 @@ export function LoanRequestDialog({
             <LoanAgreementAcknowledgements
               borrowingRulesAccepted={borrowingRulesAccepted}
               responsibilityAgreementAccepted={responsibilityAgreementAccepted}
-              disabled={isMutating}
+              disabled={isMutating || isSendingNotification}
               onBorrowingRulesChange={setBorrowingRulesAccepted}
               onResponsibilityAgreementChange={
                 setResponsibilityAgreementAccepted
               }
+            />
+            <SendNotificationButton
+              ref={notificationRef}
+              isUseInModal
+              notifyAdmins
+              inModalText="Notify admins about this loan request"
+              notificationTitle={`New loan request: ${unit?.code ?? "equipment"}`}
+              notificationBody={`A loan request for ${unit?.code ?? "equipment"} on ${slotDate || "the selected date"}${selectedSlot ? ` at ${selectedSlot.startTime.slice(0, 5)}` : ""} is awaiting review.`}
+              draft={notificationDraft}
+              onDraftChange={setNotificationDraft}
             />
           </div>
 
@@ -276,7 +347,7 @@ export function LoanRequestDialog({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
-              disabled={isMutating}
+              disabled={isMutating || isSendingNotification}
             >
               Cancel
             </Button>
@@ -284,6 +355,7 @@ export function LoanRequestDialog({
               type="submit"
               disabled={
                 isMutating ||
+                isSendingNotification ||
                 isLoadingBookingOptions ||
                 !term ||
                 !slotDate ||
@@ -294,7 +366,9 @@ export function LoanRequestDialog({
               }
               className="bg-orange-secondary text-white hover:brightness-90"
             >
-              {isMutating ? "Submitting…" : "Submit request"}
+              {isMutating || isSendingNotification
+                ? "Submitting…"
+                : "Submit request"}
             </Button>
           </DialogFooter>
         </form>

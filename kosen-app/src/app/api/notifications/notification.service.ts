@@ -1,6 +1,14 @@
-import { BadRequestError } from "../_shared/errors";
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+} from "../_shared/errors";
 import { sendNotificationToUser, type PushDeliveryFailure } from "@/lib/notifications/push-server";
-import { findActiveRecipientIds } from "./notification.repo";
+import {
+  findActiveAdminIds,
+  findActiveRecipientIds,
+} from "./notification.repo";
+import * as loanRepo from "../klongklongplus/loans/loan.repo";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -50,6 +58,40 @@ export async function sendNotifications(payload: unknown) {
       ...(successfulUsersCount === 0 ? { reason: describeFailures(failures) } : {}),
     },
   };
+}
+
+export async function sendNotificationsToAdmins(
+  payload: unknown,
+  requesterId: string,
+) {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    Array.isArray(payload)
+  ) {
+    throw new BadRequestError("Invalid notification payload.");
+  }
+  const { title, body, loanId } = payload as Record<string, unknown>;
+  if (typeof loanId !== "string" || !UUID_PATTERN.test(loanId)) {
+    throw new BadRequestError("A valid loan ID is required.");
+  }
+  const loan = await loanRepo.findLoanById(loanId);
+  if (!loan) throw new NotFoundError("Loan not found.");
+  if (loan.borrowerId !== requesterId && loan.createdBy !== requesterId) {
+    throw new ForbiddenError("You can only notify admins about your own loan.");
+  }
+  if (loan.status !== "pending") {
+    throw new BadRequestError("Only pending loans can notify admins.");
+  }
+
+  const admins = await findActiveAdminIds();
+
+  return sendNotifications({
+    targetUserId: admins.map((admin) => admin.userId),
+    title,
+    body,
+    data: { url: "/klongklongplus/admin/loans" },
+  });
 }
 
 function describeFailures(failures: { reason: PushDeliveryFailure }[]) {
