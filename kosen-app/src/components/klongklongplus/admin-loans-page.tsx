@@ -6,6 +6,7 @@ import {
   CircleX,
   PackageCheck,
   RotateCcw,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
   useAcceptLoan,
+  useAdminDeleteLoan,
   useCancelLoan,
   useDeliverLoan,
   useMarkLoanNoShow,
@@ -272,6 +274,7 @@ function LoanActions({ loan, adminId }: { loan: LoanRecord; adminId: string }) {
   const [activeAction, setActiveAction] = React.useState<LoanAction | null>(
     null,
   );
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [detail, setDetail] = React.useState("");
   const [isSendingDecisionNotification, setIsSendingDecisionNotification] =
     React.useState(false);
@@ -288,6 +291,8 @@ function LoanActions({ loan, adminId }: { loan: LoanRecord; adminId: string }) {
   const { trigger: markNoShow, isMutating: isMarkingNoShow } =
     useMarkLoanNoShow(loan.id);
   const { trigger: cancel, isMutating: isCancelling } = useCancelLoan(loan.id);
+  const { trigger: deleteLoan, isMutating: isDeleting } =
+    useAdminDeleteLoan(loan.id);
   const isLoading =
     isAccepting ||
     isRejecting ||
@@ -371,6 +376,21 @@ function LoanActions({ loan, adminId }: { loan: LoanRecord; adminId: string }) {
     } catch (error) {
       toast({
         title: "Unable to update loan",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      await deleteLoan();
+      toast({ title: "Loan deleted", variant: "success" });
+      setIsDeleteOpen(false);
+    } catch (error) {
+      toast({
+        title: "Unable to delete loan",
         description:
           error instanceof Error ? error.message : "Please try again.",
         variant: "error",
@@ -508,8 +528,47 @@ function LoanActions({ loan, adminId }: { loan: LoanRecord; adminId: string }) {
     );
   }
 
+  const canDelete = ["returned", "cancelled", "rejected", "no_show"].includes(
+    loan.status,
+  );
+
   return (
-    <span className="text-xs text-muted-foreground">No action needed</span>
+    <>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">No action needed</span>
+        {canDelete && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-negative-primary"
+            aria-label={`Delete loan for ${borrowerName(loan)}`}
+            title="Delete loan"
+            onClick={() => setIsDeleteOpen(true)}
+          >
+            <Trash2 />
+          </Button>
+        )}
+      </div>
+      <ActionDialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setIsDeleteOpen(false);
+        }}
+        title="Delete loan?"
+        description={`Remove the loan for ${borrowerName(loan)} from management records?`}
+        actionLabel="Delete loan"
+        actionVariant="destructive"
+        onCancel={() => setIsDeleteOpen(false)}
+        onAction={() => void handleDelete()}
+        isLoading={isDeleting}
+        loadingLabel="Deleting…"
+      >
+        <p className="text-sm text-black-3">
+          This action cannot be undone from the app.
+        </p>
+      </ActionDialog>
+    </>
   );
 }
 
