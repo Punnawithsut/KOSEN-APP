@@ -54,6 +54,11 @@ export function useDeleteLoan(id: string) {
   return useDelete<ApiResponse>(url, loanMutationOptions(id));
 }
 
+export function useAdminDeleteLoan(id: string) {
+  const url = `${LOANS_URL}/${encodeURIComponent(id)}/admin`;
+  return useDelete<ApiResponse>(url, loanMutationOptions(id));
+}
+
 function useLoanAction<Body = undefined>(id: string, action: string) {
   const url = `${LOANS_URL}/${encodeURIComponent(id)}/${action}`;
   return usePatch<ApiResponse<LoanRecord>, Body>(url, loanMutationOptions(id));

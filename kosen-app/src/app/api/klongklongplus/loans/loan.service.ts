@@ -607,6 +607,39 @@ export async function deleteUserLoan(id: string, userId: string) {
   }
 }
 
+const ADMIN_DELETABLE_LOAN_STATUSES: LoanStatus[] = [
+  "returned",
+  "cancelled",
+  "rejected",
+  "no_show",
+];
+
+export async function deleteAdminLoan(id: string, adminId: string) {
+  const existing = await loanRepo.findLoanById(id);
+  if (!existing) throw new NotFoundError("Loan not found");
+  if (!ADMIN_DELETABLE_LOAN_STATUSES.includes(existing.status)) {
+    throw new BadRequestError(
+      "Only returned, cancelled, rejected, or no-show loans can be deleted",
+    );
+  }
+
+  const deleted = await loanRepo.deleteAdminLoan(
+    id,
+    adminId,
+    ADMIN_DELETABLE_LOAN_STATUSES,
+  );
+  if (deleted) return;
+
+  const current = await loanRepo.findLoanById(id);
+  if (!current) throw new NotFoundError("Loan not found");
+  if (!ADMIN_DELETABLE_LOAN_STATUSES.includes(current.status)) {
+    throw new BadRequestError(
+      "Only returned, cancelled, rejected, or no-show loans can be deleted",
+    );
+  }
+  throw new AppError("Loan changed while being deleted; please try again", 409);
+}
+
 async function requireLoan(id: string) {
   const loan = await loanRepo.findLoanById(id);
   if (!loan) throw new NotFoundError("Loan not found");

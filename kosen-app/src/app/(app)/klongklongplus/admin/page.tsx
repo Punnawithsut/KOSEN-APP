@@ -11,7 +11,7 @@ export default async function AdminPage() {
           Equipment administration
         </h1>
         <p className="text-sm text-black-3">
-          Manage loans, terms, and borrowing time slots.
+          Manage loans, terms, borrowing time slots, and equipment.
         </p>
       </header>
 
@@ -42,6 +42,15 @@ export default async function AdminPage() {
           destination="/klongklongplus/admin/slots"
           description="Manage equipment pickup time slots"
           extendedInfo="Set time ranges, advance notice, ordering, and whether a slot is available to borrowers."
+        />
+        <EquipmentCard
+          width={200}
+          height={100}
+          titleText="Units"
+          image="/icons/icon-192.png"
+          destination="/klongklongplus/admin/units"
+          description="Manage calculators and chargers"
+          extendedInfo="Create and update unit codes, equipment type, condition status, notes, and borrower availability."
         />
       </div>
     </main>

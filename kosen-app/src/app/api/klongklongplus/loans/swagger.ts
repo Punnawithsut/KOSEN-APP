@@ -319,6 +319,22 @@ export const loansDocs = {
       },
     },
   },
+  "/api/klongklongplus/loans/{id}/admin": {
+    delete: {
+      tags: ["Loans"],
+      summary: "Delete a completed loan",
+      description:
+        "Requires an admin session. Only returned, cancelled, rejected, or no-show loans can be deleted. The loan is soft-deleted.",
+      parameters: loanIdParameters,
+      responses: {
+        200: { description: "Loan deleted" },
+        400: { description: "Loan status cannot be deleted" },
+        401: { description: "Unauthorized" },
+        403: { description: "Admin privileges required" },
+        404: { description: "Loan not found" },
+      },
+    },
+  },
   "/api/klongklongplus/loans/{id}/accept": {
     patch: {
       tags: ["Loans"],

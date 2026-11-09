@@ -96,11 +96,6 @@ export function AdminSlotsPage() {
       cell: (slot) => `${slot.leadMin} min`,
     },
     {
-      key: "displayOrder",
-      header: "Order",
-      cell: (slot) => slot.displayOrder,
-    },
-    {
       key: "isActive",
       header: "Availability",
       cell: (slot) => (
@@ -285,9 +280,6 @@ function SlotFormDialog({
   );
   const [endTime, setEndTime] = React.useState(slot?.endTime.slice(0, 5) ?? "");
   const [leadMin, setLeadMin] = React.useState(String(slot?.leadMin ?? 0));
-  const [displayOrder, setDisplayOrder] = React.useState(
-    String(slot?.displayOrder ?? 0),
-  );
   const [isActive, setIsActive] = React.useState(slot?.isActive ?? true);
   const { toast } = useToast();
   const { trigger: createSlot, isMutating: isCreating } = useCreateSlot();
@@ -303,7 +295,6 @@ function SlotFormDialog({
       startTime,
       endTime,
       leadMin: Number(leadMin),
-      displayOrder: Number(displayOrder),
       isActive,
     };
 
@@ -388,18 +379,6 @@ function SlotFormDialog({
               step={1}
               value={leadMin}
               onChange={(event) => setLeadMin(event.target.value)}
-              required
-              disabled={isLoading}
-            />
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium text-black-2">
-            Display order
-            <Input
-              type="number"
-              min={0}
-              step={1}
-              value={displayOrder}
-              onChange={(event) => setDisplayOrder(event.target.value)}
               required
               disabled={isLoading}
             />

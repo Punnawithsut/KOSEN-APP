@@ -68,7 +68,10 @@ export type NotificationSendResult = {
 
 export type SendNotificationHandle = {
   isEnabled: () => boolean;
-  sendIfEnabled: (targetUserIds?: string[]) => Promise<NotificationSendResult>;
+  sendIfEnabled: (
+    targetUserIds?: string[],
+    context?: { loanId?: string },
+  ) => Promise<NotificationSendResult>;
 };
 
 export type NotificationDraft = {
@@ -84,6 +87,7 @@ type SendNotificationProps = {
   notificationTitle: string;
   notificationBody: string;
   targetUserIds?: string[];
+  notifyAdmins?: boolean;
   draft?: NotificationDraft;
   onDraftChange?: (draft: NotificationDraft) => void;
 };
@@ -98,6 +102,7 @@ export const SendNotificationButton = forwardRef<
     notificationTitle,
     notificationBody,
     targetUserIds = [],
+    notifyAdmins = false,
     draft: controlledDraft,
     onDraftChange,
   },
@@ -179,9 +184,12 @@ export const SendNotificationButton = forwardRef<
   }, [filters, isUseInModal]);
 
   const sendToUsers = useCallback(
-    async (userIds: string[]): Promise<NotificationSendResult> => {
+    async (
+      userIds: string[],
+      loanId?: string,
+    ): Promise<NotificationSendResult> => {
       const uniqueIds = [...new Set(userIds)];
-      if (uniqueIds.length === 0) {
+      if (uniqueIds.length === 0 && !notifyAdmins) {
         return {
           skipped: false,
           sentCount: 0,
@@ -193,7 +201,7 @@ export const SendNotificationButton = forwardRef<
         return {
           skipped: false,
           sentCount: 0,
-          failedCount: uniqueIds.length,
+          failedCount: notifyAdmins ? 1 : uniqueIds.length,
           error: "Enter both a notification title and body.",
         };
       }
@@ -204,24 +212,35 @@ export const SendNotificationButton = forwardRef<
       let failedCount = 0;
       let firstError: string | undefined;
       const failureReasons: string[] = [];
+      const batches = notifyAdmins
+        ? [[]]
+        : Array.from(
+            { length: Math.ceil(uniqueIds.length / SEND_BATCH_SIZE) },
+            (_, index) =>
+              uniqueIds.slice(
+                index * SEND_BATCH_SIZE,
+                (index + 1) * SEND_BATCH_SIZE,
+              ),
+          );
 
       try {
-        for (
-          let index = 0;
-          index < uniqueIds.length;
-          index += SEND_BATCH_SIZE
-        ) {
-          const batch = uniqueIds.slice(index, index + SEND_BATCH_SIZE);
+        for (const batch of batches) {
           try {
-            const response = await fetch("/api/notifications/send", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                targetUserId: batch,
-                title: title.trim(),
-                body: body.trim(),
-              }),
-            });
+            const response = await fetch(
+              notifyAdmins
+                ? "/api/notifications/send-to-admins"
+                : "/api/notifications/send",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ...(notifyAdmins ? {} : { targetUserId: batch }),
+                  ...(notifyAdmins && loanId ? { loanId } : {}),
+                  title: title.trim(),
+                  body: body.trim(),
+                }),
+              },
+            );
             const result = (await response.json()) as {
               ok?: boolean;
               successfulUsersCount?: number;
@@ -243,7 +262,7 @@ export const SendNotificationButton = forwardRef<
               failureReasons.push(failure.reason);
             }
           } catch (error) {
-            failedCount += batch.length;
+            failedCount += notifyAdmins ? 1 : batch.length;
             firstError ??=
               error instanceof Error
                 ? error.message
@@ -262,18 +281,21 @@ export const SendNotificationButton = forwardRef<
       setSendError(error ?? null);
       return { skipped: false, sentCount, failedCount, error };
     },
-    [body, title],
+    [body, notifyAdmins, title],
   );
 
   useImperativeHandle(
     ref,
     () => ({
       isEnabled: () => isEnabled,
-      sendIfEnabled: async (explicitUserIds) => {
+      sendIfEnabled: async (explicitUserIds, context) => {
         if (!isUseInModal || !isEnabled) {
           return { skipped: true, sentCount: 0, failedCount: 0 };
         }
-        return sendToUsers(explicitUserIds ?? targetUserIds);
+        return sendToUsers(
+          explicitUserIds ?? targetUserIds,
+          context?.loanId,
+        );
       },
     }),
     [isEnabled, isUseInModal, sendToUsers, targetUserIds],

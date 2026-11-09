@@ -528,6 +528,32 @@ export async function deleteUserLoan(id: string, userId: string) {
   return deleted;
 }
 
+export async function deleteAdminLoan(
+  id: string,
+  adminId: string,
+  statuses: NonNullable<LoanListFilters["status"]>[],
+) {
+  const deletedAt = new Date();
+  const [deleted] = await db
+    .update(loans)
+    .set({
+      deletedAt,
+      deletedBy: adminId,
+      updatedAt: deletedAt,
+      updatedBy: adminId,
+    })
+    .where(
+      and(
+        eq(loans.id, id),
+        inArray(loans.status, statuses),
+        isNull(loans.deletedAt),
+      ),
+    )
+    .returning({ id: loans.id });
+
+  return deleted;
+}
+
 /**
  * Updates a loan only if it also matches `where` (e.g. still `pending`, or
  * still owned by a given admin — the guard that makes status transitions
