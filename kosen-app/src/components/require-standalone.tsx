@@ -14,10 +14,7 @@ export function RequireStandalone({ children }: { children: React.ReactNode }) {
     }
   }, [isStandalone, router]);
 
-  if (!isStandalone) {
-    return null;
-  }
-
+  // Standalone mode is only detectable in the browser, so keep the SSR content visible.
   return <>{children}</>;
 }
 
