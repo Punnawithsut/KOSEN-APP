@@ -13,14 +13,19 @@ function getSnapshot(): boolean {
   return isDisplayModeStandalone || iosStandalone;
 }
 
-function getServerSnapshot(): boolean {
-  return false;
+function getServerSnapshot(): boolean | null {
+  return null;
 }
 
 function subscribe(callback: () => void) {
   const mql = window.matchMedia("(display-mode: standalone)");
-  mql.addEventListener("change", callback);
-  return () => mql.removeEventListener("change", callback);
+  if (typeof mql.addEventListener === "function") {
+    mql.addEventListener("change", callback);
+    return () => mql.removeEventListener("change", callback);
+  }
+
+  mql.addListener(callback);
+  return () => mql.removeListener(callback);
 }
 
 export function useIsStandalone() {
