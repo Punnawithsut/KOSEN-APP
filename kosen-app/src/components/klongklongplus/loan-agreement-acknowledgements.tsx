@@ -125,11 +125,12 @@ export function LoanAgreementAcknowledgements({
                   </h3>
                   <div className="space-y-2 pl-4">
                     <p>
-                      <strong>Normal periods:</strong> The periods are
-                      08:15–09:55, 10:05–11:45, 12:40–14:20, and 14:30–16:10.
-                      Submit the borrowing notification form at least 5 minutes
-                      before your selected start time. Club staff will deliver
-                      the equipment at least 5 minutes before that time.
+                      <strong>Normal periods:</strong> The morning period is
+                      08:15–11:45, and you must submit the borrowing
+                      notification form before 07:55. The evening period is
+                      12:40–16:10, and you must submit the form before 12:30.
+                      Club staff will deliver the equipment at least 5 minutes
+                      before your selected start time.
                     </p>
                     <p>
                       <strong>Exam periods:</strong> The periods are
@@ -143,12 +144,12 @@ export function LoanAgreementAcknowledgements({
 
                 <section className="space-y-2">
                   <h3 className="font-semibold text-black-1">
-                    2. Return method
+                    2. Receive and Return method
                   </h3>
                   <p className="pl-4">
-                    Return the item to the staff member who delivered it, at the
-                    designated receiving location, within 5 minutes of the end
-                    of your borrowing period.
+                    Go to the 8th floor, room 805, to receive the equipment.
+                    Return it to the staff member there within 5 minutes of the
+                    end of your borrowing period.
                   </p>
                 </section>
 
