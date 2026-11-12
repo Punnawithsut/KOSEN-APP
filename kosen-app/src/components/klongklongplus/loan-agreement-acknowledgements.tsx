@@ -129,15 +129,16 @@ export function LoanAgreementAcknowledgements({
                       08:15–11:45, and you must submit the borrowing
                       notification form before 07:55. The evening period is
                       12:40–16:10, and you must submit the form before 12:30.
-                      Club staff will deliver the equipment at least 5 minutes
-                      before your selected start time.
+                      The equipment will be ready for collection at the 8th
+                      floor, room 805, at least 5 minutes before your selected
+                      start time.
                     </p>
                     <p>
                       <strong>Exam periods:</strong> The periods are
                       08:30–10:00, 11:00–12:30, and 14:00–15:30. Notify staff at
-                      least 10 minutes before your selected start time. Staff
-                      will deliver the equipment at least 10 minutes before that
-                      time.
+                      least 10 minutes before your selected start time. The
+                      equipment will be ready for collection at the 8th floor,
+                      room 805, at least 10 minutes before that time.
                     </p>
                   </div>
                 </section>
@@ -147,8 +148,8 @@ export function LoanAgreementAcknowledgements({
                     2. Receive and Return method
                   </h3>
                   <p className="pl-4">
-                    Go to the 8th floor, room 805, to receive the equipment.
-                    Return it to the staff member there within 5 minutes of the
+                    Go to the 8th floor, room 805, to receive the equipment and
+                    return it to the staff member there within 5 minutes of the
                     end of your borrowing period.
                   </p>
                 </section>
