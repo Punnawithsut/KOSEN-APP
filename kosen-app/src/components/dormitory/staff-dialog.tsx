@@ -97,7 +97,7 @@ export function StaffDialog({
       actionLabel="Save"
       actionType="submit"
       actionForm={formId}
-      isActionDisabled={!name.trim()}
+      isActionDisabled={!name.trim() || !nickname.trim()}
       onCancel={onClose}
     >
       <form id={formId} onSubmit={handleSubmit} className="min-w-0 space-y-4">
@@ -112,11 +112,16 @@ export function StaffDialog({
               maxLength={80}
             />
           </Field>
-          <Field label="Nickname" htmlFor={`${formId}-nickname`}>
+          <Field
+            label="Warden nickname"
+            htmlFor={`${formId}-nickname`}
+            hint="Shown on the Contact Staff card."
+          >
             <Input
               id={`${formId}-nickname`}
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
+              required
               maxLength={40}
             />
           </Field>

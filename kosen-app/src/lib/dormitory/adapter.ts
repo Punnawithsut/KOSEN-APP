@@ -60,7 +60,12 @@ export function adaptDormData(raw: {
     };
     const name = String(w.name ?? "");
     const existing = staffById.get(name);
-    if (existing) existing.officeHours.push(hours);
+    if (existing) {
+      existing.officeHours.push(hours);
+      if (!existing.nickname && w.nickname) {
+        existing.nickname = String(w.nickname);
+      }
+    }
     else
       staffById.set(name, {
         id: String(w.id),

@@ -240,25 +240,40 @@ export function HandbookSection({
 
       {/* Rules text */}
       <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
-        <DialogContent className="max-h-[85dvh] min-w-0 overflow-x-hidden overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="min-w-0 [overflow-wrap:anywhere]">
+        <DialogContent
+          className="h-fit max-h-[85dvh] w-[calc(100vw-2rem)] max-w-lg grid-cols-[minmax(0,1fr)] overflow-x-hidden overflow-y-auto"
+          style={{
+            width: "calc(100vw - 2rem)",
+            minWidth: 0,
+            gridTemplateColumns: "minmax(0, 1fr)",
+          }}
+        >
+          <DialogHeader className="min-w-0">
+            <DialogTitle className="min-w-0 max-w-full [overflow-wrap:anywhere]">
               {activeRule ? visibleRules[0]?.title : "Dormitory rules"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="min-w-0 max-w-full [overflow-wrap:anywhere]">
               Please read carefully and follow the rules.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex w-full min-w-0 max-w-full flex-col gap-4">
             {visibleRules.map((rule) => (
-              <article key={rule.id} className="min-w-0">
+              <article key={rule.id} className="w-full min-w-0 max-w-full">
                 {activeRule ? null : (
-                  <h4 className="font-semibold text-black-1 [overflow-wrap:anywhere]">
+                  <h4 className="w-full min-w-0 max-w-full font-semibold text-black-1 [overflow-wrap:anywhere]">
                     {rule.title}
                   </h4>
                 )}
                 {rule.body ? (
-                  <p className="whitespace-pre-line text-sm text-black-2 [overflow-wrap:anywhere]">
+                  <p
+                    className="w-full min-w-0 max-w-full break-all whitespace-pre-wrap text-sm text-black-2"
+                    style={{
+                      maxWidth: "100%",
+                      overflowWrap: "anywhere",
+                      wordBreak: "break-word",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
                     {rule.body}
                   </p>
                 ) : null}

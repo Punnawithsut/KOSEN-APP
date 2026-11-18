@@ -60,6 +60,14 @@ function parseNickname(value: unknown): string | null {
   return nickname;
 }
 
+function parseRequiredNickname(value: unknown): string {
+  const nickname = parseRequiredText(value, "Nickname");
+  if (nickname.length > 40) {
+    throw new BadRequestError("Nickname must be 40 characters or fewer.");
+  }
+  return nickname;
+}
+
 function parseOfficeDay(value: unknown): OfficeDay {
   if (
     typeof value !== "string" ||
@@ -152,7 +160,7 @@ export async function fetchWarden(id: string) {
 export async function createWarden(createdBy: string, body: unknown) {
   const payload = parseObjectBody(body);
   const name = parseRequiredText(payload.name, "Name");
-  const nickname = parseNickname(payload.nickname);
+  const nickname = parseRequiredNickname(payload.nickname);
   const lineID = parseOptionalText(payload.lineID);
   const phone = parseOptionalText(payload.phone);
   const role =
