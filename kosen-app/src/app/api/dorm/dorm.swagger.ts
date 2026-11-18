@@ -170,9 +170,16 @@ export const dormDocs = {
           "application/json": {
             schema: {
               type: "object",
-              required: ["name", "officeDay", "officeStartTime", "officeEndTime"],
+              required: [
+                "name",
+                "nickname",
+                "officeDay",
+                "officeStartTime",
+                "officeEndTime",
+              ],
               properties: {
                 name: { type: "string", example: "Ajarn Somchai" },
+                nickname: { type: "string", maxLength: 40, example: "Som" },
                 lineID: { type: "string", example: "somchai_line" },
                 phone: { type: "string", example: "0812345678" },
                 role: {
@@ -250,6 +257,7 @@ export const dormDocs = {
               type: "object",
               properties: {
                 name: { type: "string" },
+                nickname: { type: "string", maxLength: 40 },
                 lineID: { type: "string" },
                 phone: { type: "string" },
                 role: { type: "string" },

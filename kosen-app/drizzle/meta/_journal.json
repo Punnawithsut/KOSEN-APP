@@ -71,6 +71,13 @@
       "when": 1793265028723,
       "tag": "0009_spotty_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794981400708,
+      "tag": "0010_famous_khan",
+      "breakpoints": true
     }
   ]
 }

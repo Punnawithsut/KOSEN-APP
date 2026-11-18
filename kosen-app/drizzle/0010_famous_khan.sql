@@ -1,0 +1,1 @@
+ALTER TABLE "dorm_wardens" ADD COLUMN "nickname" varchar(40);

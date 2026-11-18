@@ -190,10 +190,10 @@ export function StaffPreviewDialog({
           )}
           <DialogHeader className="items-center">
             <DialogTitle className="text-4xl font-semibold text-black-1">
-              {person.nickname || person.name}
+              {person.name}
             </DialogTitle>
             <DialogDescription className="text-sm text-black-3">
-              {person.nickname ? person.name : "Dormitory staff member"}
+              Nickname: {person.nickname || "Not set"}
             </DialogDescription>
           </DialogHeader>
           <span className="rounded-full bg-blue-secondary px-3 py-1 text-xs font-semibold text-white">

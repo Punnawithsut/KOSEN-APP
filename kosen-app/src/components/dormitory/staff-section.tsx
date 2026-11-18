@@ -58,11 +58,11 @@ export function StaffSection({
               >
                 <div className="min-w-0">
                   <h3 className="text-xl font-semibold text-black-1">
-                    {person.nickname || person.name}
+                    {person.name}
                   </h3>
-                  {person.nickname ? (
-                    <p className="text-sm text-black-3">{person.name}</p>
-                  ) : null}
+                  <p className="text-sm text-black-3">
+                    Nickname: {person.nickname || "Not set"}
+                  </p>
                   <p className="mt-1 text-xs text-black-3">
                     • {STAFF_POSITIONS[person.position]}
                   </p>

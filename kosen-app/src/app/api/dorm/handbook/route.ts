@@ -1,10 +1,28 @@
 import { NextResponse } from "next/server";
 import { useAdminMiddleware as withAdmin, withSessionMiddleware } from "../../_shared/middleware";
+import { AppError } from "../../_shared/errors";
 import { getHandbookUrl, removeHandbook, replaceHandbook } from "./handbook.service";
 
 export const GET = withSessionMiddleware(async (request) => {
-  const signedUrl = await getHandbookUrl(request.nextUrl.searchParams.get("download") === "1");
-  return NextResponse.redirect(signedUrl);
+  const download = request.nextUrl.searchParams.get("download") === "1";
+  const signedUrl = await getHandbookUrl(download);
+  if (download) return NextResponse.redirect(signedUrl);
+
+  const response = await fetch(signedUrl, { cache: "no-store" });
+  if (!response.ok || !response.body) {
+    throw new AppError("Unable to access handbook.", 502);
+  }
+
+  const headers = new Headers({
+    "Content-Type": response.headers.get("content-type") ?? "application/pdf",
+    "Content-Disposition": "inline",
+    "Cache-Control": "private, no-store",
+    "X-Content-Type-Options": "nosniff",
+  });
+  const contentLength = response.headers.get("content-length");
+  if (contentLength) headers.set("Content-Length", contentLength);
+
+  return new NextResponse(response.body, { headers });
 });
 
 export const POST = withAdmin(async (request, { user }) => {
