@@ -149,7 +149,7 @@ export function HandbookSection({
         ) : null}
 
         {rules.length > 0 || isAdmin ? (
-          <div className="flex flex-col gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-col gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4 sm:flex-row sm:items-center">
             <div className="flex items-center justify-between gap-4 sm:w-40 sm:shrink-0 sm:flex-col sm:items-start">
               <h3 className="font-heading text-3xl text-black-2">Rules</h3>
               <button
@@ -161,16 +161,16 @@ export function HandbookSection({
                 Read all
               </button>
             </div>
-            <ul className="flex flex-1 flex-col gap-2">
+            <ul className="flex w-full min-w-0 flex-1 flex-col gap-2 sm:w-auto">
               {rules.map((rule) => (
-                <li key={rule.id} className="flex items-center gap-2">
+                <li key={rule.id} className="flex min-w-0 items-center gap-2">
                   <button
                     type="button"
                     onClick={() => openRule(rule.id)}
-                    className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg bg-orange-primary px-3 py-2 text-left text-white transition-all hover:brightness-95 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary"
+                    className="flex w-full min-w-0 flex-1 items-center justify-between gap-3 overflow-hidden rounded-lg bg-orange-primary px-3 py-2 text-left text-white transition-all hover:brightness-95 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold">
+                    <span className="min-w-0 flex-1 overflow-hidden">
+                      <span className="block whitespace-normal break-words text-sm font-semibold [overflow-wrap:anywhere]">
                         {rule.title}
                       </span>
                       <span className="block text-[10px] text-white/80">
@@ -180,7 +180,7 @@ export function HandbookSection({
                     <ArrowUpRightIcon className="size-4 shrink-0" />
                   </button>
                   {isAdmin ? (
-                    <div className="flex flex-col gap-1">
+                    <div className="flex shrink-0 flex-col gap-1">
                       <EditButton label={`Edit ${rule.title}`} onClick={() => setEditingRule(rule)} />
                       <DeleteButton label={`Delete ${rule.title}`} onClick={() => setDeletingRule(rule)} />
                     </div>
