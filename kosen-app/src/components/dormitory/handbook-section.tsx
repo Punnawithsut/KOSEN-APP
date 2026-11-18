@@ -94,7 +94,7 @@ export function HandbookSection({
 
       <div className="grid gap-4 lg:grid-cols-2">
         {showHandbook ? (
-          <div className="relative flex gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4">
+          <div className="relative flex min-w-0 gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4">
             {isAdmin ? (
               <div className="absolute top-2 right-2 flex flex-col gap-1">
                 <EditButton label="Update handbook" onClick={() => setEditingHandbook(true)} />
@@ -111,7 +111,7 @@ export function HandbookSection({
 
             <div className="flex min-w-0 flex-1 flex-col justify-between gap-4">
               <div>
-                <h3 className="font-heading text-2xl leading-tight text-black-2 sm:text-3xl">
+                <h3 className="break-words font-heading text-2xl leading-tight text-black-2 sm:text-3xl">
                   {handbook.title}
                 </h3>
                 <p className="mt-2 text-xs text-black-2">
@@ -143,7 +143,7 @@ export function HandbookSection({
         ) : null}
 
         {rules.length > 0 || isAdmin ? (
-          <div className="flex flex-col gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-col gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4 sm:flex-row sm:items-center">
             <div className="flex items-center justify-between gap-4 sm:w-40 sm:shrink-0 sm:flex-col sm:items-start">
               <h3 className="font-heading text-3xl text-black-2">Rules</h3>
               <button
@@ -155,7 +155,7 @@ export function HandbookSection({
                 Read all
               </button>
             </div>
-            <ul className="flex flex-1 flex-col gap-2">
+            <ul className="flex min-w-0 flex-1 flex-col gap-2">
               {rules.map((rule) => (
                 <li key={rule.id} className="flex items-center gap-2">
                   <button
@@ -164,7 +164,7 @@ export function HandbookSection({
                     className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg bg-orange-primary px-3 py-2 text-left text-white transition-all hover:brightness-95 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary"
                   >
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold">
+                      <span className="block break-words text-sm font-semibold">
                         {rule.title}
                       </span>
                       <span className="block text-[10px] text-white/80">
@@ -251,10 +251,10 @@ export function HandbookSection({
             {visibleRules.map((rule) => (
               <article key={rule.id}>
                 {activeRule ? null : (
-                  <h4 className="font-semibold text-black-1">{rule.title}</h4>
+                  <h4 className="break-words font-semibold text-black-1">{rule.title}</h4>
                 )}
                 {rule.body ? (
-                  <p className="whitespace-pre-line text-sm text-black-2">
+                  <p className="break-words whitespace-pre-line text-sm text-black-2">
                     {rule.body}
                   </p>
                 ) : null}
