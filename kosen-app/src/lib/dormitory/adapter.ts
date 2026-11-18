@@ -65,7 +65,7 @@ export function adaptDormData(raw: {
       staffById.set(name, {
         id: String(w.id),
         name,
-        nickname: name,
+        nickname: String(w.nickname ?? ""),
         position: positions[String(w.role).toLowerCase()] ?? "educator",
         officeHours: [hours],
         phone: String(w.phone ?? ""),

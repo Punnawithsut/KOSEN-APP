@@ -52,6 +52,14 @@ function parseOptionalText(value: unknown): string | null {
   return value.trim() || null;
 }
 
+function parseNickname(value: unknown): string | null {
+  const nickname = parseOptionalText(value);
+  if (nickname && nickname.length > 40) {
+    throw new BadRequestError("Nickname must be 40 characters or fewer.");
+  }
+  return nickname;
+}
+
 function parseOfficeDay(value: unknown): OfficeDay {
   if (
     typeof value !== "string" ||
@@ -95,6 +103,7 @@ export async function listWardens(filters: WardenFilters /*, page: number*/) {
     items: items.map((item) => ({
       id: item.id,
       name: item.name,
+      nickname: item.nickname,
       lineID: item.lineID,
       phone: item.phone,
       role: item.role,
@@ -124,6 +133,7 @@ export async function fetchWarden(id: string) {
   return {
     id: warden.id,
     name: warden.name,
+    nickname: warden.nickname,
     lineID: warden.lineID,
     phone: warden.phone,
     role: warden.role,
@@ -142,6 +152,7 @@ export async function fetchWarden(id: string) {
 export async function createWarden(createdBy: string, body: unknown) {
   const payload = parseObjectBody(body);
   const name = parseRequiredText(payload.name, "Name");
+  const nickname = parseNickname(payload.nickname);
   const lineID = parseOptionalText(payload.lineID);
   const phone = parseOptionalText(payload.phone);
   const role =
@@ -160,6 +171,7 @@ export async function createWarden(createdBy: string, body: unknown) {
 
   return await insertWarden(createdBy, {
     name,
+    nickname,
     lineID,
     phone,
     role,
@@ -173,6 +185,7 @@ export async function createWarden(createdBy: string, body: unknown) {
     return {
       id: created.id,
       name: created.name,
+      nickname: created.nickname,
       lineID: created.lineID,
       phone: created.phone,
       role: created.role,
@@ -199,6 +212,9 @@ export async function modifyWarden(
   const data: WardenUpdateData = {};
 
   if ("name" in payload) data.name = parseRequiredText(payload.name, "Name");
+  if ("nickname" in payload) {
+    data.nickname = parseNickname(payload.nickname);
+  }
   if ("lineID" in payload) data.lineID = parseOptionalText(payload.lineID);
   if ("phone" in payload) data.phone = parseOptionalText(payload.phone);
   if ("role" in payload) {
@@ -225,6 +241,7 @@ export async function modifyWarden(
   return {
     id: result.id,
     name: result.name,
+    nickname: result.nickname,
     lineID: result.lineID,
     phone: result.phone,
     role: result.role,

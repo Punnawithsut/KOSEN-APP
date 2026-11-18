@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, ilike } from "drizzle-orm";
+import { and, desc, eq, isNull, ilike, or } from "drizzle-orm";
 import { db } from "@/db/client";
 import { dormWardensInfo, officeDays } from "@/db/schema";
 
@@ -14,6 +14,7 @@ export type WardenFilters = {
 
 export type WardenUpdateData = {
   name?: string;
+  nickname?: string | null;
   lineID?: string | null;
   phone?: string | null;
   role?: string | null;
@@ -26,7 +27,10 @@ function buildWardenWhere(filters: WardenFilters) {
   return and(
     isNull(dormWardensInfo.deletedAt),
     filters.searchName
-      ? ilike(dormWardensInfo.name, `%${filters.searchName}%`)
+      ? or(
+          ilike(dormWardensInfo.name, `%${filters.searchName}%`),
+          ilike(dormWardensInfo.nickname, `%${filters.searchName}%`),
+        )
       : undefined,
     filters.officeDay
       ? eq(dormWardensInfo.officeDay, filters.officeDay)
@@ -71,6 +75,7 @@ export async function createWarden(
     .insert(dormWardensInfo)
     .values({
       name: data.name!,
+      nickname: data.nickname ?? null,
       lineID: data.lineID ?? null,
       phone: data.phone ?? null,
       role: data.role ?? "Educator",
@@ -103,6 +108,7 @@ export async function updateWardenById(
     .update(dormWardensInfo)
     .set({
       ...(data.name !== undefined && { name: data.name }),
+      ...(data.nickname !== undefined && { nickname: data.nickname }),
       ...(data.lineID !== undefined && { lineID: data.lineID }),
       ...(data.phone !== undefined && { phone: data.phone }),
       ...(data.role !== undefined && { role: data.role }),

@@ -164,7 +164,7 @@ export function DormitoryView({ isAdmin = false, initialData }: { isAdmin?: bool
                 if (!person.officeHours.length) { toast({ title: "Add an office hour", variant: "error" }); return; }
                 const existing = allStaff.find((item) => item.id === person.id);
                 const dayFor = (day: (typeof person.officeHours)[number]["day"]) => ({ Mon: "monday", Tue: "tuesday", Wed: "wednesday", Thu: "thursday", Fri: "friday", Sat: "saturday", Sun: "sunday" } as const)[day];
-                const bodyFor = (hour: (typeof person.officeHours)[number]) => ({ name: person.name, role: STAFF_POSITIONS[person.position], lineID: person.lineId, phone: person.phone, officeDay: dayFor(hour.day), officeStartTime: hour.start, officeEndTime: hour.end });
+                const bodyFor = (hour: (typeof person.officeHours)[number]) => ({ name: person.name, nickname: person.nickname, role: STAFF_POSITIONS[person.position], lineID: person.lineId, phone: person.phone, officeDay: dayFor(hour.day), officeStartTime: hour.start, officeEndTime: hour.end });
                 const changes = person.officeHours.map((hour) => saveJson(hour.recordId ? `/api/dorm/dormwardens/${hour.recordId}` : "/api/dorm/dormwardens", hour.recordId ? "PUT" : "POST", bodyFor(hour)));
                 const keptIds = new Set(person.officeHours.map((hour) => hour.recordId).filter(Boolean));
                 for (const oldHour of existing?.officeHours ?? []) if (oldHour.recordId && !keptIds.has(oldHour.recordId)) changes.push(saveJson(`/api/dorm/dormwardens/${oldHour.recordId}`, "DELETE"));

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { ArrowUpRightIcon, DownloadIcon, EyeIcon, FileXIcon } from "lucide-react";
 
 import {
@@ -25,6 +26,11 @@ import type { DormHandbook, DormRule } from "@/lib/dormitory/data";
 
 const ACTION_BASE =
   "inline-flex h-10 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold transition-all active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-secondary";
+
+const HandbookPdfPreview = dynamic(
+  () => import("@/components/dormitory/handbook-pdf-preview"),
+  { ssr: false },
+);
 
 export function HandbookSection({
   handbook,
@@ -193,7 +199,7 @@ export function HandbookSection({
 
       {/* PDF preview. With no file uploaded it shows an empty state instead. */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="h-[85vh] sm:max-w-3xl grid-rows-[auto_1fr]">
+        <DialogContent className="h-[90dvh] min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-3 sm:max-w-4xl sm:p-6">
           <DialogHeader>
             <DialogTitle>{handbook.title}</DialogTitle>
             <DialogDescription>
@@ -201,11 +207,7 @@ export function HandbookSection({
             </DialogDescription>
           </DialogHeader>
           {handbook.pdfUrl ? (
-            <iframe
-              src={handbook.pdfUrl}
-              title={`${handbook.title} preview`}
-              className="size-full rounded-lg border"
-            />
+            <HandbookPdfPreview url={handbook.pdfUrl} />
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-center">
               <FileXIcon className="size-10 text-black-4" />
@@ -238,23 +240,25 @@ export function HandbookSection({
 
       {/* Rules text */}
       <Dialog open={rulesOpen} onOpenChange={setRulesOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85dvh] min-w-0 overflow-x-hidden overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="min-w-0 [overflow-wrap:anywhere]">
               {activeRule ? visibleRules[0]?.title : "Dormitory rules"}
             </DialogTitle>
             <DialogDescription>
               Please read carefully and follow the rules.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             {visibleRules.map((rule) => (
-              <article key={rule.id}>
+              <article key={rule.id} className="min-w-0">
                 {activeRule ? null : (
-                  <h4 className="font-semibold text-black-1">{rule.title}</h4>
+                  <h4 className="font-semibold text-black-1 [overflow-wrap:anywhere]">
+                    {rule.title}
+                  </h4>
                 )}
                 {rule.body ? (
-                  <p className="whitespace-pre-line text-sm text-black-2">
+                  <p className="whitespace-pre-line text-sm text-black-2 [overflow-wrap:anywhere]">
                     {rule.body}
                   </p>
                 ) : null}

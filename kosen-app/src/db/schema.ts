@@ -195,6 +195,7 @@ export const forms = pgTable("forms", { // For dorms
 export const dormWardensInfo = pgTable("dorm_wardens", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
+  nickname: varchar("nickname", { length: 40 }),
   lineID: varchar("line_id", { length: 255 }),
   phone: varchar("phone", { length: 20 }),
   role: varchar("role", { length: 100 }).default("Educator"),
