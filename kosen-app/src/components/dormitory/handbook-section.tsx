@@ -100,7 +100,7 @@ export function HandbookSection({
 
       <div className="grid gap-4 lg:grid-cols-2">
         {showHandbook ? (
-          <div className="relative flex gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4">
+          <div className="relative flex min-w-0 gap-4 rounded-2xl border-2 border-orange-subtle-1 bg-orange-subtle-2 p-4">
             {isAdmin ? (
               <div className="absolute top-2 right-2 flex flex-col gap-1">
                 <EditButton label="Update handbook" onClick={() => setEditingHandbook(true)} />
@@ -117,7 +117,7 @@ export function HandbookSection({
 
             <div className="flex min-w-0 flex-1 flex-col justify-between gap-4">
               <div>
-                <h3 className="font-heading text-2xl leading-tight text-black-2 sm:text-3xl">
+                <h3 className="break-words font-heading text-2xl leading-tight text-black-2 sm:text-3xl">
                   {handbook.title}
                 </h3>
                 <p className="mt-2 text-xs text-black-2">
